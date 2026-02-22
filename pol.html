@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POL - Components Bay</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <script type="module" src="supabase-config.js"></script>
+    <style>
+        .pol-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            padding: 30px 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            z-index: 10000;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            animation: popIn 0.3s ease;
+        }
+        .pol-notification.expired { border-top: 5px solid #e74c3c; }
+        .pol-notification.expiring-soon { border-top: 5px solid #f39c12; }
+        .pol-notification h3 { margin: 0 0 15px 0; font-size: 1.3em; }
+        .pol-notification .notif-icon { font-size: 3em; margin-bottom: 10px; }
+        .pol-notification .notif-pn { font-weight: 700; color: #2c3e50; font-size: 1.1em; margin: 10px 0; }
+        .pol-notification .notif-btn { margin-top: 20px; padding: 10px 30px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .pol-notification .btn-close-notif { background: #e74c3c; color: white; }
+        .pol-notification .btn-close-notif:hover { background: #c0392b; }
+        .pol-notification .btn-warn-notif { background: #f39c12; color: white; }
+        .pol-notification .btn-warn-notif:hover { background: #d68910; }
+        .pol-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; }
+        @keyframes popIn { from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <a href="http://10.10.0.21:8080/QATAR_V1_2/index.htm" target="_blank" class="nav-btn ietp-btn">🔗 IETP</a>
+                <a href="index.html" class="nav-btn">🏠 Home</a>
+            </div>
+            <div class="nav-right">
+                <button onclick="exportData()" class="nav-btn export-btn">📊 Export Excel</button>
+                <span id="userInfo" class="nav-btn user-btn"></span>
+            </div>
+        </div>
+
+        <!-- Main Header -->
+        <div class="main-header">
+            <div class="header-content">
+                <h1>🛢️ POL Management</h1>
+                <p style="color:#64748b;margin:0;">Petroleum, Oil & Lubricants</p>
+            </div>
+            <div class="header-actions">
+                <button onclick="showAddForm()" class="btn btn-add">➕ Add POL</button>
+                <button onclick="showViewAll()" class="btn">📋 View All</button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card serviceable">
+                <div class="summary-number" id="validCount">0</div>
+                <div class="summary-label">VALID</div>
+            </div>
+            <div class="summary-card unserviceable">
+                <div class="summary-number" id="expiredCount">0</div>
+                <div class="summary-label">EXPIRED</div>
+            </div>
+            <div class="summary-card" style="border-left-color: #f39c12;">
+                <div class="summary-number" id="expiringSoonCount">0</div>
+                <div class="summary-label">EXPIRING SOON</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number" id="totalCount">0</div>
+                <div class="summary-label">TOTAL</div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Form -->
+        <div id="addFormSection" class="card hidden">
+            <h2 id="formTitle">➕ Add POL Item</h2>
+            <div id="formMessage"></div>
+            <form onsubmit="handleSubmit(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Designation *</label>
+                        <input type="text" id="designation" class="form-control" placeholder="e.g. Hydraulic Fluid" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Part Number (P/N) *</label>
+                        <input type="text" id="partNumber" class="form-control" placeholder="Enter P/N" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Batch Number</label>
+                        <input type="text" id="batchNumber" class="form-control" placeholder="Enter batch number">
+                    </div>
+                    <div class="form-group">
+                        <label>Expiry Date *</label>
+                        <input type="date" id="expiryDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Brand</label>
+                        <input type="text" id="brand" class="form-control" placeholder="Enter brand">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <textarea id="comments" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="mt-20">
+                    <button type="submit" class="btn btn-success">💾 Save</button>
+                    <button type="button" onclick="cancelForm()" class="btn" style="margin-left: 10px;">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- View All Table -->
+        <div id="viewAllSection" class="card hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>📋 ALL POL ITEMS</h2>
+                <span class="badge" id="tableCount">0</span>
+            </div>
+            <div id="allItemsTable"></div>
+        </div>
+
+        <!-- Detail Modal -->
+        <div id="detailModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="modalTitle">POL Details</h3>
+                    <button onclick="closeModal()" class="modal-close">✕</button>
+                </div>
+                <div id="modalBody"></div>
+                <div class="modal-actions">
+                    <button onclick="editCurrent()" class="btn btn-add">✏️ Edit</button>
+                    <button onclick="deleteCurrent()" class="btn btn-danger">🗑️ Delete</button>
+                    <button onclick="closeModal()" class="btn">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification container -->
+    <div id="notificationContainer"></div>
+
+    <script>
+        let currentUser = localStorage.getItem('componentsBayCurrentUser') || 'Unknown';
+        let userRole = localStorage.getItem('componentsBayUserRole') || 'user';
+        let polData = [];
+        let editingItem = null;
+        let currentItemId = null;
+
+        function waitForDB(maxWait = 3000) {
+            return new Promise((resolve) => {
+                if (window.ComponentsBayDB) return resolve(true);
+                const start = Date.now();
+                const check = setInterval(() => {
+                    if (window.ComponentsBayDB || Date.now() - start > maxWait) {
+                        clearInterval(check);
+                        resolve(!!window.ComponentsBayDB);
+                    }
+                }, 50);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            checkAuthentication();
+            await waitForDB();
+            await loadData();
+            updateSummary();
+            checkExpiryNotifications();
+        });
+
+        function checkAuthentication() {
+            if (!currentUser || currentUser === 'null') { window.location.href = 'index.html'; return; }
+            document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+        }
+
+        async function loadData() {
+            if (window.ComponentsBayDB) {
+                try {
+                    polData = await window.ComponentsBayDB.load('pol');
+                    console.log('✅ POL loaded from Supabase:', polData.length, 'items');
+                } catch(e) {
+                    const saved = localStorage.getItem('componentsBayPOL');
+                    if (saved) polData = JSON.parse(saved);
+                }
+            } else {
+                const saved = localStorage.getItem('componentsBayPOL');
+                if (saved) polData = JSON.parse(saved);
+            }
+        }
+
+        async function saveData() {
+            localStorage.setItem('componentsBayPOL', JSON.stringify(polData));
+            if (window.ComponentsBayDB) {
+                for (const item of polData) {
+                    try { await window.ComponentsBayDB.save('pol', {...item}); } catch(e) {}
+                }
+            }
+        }
+
+        function checkExpiryNotifications() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const sevenDays = new Date(today);
+            sevenDays.setDate(sevenDays.getDate() + 7);
+
+            const notifications = [];
+
+            polData.forEach(item => {
+                if (!item.expiryDate) return;
+                const expiry = new Date(item.expiryDate);
+
+                if (expiry < today) {
+                    notifications.push({ type: 'expired', pn: item.partNumber, designation: item.designation, date: item.expiryDate });
+                } else if (expiry <= sevenDays) {
+                    notifications.push({ type: 'expiring-soon', pn: item.partNumber, designation: item.designation, date: item.expiryDate });
+                }
+            });
+
+            if (notifications.length > 0) showNotifications(notifications);
+        }
+
+        function showNotifications(notifications) {
+            const container = document.getElementById('notificationContainer');
+            let idx = 0;
+
+            function showNext() {
+                if (idx >= notifications.length) { container.innerHTML = ''; return; }
+                const n = notifications[idx];
+                const isExpired = n.type === 'expired';
+
+                container.innerHTML = `
+                    <div class="pol-overlay" onclick="dismissNotification()"></div>
+                    <div class="pol-notification ${n.type}">
+                        <div class="notif-icon">${isExpired ? '🚨' : '⚠️'}</div>
+                        <h3>${isExpired ? 'POL EXPIRED' : 'POL EXPIRING SOON'}</h3>
+                        <div class="notif-pn">P/N: ${n.pn}</div>
+                        <div style="color:#64748b;">${n.designation}</div>
+                        <div style="margin-top:8px;font-size:0.95em;">
+                            ${isExpired 
+                                ? `<span style="color:#e74c3c;font-weight:700;">Expired on ${n.date}</span>` 
+                                : `<span style="color:#f39c12;font-weight:700;">Expires on ${n.date}</span>`
+                            }
+                        </div>
+                        <button class="notif-btn ${isExpired ? 'btn-close-notif' : 'btn-warn-notif'}" onclick="dismissNotification()">
+                            ${idx < notifications.length - 1 ? 'Next (' + (notifications.length - idx - 1) + ' more)' : 'OK'}
+                        </button>
+                    </div>`;
+                idx++;
+            }
+
+            window.dismissNotification = showNext;
+            showNext();
+        }
+
+        function updateSummary() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const sevenDays = new Date(today); sevenDays.setDate(sevenDays.getDate() + 7);
+
+            let valid = 0, expired = 0, expiringSoon = 0;
+            polData.forEach(item => {
+                if (!item.expiryDate) { valid++; return; }
+                const exp = new Date(item.expiryDate);
+                if (exp < today) expired++;
+                else if (exp <= sevenDays) { expiringSoon++; }
+                else valid++;
+            });
+
+            document.getElementById('validCount').textContent = valid;
+            document.getElementById('expiredCount').textContent = expired;
+            document.getElementById('expiringSoonCount').textContent = expiringSoon;
+            document.getElementById('totalCount').textContent = polData.length;
+        }
+
+        function handleSubmit(event) {
+            event.preventDefault();
+
+            const formData = {
+                id: editingItem ? editingItem.id : Date.now().toString() + '-' + Math.random().toString(36).substr(2, 6),
+                designation: document.getElementById('designation').value.trim(),
+                partNumber: document.getElementById('partNumber').value.trim(),
+                batchNumber: document.getElementById('batchNumber').value.trim(),
+                expiryDate: document.getElementById('expiryDate').value,
+                brand: document.getElementById('brand').value.trim(),
+                comments: document.getElementById('comments').value.trim(),
+                lastModified: new Date().toISOString(),
+                modifiedBy: currentUser
+            };
+
+            if (editingItem) {
+                const idx = polData.findIndex(i => i.id === editingItem.id);
+                if (idx !== -1) polData[idx] = formData;
+                editingItem = null;
+            } else {
+                polData.push(formData);
+            }
+
+            saveData();
+            updateSummary();
+            resetForm();
+            if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
+        }
+
+        function showAddForm() {
+            document.getElementById('addFormSection').classList.remove('hidden');
+            document.getElementById('viewAllSection').classList.add('hidden');
+            document.getElementById('formTitle').textContent = '➕ Add POL Item';
+        }
+
+        function showViewAll() {
+            document.getElementById('viewAllSection').classList.remove('hidden');
+            document.getElementById('addFormSection').classList.add('hidden');
+            refreshTable();
+        }
+
+        function refreshTable() {
+            const container = document.getElementById('allItemsTable');
+            document.getElementById('tableCount').textContent = polData.length;
+
+            if (polData.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No POL items yet</p></div>';
+                return;
+            }
+
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const sevenDays = new Date(today); sevenDays.setDate(sevenDays.getDate() + 7);
+
+            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>Batch</th><th>Expiry Date</th><th>Brand</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+            polData.forEach(item => {
+                let statusBadge = '<span class="status-badge status-serviceable">Valid</span>';
+                if (item.expiryDate) {
+                    const exp = new Date(item.expiryDate);
+                    if (exp < today) {
+                        statusBadge = '<span class="status-badge status-unserviceable">Expired</span>';
+                    } else if (exp <= sevenDays) {
+                        statusBadge = '<span class="status-badge status-overdue">Expiring Soon</span>';
+                    }
+                }
+
+                html += `<tr>
+                    <td>${item.designation}</td>
+                    <td>${item.partNumber}</td>
+                    <td>${item.batchNumber || '-'}</td>
+                    <td>${item.expiryDate || '-'}</td>
+                    <td>${item.brand || '-'}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button onclick="editItem('${item.id}')" class="btn btn-add" style="padding:4px 10px;font-size:12px;">✏️</button>
+                        <button onclick="deleteItem('${item.id}')" class="btn btn-danger" style="padding:4px 10px;font-size:12px;">🗑️</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function showDetail(id) {
+            const item = polData.find(i => i.id === id);
+            if (!item) return;
+            currentItemId = id;
+            document.getElementById('modalTitle').textContent = `${item.designation} - ${item.partNumber}`;
+            document.getElementById('modalBody').innerHTML = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div><strong>Designation:</strong> ${item.designation}</div>
+                    <div><strong>P/N:</strong> ${item.partNumber}</div>
+                    <div><strong>Batch:</strong> ${item.batchNumber || '-'}</div>
+                    <div><strong>Brand:</strong> ${item.brand || '-'}</div>
+                    <div><strong>Expiry Date:</strong> ${item.expiryDate || '-'}</div>
+                    ${item.comments ? `<div style="grid-column:1/-1;"><strong>Comments:</strong> ${item.comments}</div>` : ''}
+                </div>`;
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
+
+        function editItem(id) {
+            editingItem = polData.find(i => i.id === id);
+            if (!editingItem) return;
+            document.getElementById('designation').value = editingItem.designation || '';
+            document.getElementById('partNumber').value = editingItem.partNumber || '';
+            document.getElementById('batchNumber').value = editingItem.batchNumber || '';
+            document.getElementById('expiryDate').value = editingItem.expiryDate || '';
+            document.getElementById('brand').value = editingItem.brand || '';
+            document.getElementById('comments').value = editingItem.comments || '';
+            document.getElementById('formTitle').textContent = '✏️ Edit POL Item';
+            showAddForm();
+            closeModal();
+        }
+
+        function editCurrent() { if (currentItemId) editItem(currentItemId); }
+
+        async function deleteItem(id) {
+            if (!confirm('Delete this POL item?')) return;
+            polData = polData.filter(i => i.id !== id);
+            if (window.ComponentsBayDB) {
+                try { await window.ComponentsBayDB.delete('pol', id); } catch(e) {}
+            }
+            saveData();
+            updateSummary();
+            refreshTable();
+            closeModal();
+        }
+
+        function deleteCurrent() { if (currentItemId) deleteItem(currentItemId); }
+
+        function cancelForm() {
+            document.getElementById('addFormSection').classList.add('hidden');
+            resetForm();
+        }
+
+        function resetForm() {
+            editingItem = null;
+            document.getElementById('designation').value = '';
+            document.getElementById('partNumber').value = '';
+            document.getElementById('batchNumber').value = '';
+            document.getElementById('expiryDate').value = '';
+            document.getElementById('brand').value = '';
+            document.getElementById('comments').value = '';
+            document.getElementById('formTitle').textContent = '➕ Add POL Item';
+        }
+
+        function exportData() {
+            if (polData.length === 0) { alert('No data to export'); return; }
+            const headers = ['Designation', 'P/N', 'Batch Number', 'Expiry Date', 'Brand', 'Comments'];
+            let csv = headers.join(',') + '\n';
+            polData.forEach(item => {
+                csv += [item.designation, item.partNumber, item.batchNumber, item.expiryDate, item.brand, `"${(item.comments || '').replace(/"/g, '""')}"`].join(',') + '\n';
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'POL_Export.csv'; a.click();
+        }
+    </script>
+</body>
+</html>

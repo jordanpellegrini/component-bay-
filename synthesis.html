@@ -63,6 +63,10 @@
                 <div class="summary-number" id="avionicCount">0</div>
                 <div class="summary-label">Avionic Items</div>
             </div>
+            <div class="summary-card" style="border-left: 4px solid #9b59b6;">
+                <div class="summary-number" id="iafteaftCount">0</div>
+                <div class="summary-label">IAFT/EAFT Items</div>
+            </div>
         </div>
 
         <!-- Unserviceable Items Table -->
@@ -305,6 +309,23 @@
                 }
             });
 
+            // IAFT/EAFT module
+            const iaftData = await loadModule('iafteaft', 'componentsBayIaftEaft');
+            iaftData.forEach(item => {
+                if (item.serviceability === 'Unserviceable') {
+                    allUnserviceableItems.push({
+                        id: item.id || Date.now() + Math.random(),
+                        module: 'IAFT/EAFT',
+                        designation: item.designation || 'IAFT/EAFT',
+                        partNumber: item.partNumber || '-',
+                        serialNumber: item.serialNumber || '-',
+                        reason: item.reason || 'Unserviceable',
+                        details: item,
+                        priority: 10
+                    });
+                }
+            });
+
             // Sort by priority
             allUnserviceableItems.sort((a, b) => a.priority - b.priority);
 
@@ -318,7 +339,8 @@
                 wheel: allUnserviceableItems.filter(item => item.module === 'Wheel').length,
                 maintenance: allUnserviceableItems.filter(item => item.module === 'Maintenance').length,
                 composite: allUnserviceableItems.filter(item => item.module === 'Composite').length,
-                avionic: allUnserviceableItems.filter(item => item.module === 'Avionic').length
+                avionic: allUnserviceableItems.filter(item => item.module === 'Avionic').length,
+                iafteaft: allUnserviceableItems.filter(item => item.module === 'IAFT/EAFT').length
             };
 
             document.getElementById('totalUnserviceable').textContent = allUnserviceableItems.length;
@@ -328,6 +350,7 @@
             document.getElementById('maintenanceCount').textContent = counts.maintenance;
             document.getElementById('compositeCount').textContent = counts.composite;
             document.getElementById('avionicCount').textContent = counts.avionic;
+            document.getElementById('iafteaftCount').textContent = counts.iafteaft;
         }
 
         function refreshTable() {
@@ -368,7 +391,8 @@
                     'Wheel': '#e67e22',
                     'Maintenance': '#27ae60',
                     'Composite': '#8e44ad',
-                    'Avionic': '#17a2b8'
+                    'Avionic': '#17a2b8',
+                    'IAFT/EAFT': '#9b59b6'
                 };
                 
                 const reasonClass = item.reason === 'Missing logcard' ? 'status-missing' : 
@@ -500,7 +524,8 @@
                 'Wheel': '#e67e22',
                 'Maintenance': '#27ae60',
                 'Composite': '#8e44ad',
-                'Avionic': '#17a2b8'
+                'Avionic': '#17a2b8',
+                    'IAFT/EAFT': '#9b59b6'
             };
             return colors[module] || '#666';
         }

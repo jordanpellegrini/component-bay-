@@ -117,6 +117,24 @@
                     <p>Import gearboxes, swashplates with multi-cycle inspections</p>
                     <button onclick="downloadTemplate('rotorbay')" class="btn btn-add">📥 Download Template</button>
                 </div>
+
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">🛡️</span>
+                        <h3>IAFT/EAFT Template</h3>
+                    </div>
+                    <p>Import IAFT/EAFT with 24M, 60M & 360M inspection cycles</p>
+                    <button onclick="downloadTemplate('iafteaft')" class="btn btn-add">📥 Download Template</button>
+                </div>
+
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">🛢️</span>
+                        <h3>POL Template</h3>
+                    </div>
+                    <p>Import POL items with batch numbers and expiry dates</p>
+                    <button onclick="downloadTemplate('pol')" class="btn btn-add">📥 Download Template</button>
+                </div>
             </div>
         </div>
 
@@ -215,6 +233,16 @@
                 name: 'Rotor_Bay_Import_Template',
                 headers: ['Part_Number', 'Designation', 'Serial_Number', 'Inspection_Date', 'Next_Short', 'Next_Long', 'Short_Label', 'Long_Label', 'Serviceability', 'Work_In_Progress', 'Comments'],
                 example: ['N632G0040051', 'MAIN GEARBOX ASSEMBLY', 'GB123456', '2024-01-15', '2024-07-15', '2026-01-15', '6M', '24M', 'Serviceable', 'No', 'Gearbox in good condition']
+            },
+            iafteaft: {
+                name: 'IAFT_EAFT_Import_Template',
+                headers: ['Part_Number', 'Designation', 'Serial_Number', 'Inspection_Performed', 'Inspection_Date', 'Next_24M', 'Next_60M', 'Next_360M', 'Serviceability', 'Work_In_Progress', 'Comments'],
+                example: ['S281M80A1003', 'EAFT', 'AF123456', '24M', '2024-01-15', '2026-01-15', '', '', 'Serviceable', 'No', 'EAFT item']
+            },
+            pol: {
+                name: 'POL_Import_Template',
+                headers: ['Designation', 'Part_Number', 'Batch_Number', 'Expiry_Date', 'Brand', 'Comments'],
+                example: ['Hydraulic Fluid', 'HF-5606', 'BATCH-2024-001', '2025-06-15', 'Aeroshell', 'MIL-PRF-5606']
             }
         };
 
@@ -365,6 +393,8 @@
             // Detect based on unique header combinations
             if (headers.includes('next_18m') || headers.includes('next_36m')) return 'efs';
             if (headers.includes('next_24m') || headers.includes('next_48m')) return 'engine';
+            if (headers.includes('next_60m') || headers.includes('next_360m') || headers.includes('inspection_performed')) return 'iafteaft';
+            if (headers.includes('batch_number') && headers.includes('expiry_date')) return 'pol';
             if (headers.includes('next_short') && headers.includes('next_long')) return 'rotorbay';
             if (headers.includes('position') && headers.includes('flight_hours')) return 'wheel';
             if (headers.includes('type') && (headers.includes('designation'))) return 'avionic';
@@ -493,8 +523,11 @@
                 // Rotor Bay dates
                 if (item.nextShort && new Date(item.nextShort) < today) { isOverdue = true; reason = `Overdue (${item.shortLabel || 'Short'})`; }
                 if (item.nextLong && new Date(item.nextLong) < today) { isOverdue = true; reason = `Overdue (${item.longLabel || 'Long'})`; }
-                // Troop Seat dates
-                if (item.nextInspection && new Date(item.nextInspection) < today) { isOverdue = true; reason = '3Y Inspection Overdue'; }
+                // Troop Seat / Liferaft dates
+                if (item.nextInspection && new Date(item.nextInspection) < today) { isOverdue = true; reason = 'Inspection Overdue'; }
+                // IAFT/EAFT dates
+                if (item.next60M && new Date(item.next60M) < today) { isOverdue = true; reason = '60M inspection overdue'; }
+                if (item.next360M && new Date(item.next360M) < today) { isOverdue = true; reason = '360M inspection overdue'; }
                 
                 if (isOverdue) {
                     item.serviceability = 'Unserviceable';
@@ -526,7 +559,9 @@
                 'avionic': 'avionic',
                 'troopseat': 'troopseats',
                 'engine': 'engine',
-                'rotorbay': 'rotorbay'
+                'rotorbay': 'rotorbay',
+                'iafteaft': 'iafteaft',
+                'pol': 'pol'
             };
             return tableMap[moduleType] || null;
         }
@@ -541,7 +576,9 @@
                 'avionic': 'componentsBayAvionic',
                 'troopseat': 'componentsBayTroopSeats',
                 'engine': 'componentsBayEngine',
-                'rotorbay': 'componentsBayRotorBay'
+                'rotorbay': 'componentsBayRotorBay',
+                'iafteaft': 'componentsBayIaftEaft',
+                'pol': 'componentsBayPOL'
             };
             return keyMap[moduleType];
         }
@@ -745,6 +782,58 @@
                         workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
                         comments: row.Comments || row.comments || '',
                         reason: ''
+                    };
+
+                case 'iafteaft':
+                    const iaftInspDate = parseDate(row.Inspection_Date || row.inspection_date);
+                    const iaftPerformed = row.Inspection_Performed || row.inspection_performed || '24M';
+                    let iaftNext24M = parseDate(row.Next_24M || row.next_24m);
+                    let iaftNext60M = parseDate(row.Next_60M || row.next_60m);
+                    let iaftNext360M = parseDate(row.Next_360M || row.next_360m);
+                    const iaftPN = row.Part_Number || row.part_number || '';
+                    // Auto-designation from P/N
+                    let iaftDesig = row.Designation || row.designation || '';
+                    if (!iaftDesig && iaftPN === 'S281M80A1003') iaftDesig = 'EAFT';
+                    if (!iaftDesig && iaftPN === 'S281M80A1005') iaftDesig = 'IAFT';
+                    // Auto-calculate based on inspection performed
+                    if (iaftInspDate) {
+                        const performed = parseInt(iaftPerformed) || 24;
+                        if (performed >= 24 && !iaftNext24M) {
+                            const d = new Date(iaftInspDate); d.setMonth(d.getMonth() + 24);
+                            iaftNext24M = d.toISOString().split('T')[0];
+                        }
+                        if (performed >= 60 && !iaftNext60M) {
+                            const d = new Date(iaftInspDate); d.setMonth(d.getMonth() + 60);
+                            iaftNext60M = d.toISOString().split('T')[0];
+                        }
+                        if (performed >= 360 && !iaftNext360M) {
+                            const d = new Date(iaftInspDate); d.setMonth(d.getMonth() + 360);
+                            iaftNext360M = d.toISOString().split('T')[0];
+                        }
+                    }
+                    return {
+                        ...baseData,
+                        partNumber: iaftPN,
+                        designation: iaftDesig,
+                        serialNumber: row.Serial_Number || row.serial_number || '',
+                        inspectionPerformed: iaftPerformed,
+                        inspectionDate: iaftInspDate,
+                        next24M: iaftNext24M,
+                        next60M: iaftNext60M,
+                        next360M: iaftNext360M,
+                        workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
+                        comments: row.Comments || row.comments || ''
+                    };
+
+                case 'pol':
+                    return {
+                        ...baseData,
+                        designation: row.Designation || row.designation || '',
+                        partNumber: row.Part_Number || row.part_number || '',
+                        batchNumber: row.Batch_Number || row.batch_number || '',
+                        expiryDate: parseDate(row.Expiry_Date || row.expiry_date),
+                        brand: row.Brand || row.brand || '',
+                        comments: row.Comments || row.comments || ''
                     };
 
                 case 'wheel':
