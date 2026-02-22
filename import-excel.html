@@ -173,8 +173,8 @@
         const templates = {
             liferaft: {
                 name: 'Life_Raft_Import_Template',
-                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Order', 'Work_In_Progress', 'Inspection_Date', 'Comments'],
-                example: ['Life Raft Alpha', 'LR-001', 'SN123456', 'ORD-001', 'No', '2024-01-15', 'Ready for deployment']
+                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Order', 'Serviceability', 'Work_In_Progress', 'Inspection_Date', 'Next_Inspection', 'Comments'],
+                example: ['Life Raft Alpha', 'LR-001', 'SN123456', 'ORD-001', 'Serviceable', 'No', '2024-01-15', '2025-01-15', 'Ready for deployment']
             },
             efs: {
                 name: 'EFS_Import_Template',
@@ -608,6 +608,14 @@
             
             switch (moduleType) {
                 case 'liferaft':
+                    const lrInspDate = parseDate(row.Inspection_Date || row.inspection_date);
+                    let lrNextInsp = parseDate(row.Next_Inspection || row.next_inspection);
+                    // Auto-calculate: inspectionDate + 12 months if not provided
+                    if (lrInspDate && !lrNextInsp) {
+                        const d = new Date(lrInspDate);
+                        d.setMonth(d.getMonth() + 12);
+                        lrNextInsp = d.toISOString().split('T')[0];
+                    }
                     return {
                         ...baseData,
                         designation: row.Designation || row.designation || '',
@@ -615,12 +623,28 @@
                         serialNumber: row.Serial_Number || row.serial_number || '',
                         order: row.Order || row.order || '',
                         workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
-                        inspectionDate: parseDate(row.Inspection_Date || row.inspection_date),
+                        inspectionDate: lrInspDate,
+                        nextInspection: lrNextInsp,
                         comments: row.Comments || row.comments || '',
                         subItems: []
                     };
                     
                 case 'efs':
+                    const efsInspDate = parseDate(row.Inspection_Date || row.inspection_date);
+                    let efsNext18M = parseDate(row.Next_18M || row.next_18m);
+                    let efsNext36M = parseDate(row.Next_36M || row.next_36m);
+                    const efsInterval = row.Inspection_Interval || row.inspection_interval || '18M/36M';
+                    // Auto-calculate from inspectionDate if not provided
+                    if (efsInspDate && !efsNext18M) {
+                        const d = new Date(efsInspDate);
+                        d.setMonth(d.getMonth() + 18);
+                        efsNext18M = d.toISOString().split('T')[0];
+                    }
+                    if (efsInspDate && !efsNext36M) {
+                        const d = new Date(efsInspDate);
+                        d.setMonth(d.getMonth() + 36);
+                        efsNext36M = d.toISOString().split('T')[0];
+                    }
                     return {
                         ...baseData,
                         designation: row.Designation || row.designation || '',
@@ -628,53 +652,96 @@
                         serialNumber: row.Serial_Number || row.serial_number || '',
                         order: row.Order || row.order || '',
                         workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
-                        inspectionDate: parseDate(row.Inspection_Date || row.inspection_date),
-                        inspectionInterval: '18M/36M',
-                        next18M: parseDate(row.Next_18M || row.next_18m),
-                        next36M: parseDate(row.Next_36M || row.next_36m),
+                        inspectionDate: efsInspDate,
+                        inspectionInterval: efsInterval,
+                        next18M: efsNext18M,
+                        next36M: efsNext36M,
                         comments: row.Comments || row.comments || ''
                     };
                     
                 case 'troopseat':
+                    const tsInspDate = parseDate(row.Inspection_Date || row.inspection_date);
+                    let tsNextInsp = parseDate(row.Next_Inspection || row.next_inspection);
+                    // Auto-calculate: inspectionDate + 3 years if not provided
+                    if (tsInspDate && !tsNextInsp) {
+                        const d = new Date(tsInspDate);
+                        d.setFullYear(d.getFullYear() + 3);
+                        tsNextInsp = d.toISOString().split('T')[0];
+                    }
                     return {
                         ...baseData,
                         designation: row.Designation || row.designation || '',
                         partNumber: row.Part_Number || row.part_number || '',
                         serialNumber: row.Serial_Number || row.serial_number || '',
-                        inspectionDate: parseDate(row.Inspection_Date || row.inspection_date),
+                        inspectionDate: tsInspDate,
                         inspectionInterval: '3Y',
-                        nextInspection: parseDate(row.Next_Inspection || row.next_inspection),
+                        nextInspection: tsNextInsp,
                         workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
                         order: row.Order || row.order || '',
                         comments: row.Comments || row.comments || ''
                     };
 
                 case 'engine':
+                    const engInspDate = parseDate(row.Inspection_Date || row.inspection_date);
+                    const engType = row.Inspection_Type || row.inspection_type || '48M';
+                    let engNext24M = parseDate(row.Next_24M || row.next_24m);
+                    let engNext48M = parseDate(row.Next_48M || row.next_48m);
+                    // Auto-calculate from inspectionDate if not provided
+                    if (engInspDate && !engNext24M) {
+                        const d = new Date(engInspDate);
+                        d.setMonth(d.getMonth() + 24);
+                        engNext24M = d.toISOString().split('T')[0];
+                    }
+                    if (engInspDate && !engNext48M && (engType === '48M' || engType === '48')) {
+                        const d = new Date(engInspDate);
+                        d.setMonth(d.getMonth() + 48);
+                        engNext48M = d.toISOString().split('T')[0];
+                    }
                     return {
                         ...baseData,
                         partNumber: row.Part_Number || row.part_number || '',
                         designation: row.Designation || row.designation || '',
                         serialNumber: row.Serial_Number || row.serial_number || '',
-                        inspectionType: row.Inspection_Type || row.inspection_type || '',
-                        inspectionDate: parseDate(row.Inspection_Date || row.inspection_date),
-                        next24M: parseDate(row.Next_24M || row.next_24m),
-                        next48M: parseDate(row.Next_48M || row.next_48m),
+                        inspectionType: engType,
+                        inspectionDate: engInspDate,
+                        next24M: engNext24M,
+                        next48M: engNext48M,
                         workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
                         comments: row.Comments || row.comments || '',
                         reason: ''
                     };
 
                 case 'rotorbay':
+                    const rbInspDate = parseDate(row.Inspection_Date || row.inspection_date);
+                    let rbNextShort = parseDate(row.Next_Short || row.next_short);
+                    let rbNextLong = parseDate(row.Next_Long || row.next_long);
+                    const rbShortLabel = row.Short_Label || row.short_label || '';
+                    const rbLongLabel = row.Long_Label || row.long_label || '';
+                    // Auto-calculate from labels if inspectionDate provided
+                    if (rbInspDate) {
+                        const shortM = parseInt(rbShortLabel) || 0;
+                        const longM = parseInt(rbLongLabel) || 0;
+                        if (shortM > 0 && !rbNextShort) {
+                            const d = new Date(rbInspDate);
+                            d.setMonth(d.getMonth() + shortM);
+                            rbNextShort = d.toISOString().split('T')[0];
+                        }
+                        if (longM > 0 && !rbNextLong) {
+                            const d = new Date(rbInspDate);
+                            d.setMonth(d.getMonth() + longM);
+                            rbNextLong = d.toISOString().split('T')[0];
+                        }
+                    }
                     return {
                         ...baseData,
                         partNumber: row.Part_Number || row.part_number || '',
                         designation: row.Designation || row.designation || '',
                         serialNumber: row.Serial_Number || row.serial_number || '',
-                        inspectionDate: parseDate(row.Inspection_Date || row.inspection_date),
-                        nextShort: parseDate(row.Next_Short || row.next_short),
-                        nextLong: parseDate(row.Next_Long || row.next_long),
-                        shortLabel: row.Short_Label || row.short_label || '',
-                        longLabel: row.Long_Label || row.long_label || '',
+                        inspectionDate: rbInspDate,
+                        nextShort: rbNextShort,
+                        nextLong: rbNextLong,
+                        shortLabel: rbShortLabel,
+                        longLabel: rbLongLabel,
                         workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
                         comments: row.Comments || row.comments || '',
                         reason: ''

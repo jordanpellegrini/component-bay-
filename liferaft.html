@@ -315,13 +315,23 @@
 
         function checkOverdueItems() {
             const today = new Date();
+            today.setHours(0, 0, 0, 0);
             let hasChanges = false;
             
             liferaftData.forEach(item => {
                 let isOverdue = false;
                 let overdueReasons = [];
                 
-                // ONLY check sub-items expiry dates - this is what you wanted
+                // Check nextInspection date
+                if (item.nextInspection) {
+                    const nextInsp = new Date(item.nextInspection);
+                    if (today > nextInsp) {
+                        isOverdue = true;
+                        overdueReasons.push('12M inspection overdue');
+                    }
+                }
+                
+                // Check sub-items expiry dates
                 if (item.subItems) {
                     const expiredItems = [];
                     item.subItems.forEach(subItem => {
@@ -335,13 +345,16 @@
                     
                     if (expiredItems.length > 0) {
                         isOverdue = true;
-                        overdueReasons.push(`Expired items: ${expiredItems.join(', ')}`);
+                        overdueReasons.push(`Expired: ${expiredItems.join(', ')}`);
                     }
                 }
                 
                 // Update item if overdue
                 if (isOverdue && item.serviceability !== 'Unserviceable') {
                     item.serviceability = 'Unserviceable';
+                    item.reason = overdueReasons.join('; ');
+                    hasChanges = true;
+                } else if (isOverdue && item.reason !== overdueReasons.join('; ') && overdueReasons.length > 0) {
                     item.reason = overdueReasons.join('; ');
                     hasChanges = true;
                 }
