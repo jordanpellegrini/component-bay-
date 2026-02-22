@@ -604,9 +604,7 @@
             if (savedUser && savedRole) {
                 currentUser = savedUser;
                 userRole = savedRole;
-                document.getElementById('loginModal').classList.add('hidden');
-                document.getElementById('mainApp').classList.remove('hidden');
-                document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+                showMainApp();
             }
             
             // Then load full data
@@ -796,11 +794,8 @@
             if (confirm('Are you sure you want to logout?')) {
                 currentUser = null;
                 userRole = null;
-                // Clear session-specific data
-                sessionStorage.removeItem('componentsBayCurrentUser');
-                sessionStorage.removeItem('componentsBayUserRole');
-                sessionStorage.removeItem('currentUser');
-                sessionStorage.removeItem('userRole');
+                localStorage.removeItem('componentsBayCurrentUser');
+                localStorage.removeItem('componentsBayUserRole');
                 
                 document.getElementById('loginModal').classList.remove('hidden');
                 document.getElementById('mainApp').classList.add('hidden');
