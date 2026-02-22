@@ -211,8 +211,23 @@
             'S623A2202052': { designation: 'SWASHPLATE', shortMonths: 24, longMonths: 60, shortLabel: '24M', longLabel: '60M' }
         };
 
+        // Wait for ComponentsBayDB to be available (loaded as module)
+        function waitForDB(maxWait = 3000) {
+            return new Promise((resolve) => {
+                if (window.ComponentsBayDB) return resolve(true);
+                const start = Date.now();
+                const check = setInterval(() => {
+                    if (window.ComponentsBayDB || Date.now() - start > maxWait) {
+                        clearInterval(check);
+                        resolve(!!window.ComponentsBayDB);
+                    }
+                }, 50);
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', async function() {
             checkAuthentication();
+            await waitForDB();
             await loadData();
             updateSummary();
             updateUnserviceableSection();
