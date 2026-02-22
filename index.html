@@ -598,21 +598,31 @@
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('🚀 Initializing Components Bay with Supabase...');
             
-            // Attendre que Supabase soit prêt
+            // Check auth IMMEDIATELY to avoid login flash
+            const savedUser = localStorage.getItem('componentsBayCurrentUser');
+            const savedRole = localStorage.getItem('componentsBayUserRole');
+            if (savedUser && savedRole) {
+                currentUser = savedUser;
+                userRole = savedRole;
+                document.getElementById('loginModal').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+            }
+            
+            // Then load full data
             setTimeout(async () => {
                 try {
                     await loadUsers();
                     await loadDocuments();
-                    checkAuthentication();
+                    if (!savedUser || !savedRole) checkAuthentication();
                     setupEventListeners();
                     console.log('✅ Components Bay initialized successfully!');
                 } catch (error) {
                     console.error('❌ Initialization error:', error);
-                    // Continue with fallback
-                    checkAuthentication();
+                    if (!savedUser || !savedRole) checkAuthentication();
                     setupEventListeners();
                 }
-            }, 1000);
+            }, 500);
         });
 
         function setupEventListeners() {
@@ -704,16 +714,14 @@
         }
 
         function checkAuthentication() {
-            // Check sessionStorage for current session (tab-specific)
-            const savedUser = sessionStorage.getItem('componentsBayCurrentUser');
-            const savedRole = sessionStorage.getItem('componentsBayUserRole');
+            const savedUser = localStorage.getItem('componentsBayCurrentUser');
+            const savedRole = localStorage.getItem('componentsBayUserRole');
             
             if (savedUser && savedRole) {
                 currentUser = savedUser;
                 userRole = savedRole;
                 showMainApp();
             } else {
-                // Show login if no session found
                 document.getElementById('loginModal').classList.remove('hidden');
                 document.getElementById('mainApp').classList.add('hidden');
             }
@@ -755,11 +763,9 @@
                 currentUser = user.username;
                 userRole = user.role;
                 
-                // Store authentication in sessionStorage (per-tab) instead of localStorage (shared)
-                sessionStorage.setItem('componentsBayCurrentUser', currentUser);
-                sessionStorage.setItem('componentsBayUserRole', userRole);
-                sessionStorage.setItem('currentUser', currentUser);
-                sessionStorage.setItem('userRole', userRole);
+                // Store authentication in localStorage
+                localStorage.setItem('componentsBayCurrentUser', currentUser);
+                localStorage.setItem('componentsBayUserRole', userRole);
                 
                 showMainApp();
             } else {
