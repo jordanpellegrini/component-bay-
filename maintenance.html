@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance - Components Bay V3</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <script type="module" src="supabase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <a href="http://10.10.0.21:8080/QATAR_V1_2/index.htm" target="_blank" class="nav-btn ietp-btn">🔗 IETP</a>
+                <a href="index.html" class="nav-btn">🏠 Home</a>
+            </div>
+            <div class="nav-right">
+                <button onclick="exportMaintenanceData()" class="nav-btn export-btn">📊 Export Excel</button>
+                <span id="userInfo" class="nav-btn user-btn"></span>
+                <button onclick="logout()" class="nav-btn logout-btn">🚪 Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Header -->
+        <div class="main-header module-maintenance">
+            <div class="header-content">
+                <h1>🔧 Maintenance</h1>
+                <p>General maintenance components management</p>
+            </div>
+            <div class="header-actions">
+                <button onclick="showAddForm()" class="btn btn-add">+ Add Items</button>
+                <button onclick="showAllItems()" class="btn">📋 View All Items</button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card serviceable">
+                <div class="summary-number" id="serviceableCount">0</div>
+                <div class="summary-label">Serviceable</div>
+            </div>
+            <div class="summary-card unserviceable">
+                <div class="summary-number" id="unserviceableCount">0</div>
+                <div class="summary-label">Unserviceable</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number" id="totalCount">0</div>
+                <div class="summary-label">Total Items</div>
+            </div>
+        </div>
+
+        <!-- Unserviceable Items Summary -->
+        <div id="unserviceableSection" class="panel">
+            <div class="panel-header" style="background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);">
+                <span>⚠️ Unserviceable Items Summary</span>
+                <span class="badge" id="unserviceableBadge">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="unserviceableTable"></div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Form -->
+        <div id="addForm" class="card">
+            <h2 style="margin-bottom: 25px;">Add Items / Edit Maintenance</h2>
+            <div id="formMessage" class="hidden"></div>
+            
+            <form id="maintenanceForm" onsubmit="handleFormSubmit(event)">
+                <input type="hidden" id="editId">
+                
+                <div class="form-grid">
+                    <!-- Row 1: Designation, P/N, S/N -->
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <input type="text" id="designation" class="form-control" placeholder="Enter component designation">
+                    </div>
+                    
+                    <div class="form-group required">
+                        <label>Part Number (P/N)</label>
+                        <input type="text" id="partNumber" class="form-control" placeholder="Enter part number" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Serial Number (S/N)</label>
+                        <input type="text" id="serialNumber" class="form-control" placeholder="Enter serial number">
+                    </div>
+                    
+                    <!-- Row 2: Flight Hours, Order, SR Number -->
+                    <div class="form-group">
+                        <label>Flight Hours</label>
+                        <input type="number" id="flightHours" class="form-control" placeholder="Enter flight hours">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Order</label>
+                        <input type="text" id="order" class="form-control" placeholder="Enter order number">
+                        <div id="orderNotice" class="message message-info hidden">Order automatically cleared when item becomes Serviceable</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>SR Number</label>
+                        <input type="text" id="srNumber" class="form-control" placeholder="Enter service request number" style="background: #e8f4fd;">
+                    </div>
+                    
+                    <!-- Row 3: Log Card, Serviceability, Work in Progress -->
+                    <div class="form-group">
+                        <label>Log Card</label>
+                        <select id="logCard" class="form-control">
+                            <option value="">Select option</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <select id="serviceability" class="form-control" onchange="handleServiceabilityChange()">
+                            <option value="">Select status</option>
+                            <option value="Serviceable">Serviceable</option>
+                            <option value="Unserviceable">Unserviceable</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="workInProgress">
+                            Work in Progress
+                        </label>
+                    </div>
+                    
+                    <!-- Row 4: Comments (full width) -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <textarea id="comments" class="form-control" placeholder="Enter detailed comments..." onchange="checkMissingLogcard()"></textarea>
+                    </div>
+                </div>
+                
+                <!-- Missing Logcard Warning -->
+                <div id="missingLogcardWarning" class="message message-error hidden">
+                    ⚠️ <strong>Warning:</strong> "Missing logcard" in comments will automatically set this item as <strong>Unserviceable</strong> with reason "Missing logcard".
+                </div>
+                
+                <div class="mt-20">
+                    <button type="submit" class="btn btn-success">💾 Save</button>
+                    <button type="button" onclick="resetForm()" class="btn" style="margin-left: 15px;">🔄 Reset</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- View All Items Table -->
+        <div id="viewAllSection" class="panel hidden">
+            <div class="panel-header module-maintenance">
+                <span>📋 All Maintenance Items</span>
+                <span class="badge" id="tableCount">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="maintenanceTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Item Detail Modal -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Maintenance Details</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent"></div>
+                <div class="mt-20 text-center">
+                    <button onclick="editCurrentItem()" class="btn">✏️ Edit</button>
+                    <button onclick="deleteCurrentItem()" class="btn btn-danger" style="margin-left: 15px;">🗑️ Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let maintenanceData = [];
+        let currentUser = sessionStorage.getItem('componentsBayCurrentUser') || 'Unknown User';
+        let userRole = localStorage.getItem('componentsBayUserRole') || 'user';
+        let editingItem = null;
+        let currentItemId = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            checkAuthentication();
+            await loadData();
+            updateSummary();
+            updateUnserviceableSection();
+            setupDefaultView();
+        });
+
+        function checkAuthentication() {
+            if (!currentUser || currentUser === 'null') {
+                window.location.href = 'main-menu.html';
+                return;
+            }
+            document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+        }
+
+        async function loadData() {
+            try {
+                if (window.ComponentsBayDB) {
+                    maintenanceData = await window.ComponentsBayDB.load('maintenance');
+                    console.log('✅ Maintenance loaded from Supabase:', maintenanceData.length, 'items');
+                } else {
+                    const saved = localStorage.getItem('componentsBayMaintenance');
+                    if (saved) maintenanceData = JSON.parse(saved);
+                }
+            } catch(e) {
+                const saved = localStorage.getItem('componentsBayMaintenance');
+                if (saved) maintenanceData = JSON.parse(saved);
+            }
+        }
+
+        async function saveData() {
+            localStorage.setItem('componentsBayMaintenance', JSON.stringify(maintenanceData));
+            if (window.ComponentsBayDB) {
+                for (const item of maintenanceData) {
+                    try {
+                        await window.ComponentsBayDB.save('maintenance', {...item});
+                    } catch(e) {
+                        console.error('Maintenance save error:', e);
+                    }
+                }
+            }
+        }
+
+        function setupDefaultView() {
+            // Show only unserviceable summary by default, hide add form
+            document.getElementById('addForm').style.display = 'none';
+            document.getElementById('viewAllSection').classList.add('hidden');
+        }
+
+        function showAddForm() {
+            document.getElementById('addForm').style.display = 'block';
+            document.getElementById('viewAllSection').classList.add('hidden');
+            // Only reset form and editing state if not editing
+            if (!editingItem) {
+                resetForm();
+                editingItem = null; // Make sure it's null for new items
+            }
+        }
+
+        function showAllItems() {
+            document.getElementById('addForm').style.display = 'none';
+            document.getElementById('viewAllSection').classList.remove('hidden');
+            refreshTable();
+        }
+
+        function updateSummary() {
+            const serviceable = maintenanceData.filter(item => item.serviceability === 'Serviceable').length;
+            const unserviceable = maintenanceData.filter(item => item.serviceability === 'Unserviceable').length;
+            
+            document.getElementById('serviceableCount').textContent = serviceable;
+            document.getElementById('unserviceableCount').textContent = unserviceable;
+            document.getElementById('totalCount').textContent = maintenanceData.length;
+        }
+
+        function updateUnserviceableSection() {
+            const unserviceableItems = maintenanceData.filter(item => item.serviceability === 'Unserviceable');
+            const tableContainer = document.getElementById('unserviceableTable');
+            document.getElementById('unserviceableBadge').textContent = unserviceableItems.length;
+
+            if (unserviceableItems.length === 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <p style="color: #00695c; font-weight: 600;">Excellent! No unserviceable maintenance items</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Designation</th>
+                                <th>P/N</th>
+                                <th>S/N</th>
+                                <th>Reason</th>
+                                <th>SR Number</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            unserviceableItems.forEach(item => {
+                const reasonText = item.reason || 'Unserviceable';
+                const reasonClass = item.reason === 'Missing logcard' ? 'status-missing' : 'status-unserviceable';
+                
+                tableHTML += `
+                    <tr>
+                        <td>${item.designation || '-'}</td>
+                        <td>${item.partNumber}</td>
+                        <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td><span class="status-badge ${reasonClass}">${reasonText}</span></td>
+                        <td>${item.srNumber || '-'}</td>
+                        <td>
+                            <button class="btn" onclick="editItem('${item.id}')" style="padding: 6px 12px; font-size: 12px;">✏️ Edit</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table></div>';
+            tableContainer.innerHTML = tableHTML;
+        }
+
+        function handleServiceabilityChange() {
+            const serviceability = document.getElementById('serviceability').value;
+            const orderField = document.getElementById('order');
+            const orderNotice = document.getElementById('orderNotice');
+            
+            if (serviceability === 'Serviceable' && orderField.value) {
+                orderField.value = '';
+                orderNotice.classList.remove('hidden');
+                setTimeout(() => orderNotice.classList.add('hidden'), 3000);
+            }
+        }
+
+        function checkMissingLogcard() {
+            const comments = document.getElementById('comments').value.toLowerCase();
+            const warning = document.getElementById('missingLogcardWarning');
+            
+            if (comments.includes('missing logcard')) {
+                warning.classList.remove('hidden');
+                document.getElementById('serviceability').value = 'Unserviceable';
+            } else {
+                warning.classList.add('hidden');
+            }
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            const partNumber = document.getElementById('partNumber').value.trim();
+            if (!partNumber) {
+                showMessage('Part Number (P/N) is required', 'error');
+                return;
+            }
+
+            const formData = {
+                id: editingItem ? editingItem.id : Date.now().toString(),
+                designation: document.getElementById('designation').value.trim(),
+                partNumber: partNumber,
+                serialNumber: document.getElementById('serialNumber').value.trim(),
+                flightHours: document.getElementById('flightHours').value,
+                order: document.getElementById('order').value.trim(),
+                srNumber: document.getElementById('srNumber').value.trim(),
+                logCard: document.getElementById('logCard').value,
+                serviceability: document.getElementById('serviceability').value || 'Serviceable',
+                workInProgress: document.getElementById('workInProgress').value.trim(),
+                comments: document.getElementById('comments').value.trim(),
+                reason: '',
+                lastModified: new Date().toISOString(),
+                modifiedBy: currentUser
+            };
+
+            // Handle missing logcard logic
+            if (formData.comments && formData.comments.toLowerCase().includes('missing logcard')) {
+                formData.serviceability = 'Unserviceable';
+                formData.reason = 'Missing logcard';
+            }
+
+            // Save or update
+            if (editingItem) {
+                const index = maintenanceData.findIndex(item => item.id === editingItem.id);
+                if (index !== -1) {
+                    maintenanceData[index] = formData;
+                }
+                editingItem = null;
+            } else {
+                maintenanceData.push(formData);
+            }
+
+            saveData();
+            showMessage('Maintenance item saved successfully', 'success');
+            resetForm();
+            updateSummary();
+            updateUnserviceableSection();
+            
+            if (!document.getElementById('viewAllSection').classList.contains('hidden')) {
+                refreshTable();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('maintenanceForm').reset();
+            // Don't reset editingItem here - it should only be reset after successful save
+            document.getElementById('editId').value = '';
+            document.getElementById('missingLogcardWarning').classList.add('hidden');
+            document.getElementById('orderNotice').classList.add('hidden');
+            hideMessage();
+        }
+
+        function refreshTable() {
+            const tableContainer = document.getElementById('maintenanceTable');
+            document.getElementById('tableCount').textContent = maintenanceData.length;
+
+            if (maintenanceData.length === 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔧</div>
+                        <p>No maintenance items registered</p>
+                        <button onclick="showAddForm()" class="btn btn-add mt-20">+ Add First Item</button>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Designation</th>
+                                <th>P/N</th>
+                                <th>S/N</th>
+                                <th>SR Number</th>
+                                <th>Flight Hours</th>
+                                <th>Log Card</th>
+                                <th>Serviceability</th>
+                                <th>Order</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            maintenanceData.forEach(item => {
+                const statusClass = item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 
+                                  item.serviceability === 'Serviceable' ? 'status-serviceable' : '';
+                
+                const logCardClass = item.logCard === 'No' ? 'status-unserviceable' : 
+                                   item.logCard === 'Yes' ? 'status-serviceable' : '';
+                
+                tableHTML += `
+                    <tr>
+                        <td>${item.designation || '-'}</td>
+                        <td>${item.partNumber}</td>
+                        <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td><span style="background: #e8f4fd; color: #1976d2; padding: 4px 8px; border-radius: 4px; font-size: 0.8em;">${item.srNumber || '-'}</span></td>
+                        <td>${item.flightHours || '-'}</td>
+                        <td><span class="status-badge ${logCardClass}">${item.logCard || 'N/A'}</span></td>
+                        <td><span class="status-badge ${statusClass}">${item.serviceability || 'N/A'}</span></td>
+                        <td>${item.order || '-'}</td>
+                        <td>
+                            <button class="btn" onclick="editItem('${item.id}')" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;">✏️</button>
+                            <button class="btn btn-danger" onclick="deleteItem('${item.id}')" style="padding: 6px 12px; font-size: 12px;">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table></div>';
+            tableContainer.innerHTML = tableHTML;
+        }
+
+        function showItemDetail(id) {
+            const item = maintenanceData.find(item => item.id === id);
+            if (!item) return;
+
+            currentItemId = id;
+            document.getElementById('modalTitle').textContent = `Maintenance - ${item.partNumber}`;
+            
+            const content = `
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.designation || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Part Number</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.partNumber}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Serial Number</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.serialNumber || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>SR Number</label>
+                        <div style="padding: 10px; background: #e8f4fd; border-radius: 6px; color: #1976d2;">${item.srNumber || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Flight Hours</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.flightHours || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Order</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.order || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Log Card</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <span class="status-badge ${item.logCard === 'Yes' ? 'status-serviceable' : item.logCard === 'No' ? 'status-unserviceable' : ''}">${item.logCard || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <span class="status-badge ${item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable'}">${item.serviceability || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Work in Progress</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.workInProgress || '-'}</div>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; min-height: 60px;">${item.comments || '-'}</div>
+                    </div>
+                    ${item.reason ? `
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Reason</label>
+                        <div style="padding: 10px; background: #fadbd8; border-radius: 6px; color: #c62828; font-weight: 600;">${item.reason}</div>
+                    </div>
+                    ` : ''}
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Last Modified</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 0.9em; color: #636e72;">${new Date(item.lastModified).toLocaleString()} by ${item.modifiedBy}</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('itemModal').classList.add('active');
+        }
+
+        function editItem(id) {
+            editingItem = maintenanceData.find(item => item.id === id);
+            if (!editingItem) return;
+
+            // Fill form with existing data
+            document.getElementById('designation').value = editingItem.designation || '';
+            document.getElementById('partNumber').value = editingItem.partNumber || '';
+            document.getElementById('serialNumber').value = editingItem.serialNumber || '';
+            document.getElementById('flightHours').value = editingItem.flightHours || '';
+            document.getElementById('order').value = editingItem.order || '';
+            document.getElementById('srNumber').value = editingItem.srNumber || '';
+            document.getElementById('logCard').value = editingItem.logCard || '';
+            document.getElementById('serviceability').value = editingItem.serviceability || '';
+            document.getElementById('workInProgress').value = editingItem.workInProgress || '';
+            document.getElementById('comments').value = editingItem.comments || '';
+
+            showAddForm();
+            closeModal();
+        }
+
+        function editCurrentItem() {
+            if (currentItemId) {
+                editItem(currentItemId);
+            }
+        }
+
+        async function deleteItem(id) {
+            if (confirm('Are you sure you want to delete this maintenance item?')) {
+                maintenanceData = maintenanceData.filter(item => item.id !== id);
+                saveData();
+                if (window.ComponentsBayDB) {
+                    try { await window.ComponentsBayDB.delete('maintenance', id); } catch(e) { console.error('Maintenance delete error:', e); }
+                }
+                showMessage('Maintenance item deleted successfully', 'success');
+                updateSummary();
+                updateUnserviceableSection();
+                refreshTable();
+            }
+        }
+
+        function deleteCurrentItem() {
+            if (currentItemId) {
+                deleteItem(currentItemId);
+                closeModal();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('itemModal').classList.remove('active');
+            currentItemId = null;
+        }
+
+        function exportMaintenanceData() {
+            if (maintenanceData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const data = maintenanceData.map(item => ({
+                'Designation': item.designation || '',
+                'Part Number': item.partNumber,
+                'Serial Number': item.serialNumber || '',
+                'SR Number': item.srNumber || '',
+                'Flight Hours': item.flightHours || '',
+                'Order': item.order || '',
+                'Log Card': item.logCard || '',
+                'Serviceability': item.serviceability || '',
+                'Work in Progress': item.workInProgress || '',
+                'Comments': item.comments || '',
+                'Reason': item.reason || '',
+                'Last Modified': new Date(item.lastModified).toLocaleString(),
+                'Modified By': item.modifiedBy || ''
+            }));
+
+            downloadCSV(data, `Maintenance_Export_${new Date().toISOString().split('T')[0]}.csv`);
+            showMessage('Export completed successfully', 'success');
+        }
+
+        function downloadCSV(data, filename) {
+            const csvContent = convertToCSV(data);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        function convertToCSV(data) {
+            if (!data.length) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvRows = [];
+            
+            csvRows.push(headers.join(','));
+            
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    const value = row[header] || '';
+                    return `"${value.toString().replace(/"/g, '""')}"`;
+                });
+                csvRows.push(values.join(','));
+            });
+            
+            return csvRows.join('\n');
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('componentsBayCurrentUser');
+                localStorage.removeItem('componentsBayUserRole');
+                window.location.href = 'main-menu.html';
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('formMessage');
+            messageDiv.textContent = message;
+            messageDiv.className = `message message-${type}`;
+            messageDiv.classList.remove('hidden');
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    messageDiv.classList.add('hidden');
+                }, 3000);
+            }
+        }
+
+        function hideMessage() {
+            document.getElementById('formMessage').classList.add('hidden');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('itemModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

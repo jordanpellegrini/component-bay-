@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synthesis - Components Bay V3</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <script type="module" src="supabase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <a href="http://10.10.0.21:8080/QATAR_V1_2/index.htm" target="_blank" class="nav-btn ietp-btn">🔗 IETP</a>
+                <a href="index.html" class="nav-btn">🏠 Home</a>
+            </div>
+            <div class="nav-right">
+                <button onclick="exportSynthesis()" class="nav-btn export-btn">📊 Export Excel</button>
+                <span id="userInfo" class="nav-btn user-btn"></span>
+                <button onclick="logout()" class="nav-btn logout-btn">🚪 Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Header -->
+        <div class="main-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="header-content">
+                <h1>📋 Synthesis</h1>
+                <p>Unserviceable items consolidated overview</p>
+            </div>
+            <div class="header-actions">
+                <button onclick="refreshData()" class="btn">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card unserviceable">
+                <div class="summary-number" id="totalUnserviceable">0</div>
+                <div class="summary-label">Total Unserviceable</div>
+            </div>
+            <div class="summary-card" style="border-left: 4px solid #3498db;">
+                <div class="summary-number" id="efsCount">0</div>
+                <div class="summary-label">EFS Items</div>
+            </div>
+            <div class="summary-card" style="border-left: 4px solid #f39c12;">
+                <div class="summary-number" id="liferaftCount">0</div>
+                <div class="summary-label">Life Raft Items</div>
+            </div>
+            <div class="summary-card" style="border-left: 4px solid #e67e22;">
+                <div class="summary-number" id="wheelCount">0</div>
+                <div class="summary-label">Wheel Items</div>
+            </div>
+            <div class="summary-card" style="border-left: 4px solid #27ae60;">
+                <div class="summary-number" id="maintenanceCount">0</div>
+                <div class="summary-label">Maintenance Items</div>
+            </div>
+            <div class="summary-card" style="border-left: 4px solid #8e44ad;">
+                <div class="summary-number" id="compositeCount">0</div>
+                <div class="summary-label">Composite Items</div>
+            </div>
+            <div class="summary-card" style="border-left: 4px solid #17a2b8;">
+                <div class="summary-number" id="avionicCount">0</div>
+                <div class="summary-label">Avionic Items</div>
+            </div>
+        </div>
+
+        <!-- Unserviceable Items Table -->
+        <div class="panel">
+            <div class="panel-header" style="background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);">
+                <span>⚠️ All Unserviceable Items (Ordered)</span>
+                <span class="badge" id="tableCount">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="synthesisTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Item Detail Modal -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Item Details</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = localStorage.getItem('componentsBayCurrentUser') || 'Unknown User';
+        let userRole = localStorage.getItem('componentsBayUserRole') || 'user';
+        let allUnserviceableItems = [];
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            checkAuthentication();
+            await loadAllData();
+            refreshTable();
+        });
+
+        function checkAuthentication() {
+            if (!currentUser || currentUser === 'null') {
+                window.location.href = 'main-menu.html';
+                return;
+            }
+            document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+        }
+
+        async function loadAllData() {
+            allUnserviceableItems = [];
+            
+            // Helper: load from Supabase or localStorage
+            async function loadModule(tableName, localKey) {
+                try {
+                    if (window.ComponentsBayDB) {
+                        return await window.ComponentsBayDB.load(tableName);
+                    }
+                } catch(e) {
+                    console.error(`Synthesis: ${tableName} Supabase load failed`);
+                }
+                return JSON.parse(localStorage.getItem(localKey) || '[]');
+            }
+
+            // Load EFS data
+            let efsItems = [];
+            try {
+                if (window.ComponentsBayDB) {
+                    efsItems = await window.ComponentsBayDB.load('efs');
+                } else {
+                    const saved = localStorage.getItem('componentsBayEFS');
+                    if (saved) efsItems = JSON.parse(saved);
+                }
+            } catch(e) {
+                const saved = localStorage.getItem('componentsBayEFS');
+                if (saved) efsItems = JSON.parse(saved);
+            }
+            
+            // Process EFS items
+            efsItems.forEach(item => {
+                if (item.serviceability === 'Unserviceable') {
+                    allUnserviceableItems.push({
+                        id: item.id || Date.now() + Math.random(),
+                        module: 'EFS',
+                        designation: item.designation || 'EFS Item',
+                        partNumber: item.partNumber || '-',
+                        serialNumber: item.serialNumber || '-',
+                        reason: item.reason || 'Unserviceable',
+                        details: item,
+                        priority: 1
+                    });
+                }
+            });
+
+            // Load Life Raft data
+            const liferaftData = await loadModule('liferafts', 'componentsBayLifeRafts');
+            liferaftData.forEach(item => {
+                if (item.serviceability === 'Unserviceable') {
+                    allUnserviceableItems.push({
+                        id: item.id || Date.now() + Math.random(),
+                        module: 'Life Raft',
+                        designation: item.designation || 'Life Raft',
+                        partNumber: item.partNumber || '-',
+                        serialNumber: item.serialNumber || '-',
+                        reason: item.reason || 'Unserviceable',
+                        details: item,
+                        priority: 2
+                    });
+                }
+            });
+
+            // Load Wheel data
+            const wheelData = await loadModule('wheels', 'componentsBayWheel');
+            wheelData.forEach(item => {
+                if (item.serviceability === 'Unserviceable') {
+                    allUnserviceableItems.push({
+                        id: item.id,
+                        module: 'Wheel',
+                        designation: item.designation || 'Wheel',
+                        partNumber: item.partNumber,
+                        serialNumber: item.serialNumber || '-',
+                        reason: item.reason || 'Unserviceable',
+                        details: item,
+                        priority: 3
+                    });
+                }
+            });
+
+            // Load Maintenance data
+            const maintenanceData = await loadModule('maintenance', 'componentsBayMaintenance');
+            maintenanceData.forEach(item => {
+                if (item.serviceability === 'Unserviceable') {
+                    allUnserviceableItems.push({
+                        id: item.id,
+                        module: 'Maintenance',
+                        designation: item.designation || 'Maintenance Item',
+                        partNumber: item.partNumber,
+                        serialNumber: item.serialNumber || '-',
+                        reason: item.reason || 'Unserviceable',
+                        details: item,
+                        priority: 4
+                    });
+                }
+            });
+
+            // Load Composite data
+            const compositeData = await loadModule('composite', 'componentsBayComposite');
+            compositeData.forEach(item => {
+                if (item.serviceability === 'Unserviceable') {
+                    allUnserviceableItems.push({
+                        id: item.id,
+                        module: 'Composite',
+                        designation: item.designation || 'Composite Item',
+                        partNumber: item.partNumber,
+                        serialNumber: item.serialNumber || '-',
+                        reason: item.reason || 'Unserviceable',
+                        details: item,
+                        priority: 5
+                    });
+                }
+            });
+
+            // Load Avionic data
+            const avionicData = await loadModule('avionic', 'componentsBayAvionic');
+            avionicData.forEach(item => {
+                if (item.serviceability === 'Unserviceable') {
+                    allUnserviceableItems.push({
+                        id: item.id,
+                        module: 'Avionic',
+                        designation: item.designation || `${item.type} System`,
+                        partNumber: item.partNumber || (item.type === 'console' ? 'Console System' : '-'),
+                        serialNumber: item.serialNumber || '-',
+                        reason: item.reason || 'Unserviceable',
+                        details: item,
+                        priority: 6
+                    });
+                }
+            });
+
+            // Load Troop Seat data
+            const troopSeatData = await loadModule('troopseats', 'componentsBayTroopSeats');
+            troopSeatData.forEach(item => {
+                if (item.serviceability === 'Unserviceable') {
+                    allUnserviceableItems.push({
+                        id: item.id || Date.now() + Math.random(),
+                        module: 'Troop Seat',
+                        designation: item.designation || 'Troop Seat',
+                        partNumber: item.partNumber || '-',
+                        serialNumber: item.serialNumber || '-',
+                        reason: item.reason || 'Inspection overdue',
+                        details: item,
+                        priority: 7
+                    });
+                }
+            });
+
+            // Engine module
+            const engineData = await loadModule('engine', 'componentsBayEngine');
+            engineData.forEach(item => {
+                if (item.serviceability === 'Unserviceable') {
+                    allUnserviceableItems.push({
+                        id: item.id || Date.now() + Math.random(),
+                        module: 'Engine',
+                        designation: item.designation || 'Engine',
+                        partNumber: item.partNumber || '-',
+                        serialNumber: item.serialNumber || '-',
+                        reason: item.reason || 'Unserviceable',
+                        details: item,
+                        priority: 8
+                    });
+                }
+            });
+
+            // Rotor Bay module
+            const rotorData = await loadModule('rotorbay', 'componentsBayRotorBay');
+            rotorData.forEach(item => {
+                if (item.serviceability === 'Unserviceable') {
+                    allUnserviceableItems.push({
+                        id: item.id || Date.now() + Math.random(),
+                        module: 'Rotor Bay',
+                        designation: item.designation || 'Rotor Bay',
+                        partNumber: item.partNumber || '-',
+                        serialNumber: item.serialNumber || '-',
+                        reason: item.reason || 'Unserviceable',
+                        details: item,
+                        priority: 9
+                    });
+                }
+            });
+
+            // Sort by priority
+            allUnserviceableItems.sort((a, b) => a.priority - b.priority);
+
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const counts = {
+                efs: allUnserviceableItems.filter(item => item.module === 'EFS').length,
+                liferaft: allUnserviceableItems.filter(item => item.module === 'Life Raft').length,
+                wheel: allUnserviceableItems.filter(item => item.module === 'Wheel').length,
+                maintenance: allUnserviceableItems.filter(item => item.module === 'Maintenance').length,
+                composite: allUnserviceableItems.filter(item => item.module === 'Composite').length,
+                avionic: allUnserviceableItems.filter(item => item.module === 'Avionic').length
+            };
+
+            document.getElementById('totalUnserviceable').textContent = allUnserviceableItems.length;
+            document.getElementById('efsCount').textContent = counts.efs;
+            document.getElementById('liferaftCount').textContent = counts.liferaft;
+            document.getElementById('wheelCount').textContent = counts.wheel;
+            document.getElementById('maintenanceCount').textContent = counts.maintenance;
+            document.getElementById('compositeCount').textContent = counts.composite;
+            document.getElementById('avionicCount').textContent = counts.avionic;
+        }
+
+        function refreshTable() {
+            const tableContainer = document.getElementById('synthesisTable');
+            document.getElementById('tableCount').textContent = allUnserviceableItems.length;
+
+            if (allUnserviceableItems.length === 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <p style="color: #00695c; font-weight: 600;">Excellent! No unserviceable items found across all modules</p>
+                        <button onclick="refreshData()" class="btn mt-20">🔄 Refresh Data</button>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Module</th>
+                                <th>Designation</th>
+                                <th>P/N</th>
+                                <th>S/N</th>
+                                <th>Reason</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            allUnserviceableItems.forEach(item => {
+                const moduleColors = {
+                    'EFS': '#3498db',
+                    'Life Raft': '#f39c12',
+                    'Wheel': '#e67e22',
+                    'Maintenance': '#27ae60',
+                    'Composite': '#8e44ad',
+                    'Avionic': '#17a2b8'
+                };
+                
+                const reasonClass = item.reason === 'Missing logcard' ? 'status-missing' : 
+                                  item.reason === 'Overdue' ? 'status-overdue' : 'status-unserviceable';
+
+                tableHTML += `
+                    <tr>
+                        <td>
+                            <span style="background: ${moduleColors[item.module] || '#666'}; color: white; padding: 4px 8px; border-radius: 10px; font-size: 0.8em; font-weight: 600;">
+                                ${item.module}
+                            </span>
+                        </td>
+                        <td>${item.designation}</td>
+                        <td>${item.partNumber}</td>
+                        <td>
+                            <a href="#" class="clickable" onclick="showItemDetail('${item.id}', '${item.module}')">${item.serialNumber}</a>
+                        </td>
+                        <td>
+                            <span class="status-badge ${reasonClass}">${item.reason}</span>
+                        </td>
+                        <td>
+                            <button class="btn" onclick="showItemDetail('${item.id}', '${item.module}')" style="padding: 6px 12px; font-size: 12px;">👁️ View</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table></div>';
+            tableContainer.innerHTML = tableHTML;
+        }
+
+        function showItemDetail(itemId, module) {
+            const item = allUnserviceableItems.find(item => item.id == itemId && item.module === module);
+            if (!item) return;
+
+            document.getElementById('modalTitle').textContent = `${module} - ${item.partNumber}`;
+            
+            const details = item.details;
+            let content = `
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Module</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <span style="background: ${getModuleColor(module)}; color: white; padding: 4px 8px; border-radius: 10px; font-size: 0.9em; font-weight: 600;">
+                                ${module}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.designation}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Part Number</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.partNumber}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Serial Number</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.serialNumber}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Reason</label>
+                        <div style="padding: 10px; background: #fadbd8; border-radius: 6px; color: #c62828; font-weight: 600;">${item.reason}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <span class="status-badge status-unserviceable">Unserviceable</span>
+                        </div>
+                    </div>
+            `;
+
+            // Add module-specific fields
+            if (details.order) {
+                content += `
+                    <div class="form-group">
+                        <label>Order</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${details.order}</div>
+                    </div>
+                `;
+            }
+            
+            if (details.workInProgress) {
+                content += `
+                    <div class="form-group">
+                        <label>Work in Progress</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${details.workInProgress}</div>
+                    </div>
+                `;
+            }
+
+            if (details.srNumber) {
+                content += `
+                    <div class="form-group">
+                        <label>SR Number</label>
+                        <div style="padding: 10px; background: #e8f4fd; border-radius: 6px; color: #1976d2;">${details.srNumber}</div>
+                    </div>
+                `;
+            }
+
+            if (details.comments) {
+                content += `
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; min-height: 60px;">${details.comments}</div>
+                    </div>
+                `;
+            }
+
+            if (details.lastModified) {
+                content += `
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Last Modified</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 0.9em; color: #636e72;">${new Date(details.lastModified).toLocaleString()} by ${details.modifiedBy || 'Unknown'}</div>
+                    </div>
+                `;
+            }
+
+            content += '</div>';
+
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('itemModal').classList.add('active');
+        }
+
+        function getModuleColor(module) {
+            const colors = {
+                'EFS': '#3498db',
+                'Life Raft': '#f39c12',
+                'Wheel': '#e67e22',
+                'Maintenance': '#27ae60',
+                'Composite': '#8e44ad',
+                'Avionic': '#17a2b8'
+            };
+            return colors[module] || '#666';
+        }
+
+        function closeModal() {
+            document.getElementById('itemModal').classList.remove('active');
+        }
+
+        function refreshData() {
+            loadAllData();
+            refreshTable();
+            showMessage('Data refreshed successfully', 'success');
+        }
+
+        function exportSynthesis() {
+            if (allUnserviceableItems.length === 0) {
+                alert('No unserviceable items to export');
+                return;
+            }
+
+            const data = allUnserviceableItems.map(item => ({
+                'Module': item.module,
+                'Designation': item.designation,
+                'Part Number': item.partNumber,
+                'Serial Number': item.serialNumber,
+                'Reason': item.reason,
+                'Order': item.details.order || '',
+                'Work in Progress': item.details.workInProgress || '',
+                'SR Number': item.details.srNumber || '',
+                'Comments': item.details.comments || '',
+                'Last Modified': item.details.lastModified ? new Date(item.details.lastModified).toLocaleString() : '',
+                'Modified By': item.details.modifiedBy || ''
+            }));
+
+            downloadCSV(data, `Synthesis_UnserviceableItems_${new Date().toISOString().split('T')[0]}.csv`);
+            showMessage('Export completed successfully', 'success');
+        }
+
+        function downloadCSV(data, filename) {
+            const csvContent = convertToCSV(data);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        function convertToCSV(data) {
+            if (!data.length) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvRows = [];
+            
+            csvRows.push(headers.join(','));
+            
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    const value = row[header] || '';
+                    return `"${value.toString().replace(/"/g, '""')}"`;
+                });
+                csvRows.push(values.join(','));
+            });
+            
+            return csvRows.join('\n');
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('componentsBayCurrentUser');
+                localStorage.removeItem('componentsBayUserRole');
+                window.location.href = 'main-menu.html';
+            }
+        }
+
+        function showMessage(message, type) {
+            // Simple alert for now, could be enhanced with a toast notification
+            if (type === 'success') {
+                alert(message);
+            } else {
+                alert(message);
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('itemModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

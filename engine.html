@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engine - Components Bay</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <script type="module" src="supabase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <a href="http://10.10.0.21:8080/QATAR_V1_2/index.htm" target="_blank" class="nav-btn ietp-btn">🔗 IETP</a>
+                <a href="index.html" class="nav-btn">🏠 Home</a>
+            </div>
+            <div class="nav-right">
+                <button onclick="exportData()" class="nav-btn export-btn">📊 Export Excel</button>
+                <span id="userInfo" class="nav-btn user-btn"></span>
+                <button onclick="logout()" class="nav-btn logout-btn">🚪 Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Header -->
+        <div class="main-header">
+            <div class="header-content">
+                <h1>🔥 Engine</h1>
+                <p>Engine & APU preservation and inspection management</p>
+            </div>
+            <div class="header-actions">
+                <button onclick="showAddForm()" class="btn btn-add">+ Add New</button>
+                <button onclick="showAllItems()" class="btn">📋 View All</button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card serviceable">
+                <div class="summary-number" id="serviceableCount">0</div>
+                <div class="summary-label">Serviceable</div>
+            </div>
+            <div class="summary-card unserviceable">
+                <div class="summary-number" id="unserviceableCount">0</div>
+                <div class="summary-label">Unserviceable</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number" id="totalCount">0</div>
+                <div class="summary-label">Total Items</div>
+            </div>
+        </div>
+
+        <!-- Unserviceable Summary -->
+        <div id="unserviceableSection" class="panel">
+            <div class="panel-header" style="background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%); color: white;">
+                <span>⚠️ Unserviceable Items Summary</span>
+                <span id="unserviceableBadge">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="unserviceableTable"></div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Form -->
+        <div id="addForm" class="card hidden">
+            <h2 style="margin-bottom: 25px;">Add / Edit Engine</h2>
+            <div id="formMessage" class="hidden"></div>
+
+            <form id="engineForm" onsubmit="handleFormSubmit(event)">
+                <input type="hidden" id="editId">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>P/N</label>
+                        <select id="partNumber" class="form-control" onchange="handlePNSelection()" required>
+                            <option value="">Select P/N</option>
+                            <option value="S720A10A2000">S720A10A2000</option>
+                            <option value="S492A10A1009">S492A10A1009</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <input type="text" id="designation" class="form-control" placeholder="Auto-filled from P/N" readonly style="background: #f8f9fa;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>S/N</label>
+                        <input type="text" id="serialNumber" class="form-control" placeholder="Enter serial number" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Inspection Type</label>
+                        <select id="inspectionType" class="form-control" onchange="calculateNextInspections()" required>
+                            <option value="">Select inspection</option>
+                            <option value="24M">24 Months</option>
+                            <option value="48M">48 Months (includes 24M)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Inspection Date</label>
+                        <input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspections()" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Next 24M Inspection</label>
+                        <input type="date" id="next24M" class="form-control" style="background: #f8f9fa;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Next 48M Inspection</label>
+                        <input type="date" id="next48M" class="form-control" style="background: #f8f9fa;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <select id="serviceability" class="form-control">
+                            <option value="">Select status</option>
+                            <option value="Serviceable">Serviceable</option>
+                            <option value="Unserviceable">Unserviceable</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="workInProgress">
+                            Work in Progress
+                        </label>
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <textarea id="comments" class="form-control" placeholder="Enter comments..."></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-20">
+                    <button type="submit" class="btn btn-success">💾 Save</button>
+                    <button type="button" onclick="resetForm()" class="btn" style="margin-left: 15px;">🔄 Reset</button>
+                    <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- View All Table -->
+        <div id="viewAllSection" class="panel hidden">
+            <div class="panel-header">
+                <span>📋 All Engine Items</span>
+                <span id="tableCount">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="dataTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Engine Details</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent"></div>
+                <div class="mt-20 text-center">
+                    <button onclick="editCurrentItem()" class="btn">✏️ Edit</button>
+                    <button onclick="deleteCurrentItem()" class="btn btn-danger" style="margin-left: 15px;">🗑️ Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let engineData = [];
+        let currentUser = localStorage.getItem('componentsBayCurrentUser') || 'Unknown User';
+        let userRole = localStorage.getItem('componentsBayUserRole') || 'user';
+        let editingItem = null;
+        let currentItemId = null;
+
+        const pnMapping = {
+            'S720A10A2000': 'RTM322, Engine',
+            'S492A10A1009': 'APU'
+        };
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            checkAuthentication();
+            await loadData();
+            updateSummary();
+            updateUnserviceableSection();
+        });
+
+        function checkAuthentication() {
+            if (!currentUser || currentUser === 'null') { window.location.href = 'index.html'; return; }
+            document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+        }
+
+        async function loadData() {
+            try {
+                if (window.ComponentsBayDB) {
+                    engineData = await window.ComponentsBayDB.load('engine');
+                    console.log('✅ Engine loaded from Supabase:', engineData.length, 'items');
+                } else {
+                    const saved = localStorage.getItem('componentsBayEngine');
+                    if (saved) engineData = JSON.parse(saved);
+                }
+            } catch(e) {
+                const saved = localStorage.getItem('componentsBayEngine');
+                if (saved) engineData = JSON.parse(saved);
+            }
+            checkOverdueItems();
+            updateSummary();
+            updateUnserviceableSection();
+            setupDefaultView();
+        }
+
+        async function saveData() {
+            localStorage.setItem('componentsBayEngine', JSON.stringify(engineData));
+            if (window.ComponentsBayDB) {
+                for (const item of engineData) {
+                    try { await window.ComponentsBayDB.save('engine', {...item}); } catch(e) { console.error('Engine save error:', e); }
+                }
+            }
+        }
+
+        function handlePNSelection() {
+            const pn = document.getElementById('partNumber').value;
+            document.getElementById('designation').value = pnMapping[pn] || '';
+        }
+
+        function calculateNextInspections() {
+            const date = document.getElementById('inspectionDate').value;
+            const type = document.getElementById('inspectionType').value;
+            if (!date || !type) return;
+
+            const baseDate = new Date(date);
+
+            if (type === '24M') {
+                // Only update 24M, don't touch 48M
+                const next24 = new Date(baseDate);
+                next24.setMonth(next24.getMonth() + 24);
+                document.getElementById('next24M').value = next24.toISOString().split('T')[0];
+            } else if (type === '48M') {
+                // 48M includes 24M, update both
+                const next24 = new Date(baseDate);
+                next24.setMonth(next24.getMonth() + 24);
+                document.getElementById('next24M').value = next24.toISOString().split('T')[0];
+
+                const next48 = new Date(baseDate);
+                next48.setMonth(next48.getMonth() + 48);
+                document.getElementById('next48M').value = next48.toISOString().split('T')[0];
+            }
+        }
+
+        function checkOverdueItems() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            let changed = false;
+
+            engineData.forEach(item => {
+                let overdue = false;
+                let reason = '';
+
+                if (item.next24M && new Date(item.next24M) < today) {
+                    overdue = true;
+                    reason = 'Preservation Overdue (24M)';
+                }
+                if (item.next48M && new Date(item.next48M) < today) {
+                    overdue = true;
+                    reason = 'Preservation Overdue (48M)';
+                }
+
+                if (overdue && item.serviceability !== 'Unserviceable') {
+                    item.serviceability = 'Unserviceable';
+                    item.reason = reason;
+                    changed = true;
+                } else if (overdue && !item.reason) {
+                    item.reason = reason;
+                    changed = true;
+                }
+            });
+
+            if (changed) saveData();
+        }
+
+        function setupDefaultView() {
+            document.getElementById('addForm').classList.add('hidden');
+            document.getElementById('viewAllSection').classList.add('hidden');
+        }
+
+        function hideAllForms() { setupDefaultView(); }
+        function showAddForm() { hideAllForms(); document.getElementById('addForm').classList.remove('hidden'); }
+        function showAllItems() { hideAllForms(); document.getElementById('viewAllSection').classList.remove('hidden'); refreshTable(); }
+
+        function updateSummary() {
+            const s = engineData.filter(i => i.serviceability === 'Serviceable').length;
+            const u = engineData.filter(i => i.serviceability === 'Unserviceable').length;
+            document.getElementById('serviceableCount').textContent = s;
+            document.getElementById('unserviceableCount').textContent = u;
+            document.getElementById('totalCount').textContent = engineData.length;
+            updateUnserviceableSection();
+        }
+
+        function updateUnserviceableSection() {
+            const items = engineData.filter(i => i.serviceability === 'Unserviceable');
+            const container = document.getElementById('unserviceableTable');
+            document.getElementById('unserviceableBadge').textContent = items.length;
+
+            if (items.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color: #00695c; font-weight: 600;">No unserviceable engine items</p></div>';
+                return;
+            }
+
+            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Reason</th><th>Actions</th></tr></thead><tbody>';
+            items.forEach(item => {
+                const reasonClass = item.reason && item.reason.includes('Overdue') ? 'status-overdue' : 'status-unserviceable';
+                html += `<tr>
+                    <td>${item.designation || '-'}</td>
+                    <td>${item.partNumber || '-'}</td>
+                    <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                    <td><span class="status-badge ${reasonClass}">${item.reason || 'Unserviceable'}</span></td>
+                    <td><button class="btn" onclick="editItem('${item.id}')" style="padding: 6px 12px; font-size: 12px;">✏️ Edit</button></td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const formData = {
+                id: editingItem ? editingItem.id : Date.now().toString(),
+                partNumber: document.getElementById('partNumber').value,
+                designation: document.getElementById('designation').value,
+                serialNumber: document.getElementById('serialNumber').value.trim(),
+                inspectionType: document.getElementById('inspectionType').value,
+                inspectionDate: document.getElementById('inspectionDate').value,
+                next24M: document.getElementById('next24M').value,
+                next48M: document.getElementById('next48M').value,
+                serviceability: document.getElementById('serviceability').value || 'Serviceable',
+                workInProgress: document.getElementById('workInProgress').checked,
+                comments: document.getElementById('comments').value.trim(),
+                reason: '',
+                lastModified: new Date().toISOString(),
+                modifiedBy: currentUser
+            };
+
+            // Check overdue
+            const today = new Date(); today.setHours(0,0,0,0);
+            if (formData.next24M && new Date(formData.next24M) < today) {
+                formData.serviceability = 'Unserviceable';
+                formData.reason = 'Preservation Overdue (24M)';
+            }
+            if (formData.next48M && new Date(formData.next48M) < today) {
+                formData.serviceability = 'Unserviceable';
+                formData.reason = 'Preservation Overdue (48M)';
+            }
+
+            if (editingItem) {
+                const idx = engineData.findIndex(i => i.id === editingItem.id);
+                if (idx !== -1) engineData[idx] = formData;
+                editingItem = null;
+            } else {
+                engineData.push(formData);
+            }
+
+            saveData();
+            showMessage('Engine item saved successfully', 'success');
+            resetForm();
+            updateSummary();
+            if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
+        }
+
+        function resetForm() {
+            document.getElementById('engineForm').reset();
+            editingItem = null;
+            document.getElementById('editId').value = '';
+            document.getElementById('next24M').value = '';
+            document.getElementById('next48M').value = '';
+        }
+
+        function refreshTable() {
+            const container = document.getElementById('dataTable');
+            document.getElementById('tableCount').textContent = engineData.length;
+
+            if (engineData.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔥</div><p>No engine items registered</p><button onclick="showAddForm()" class="btn btn-add mt-20">+ Add First Engine</button></div>';
+                return;
+            }
+
+            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Inspection</th><th>Next 24M</th><th>Next 48M</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+            engineData.forEach(item => {
+                const statusClass = item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable';
+                const overdueClass = item.reason && item.reason.includes('Overdue') ? 'status-overdue' : statusClass;
+                html += `<tr>
+                    <td>${item.designation || '-'}</td>
+                    <td>${item.partNumber || '-'}</td>
+                    <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                    <td>${item.inspectionType || '-'}</td>
+                    <td>${item.next24M || '-'}</td>
+                    <td>${item.next48M || '-'}</td>
+                    <td><span class="status-badge ${overdueClass}">${item.reason && item.reason.includes('Overdue') ? item.reason : (item.serviceability || 'N/A')}</span></td>
+                    <td>
+                        <button class="btn" onclick="editItem('${item.id}')" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;">✏️</button>
+                        <button class="btn btn-danger" onclick="deleteItem('${item.id}')" style="padding: 6px 12px; font-size: 12px;">🗑️</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function showItemDetail(id) {
+            const item = engineData.find(i => i.id === id);
+            if (!item) return;
+            currentItemId = id;
+            document.getElementById('modalTitle').textContent = `Engine - ${item.designation || 'Unknown'}`;
+            document.getElementById('modalContent').innerHTML = `
+                <div class="form-grid">
+                    <div class="form-group"><label>Designation</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.designation||'-'}</div></div>
+                    <div class="form-group"><label>P/N</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.partNumber||'-'}</div></div>
+                    <div class="form-group"><label>S/N</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.serialNumber||'-'}</div></div>
+                    <div class="form-group"><label>Inspection Type</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.inspectionType||'-'}</div></div>
+                    <div class="form-group"><label>Inspection Date</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.inspectionDate||'-'}</div></div>
+                    <div class="form-group"><label>Next 24M</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.next24M||'-'}</div></div>
+                    <div class="form-group"><label>Next 48M</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.next48M||'-'}</div></div>
+                    <div class="form-group"><label>Serviceability</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;"><span class="status-badge ${item.serviceability==='Unserviceable'?'status-unserviceable':'status-serviceable'}">${item.serviceability||'N/A'}</span></div></div>
+                    <div class="form-group"><label>Work in Progress</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.workInProgress?'Yes':'No'}</div></div>
+                    ${item.reason?`<div class="form-group" style="grid-column:1/-1;"><label>Reason</label><div style="padding:10px;background:#fadbd8;border-radius:4px;color:#c62828;font-weight:600;">${item.reason}</div></div>`:''}
+                    <div class="form-group" style="grid-column:1/-1;"><label>Comments</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;min-height:50px;">${item.comments||'-'}</div></div>
+                    <div class="form-group" style="grid-column:1/-1;"><label>Last Modified</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;font-size:12px;color:#636e72;">${new Date(item.lastModified).toLocaleString()} by ${item.modifiedBy}</div></div>
+                </div>`;
+            document.getElementById('itemModal').classList.add('active');
+        }
+
+        function editItem(id) {
+            editingItem = engineData.find(i => i.id === id);
+            if (!editingItem) return;
+            document.getElementById('partNumber').value = editingItem.partNumber || '';
+            handlePNSelection();
+            document.getElementById('serialNumber').value = editingItem.serialNumber || '';
+            document.getElementById('inspectionType').value = editingItem.inspectionType || '';
+            document.getElementById('inspectionDate').value = editingItem.inspectionDate || '';
+            document.getElementById('next24M').value = editingItem.next24M || '';
+            document.getElementById('next48M').value = editingItem.next48M || '';
+            document.getElementById('serviceability').value = editingItem.serviceability || '';
+            document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
+            document.getElementById('comments').value = editingItem.comments || '';
+            showAddForm();
+            closeModal();
+        }
+
+        function editCurrentItem() { if (currentItemId) editItem(currentItemId); }
+
+        async function deleteItem(id) {
+            if (confirm('Delete this engine item?')) {
+                engineData = engineData.filter(i => i.id !== id);
+                saveData();
+                if (window.ComponentsBayDB) { try { await window.ComponentsBayDB.delete('engine', id); } catch(e) {} }
+                showMessage('Engine item deleted', 'success');
+                updateSummary();
+                refreshTable();
+            }
+        }
+
+        function deleteCurrentItem() { if (currentItemId) { deleteItem(currentItemId); closeModal(); } }
+        function closeModal() { document.getElementById('itemModal').classList.remove('active'); currentItemId = null; }
+
+        function exportData() {
+            if (engineData.length === 0) { alert('No data to export'); return; }
+            const data = engineData.map(i => ({ 'Designation': i.designation||'', 'P/N': i.partNumber||'', 'S/N': i.serialNumber||'', 'Inspection Type': i.inspectionType||'', 'Inspection Date': i.inspectionDate||'', 'Next 24M': i.next24M||'', 'Next 48M': i.next48M||'', 'Serviceability': i.serviceability||'', 'Work in Progress': i.workInProgress?'Yes':'No', 'Comments': i.comments||'', 'Reason': i.reason||'', 'Last Modified': new Date(i.lastModified).toLocaleString(), 'Modified By': i.modifiedBy||'' }));
+            const headers = Object.keys(data[0]);
+            let csv = headers.join(',') + '\n';
+            data.forEach(row => { csv += headers.map(h => `"${(row[h]||'').toString().replace(/"/g,'""')}"`).join(',') + '\n'; });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `Engine_Export_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            showMessage('Export completed', 'success');
+        }
+
+        function logout() { if (confirm('Logout?')) { localStorage.removeItem('componentsBayCurrentUser'); localStorage.removeItem('componentsBayUserRole'); window.location.href = 'index.html'; } }
+
+        function showMessage(msg, type) {
+            const n = document.createElement('div');
+            n.className = `message message-${type}`;
+            n.textContent = msg;
+            n.style.cssText = 'position:fixed;top:20px;right:20px;z-index:1000;padding:15px;border-radius:4px;';
+            document.body.appendChild(n);
+            setTimeout(() => document.body.removeChild(n), 3000);
+        }
+
+        document.getElementById('itemModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+    </script>
+</body>
+</html>

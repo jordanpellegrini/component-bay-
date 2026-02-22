@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Excel - Components Bay V4.4</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="module" src="supabase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <h1>📊 Import Excel - Bulk Data Import</h1>
+                <div class="user-info">
+                    <span id="userInfo">Loading...</span>
+                    <button onclick="window.location.href='index.html'" class="btn btn-secondary">🏠 Main Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template Downloads Section -->
+        <div class="card">
+            <h2>📥 Download Templates</h2>
+            <p>Download the appropriate Excel template, fill it with your data, then upload it back.</p>
+            
+            <div class="template-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
+                
+                <!-- Life Raft Template -->
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">🛟</span>
+                        <h3>Life Raft Template</h3>
+                    </div>
+                    <p>Import multiple life rafts with sub-components</p>
+                    <button onclick="downloadTemplate('liferaft')" class="btn btn-add">📥 Download Template</button>
+                </div>
+
+                <!-- EFS Template -->
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">🎈</span>
+                        <h3>EFS Template</h3>
+                    </div>
+                    <p>Import multiple EFS floats with 18M/36M cycles</p>
+                    <button onclick="downloadTemplate('efs')" class="btn btn-add">📥 Download Template</button>
+                </div>
+
+                <!-- Wheel Template -->
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">⚙️</span>
+                        <h3>Wheel Template</h3>
+                    </div>
+                    <p>Import multiple wheels with tire tracking</p>
+                    <button onclick="downloadTemplate('wheel')" class="btn btn-add">📥 Download Template</button>
+                </div>
+
+                <!-- Maintenance Template -->
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">🔧</span>
+                        <h3>Maintenance Template</h3>
+                    </div>
+                    <p>Import multiple maintenance items</p>
+                    <button onclick="downloadTemplate('maintenance')" class="btn btn-add">📥 Download Template</button>
+                </div>
+
+                <!-- Composite Template -->
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">🏗️</span>
+                        <h3>Composite Template</h3>
+                    </div>
+                    <p>Import multiple composite items</p>
+                    <button onclick="downloadTemplate('composite')" class="btn btn-add">📥 Download Template</button>
+                </div>
+
+                <!-- Avionic Template -->
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">📊</span>
+                        <h3>Avionic Template</h3>
+                    </div>
+                    <p>Import consoles, batteries, sonar items</p>
+                    <button onclick="downloadTemplate('avionic')" class="btn btn-add">📥 Download Template</button>
+                </div>
+
+                <!-- Troop Seat Template -->
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">🪑</span>
+                        <h3>Troop Seat Template</h3>
+                    </div>
+                    <p>Import multiple troop seats with 3Y cycles</p>
+                    <button onclick="downloadTemplate('troopseat')" class="btn btn-add">📥 Download Template</button>
+                </div>
+
+                <!-- Engine Template -->
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">🔥</span>
+                        <h3>Engine Template</h3>
+                    </div>
+                    <p>Import engines & APU with 24M/48M inspections</p>
+                    <button onclick="downloadTemplate('engine')" class="btn btn-add">📥 Download Template</button>
+                </div>
+
+                <!-- Rotor Bay Template -->
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">⚙️</span>
+                        <h3>Rotor Bay Template</h3>
+                    </div>
+                    <p>Import gearboxes, swashplates with multi-cycle inspections</p>
+                    <button onclick="downloadTemplate('rotorbay')" class="btn btn-add">📥 Download Template</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="card">
+            <h2>📤 Upload Excel File</h2>
+            <div class="message message-info" style="margin-bottom: 15px;">
+                <strong>📅 Date formats accepted:</strong> YYYY-MM-DD (recommended), DD/MM/YYYY, MM/DD/YYYY, or Excel date cells. Format all date columns as "Date" or "Text" in Excel for best results.
+            </div>
+            <div id="uploadMessage" class="hidden"></div>
+            
+            <div class="upload-area" style="border: 2px dashed #3498db; border-radius: 10px; padding: 40px; text-align: center; margin: 20px 0;">
+                <div class="upload-content">
+                    <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
+                    <h3>Drop Excel file here or click to browse</h3>
+                    <p style="color: #636e72;">Supports .xlsx and .xls files</p>
+                    <input type="file" id="excelFile" accept=".xlsx,.xls" style="display: none;" onchange="handleFileUpload(event)">
+                    <button onclick="document.getElementById('excelFile').click()" class="btn btn-add" style="margin-top: 15px;">Choose File</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div id="previewSection" class="card hidden">
+            <h2>👁️ Data Preview</h2>
+            <div id="previewContent"></div>
+            <div class="mt-20">
+                <button id="importBtn" onclick="importData()" class="btn btn-success">✅ Import All Data</button>
+                <button onclick="cancelImport()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="card hidden">
+            <h2>📋 Import Results</h2>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = localStorage.getItem('componentsBayCurrentUser') || 'Unknown';
+        let userRole = localStorage.getItem('componentsBayUserRole') || 'user';
+        let parsedData = null;
+        let selectedModule = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+            setupDropZone();
+        });
+
+        // Template definitions
+        const templates = {
+            liferaft: {
+                name: 'Life_Raft_Import_Template',
+                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Order', 'Work_In_Progress', 'Inspection_Date', 'Comments'],
+                example: ['Life Raft Alpha', 'LR-001', 'SN123456', 'ORD-001', 'No', '2024-01-15', 'Ready for deployment']
+            },
+            efs: {
+                name: 'EFS_Import_Template',
+                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Order', 'Serviceability', 'Work_In_Progress', 'Inspection_Date', 'Next_18M', 'Next_36M', 'Comments'],
+                example: ['EFS Float A1', 'EFS-001', 'EF123456', 'ORD-EFS-001', 'Serviceable', 'No', '2024-01-15', '2025-07-15', '2027-01-15', 'Operational']
+            },
+            wheel: {
+                name: 'Wheel_Import_Template',
+                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Position', 'Flight_Hours', 'Order', 'SR_Number', 'Log_Card', 'Serviceability', 'Work_In_Progress', 'Comments'],
+                example: ['Main Wheel Left', 'WHL-MLG-L', 'WL123456', 'MLG-L', '1500', 'ORD-WHL-001', 'SR-001', 'LC-001', 'Serviceable', 'No', 'Good condition']
+            },
+            maintenance: {
+                name: 'Maintenance_Import_Template',
+                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Flight_Hours', 'Order', 'SR_Number', 'Log_Card', 'Serviceability', 'Work_In_Progress', 'Comments'],
+                example: ['Main Rotor Blade', 'MRB-001', 'MR123456', '2000', 'ORD-MNT-001', 'SR-MNT-001', 'LC-MNT-001', 'Serviceable', 'No', 'Routine maintenance']
+            },
+            composite: {
+                name: 'Composite_Import_Template',
+                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Flight_Hours', 'Order', 'SR_Number', 'Log_Card', 'Serviceability', 'Work_In_Progress', 'Comments'],
+                example: ['Fuselage Panel', 'CMP-FUS-001', 'CP123456', '1800', 'ORD-CMP-001', 'SR-CMP-001', 'LC-CMP-001', 'Serviceable', 'No', 'Composite repair completed']
+            },
+            avionic: {
+                name: 'Avionic_Import_Template',
+                headers: ['Type', 'Designation', 'Part_Number', 'Serial_Number', 'Order', 'Work_In_Progress', 'Comments'],
+                example: ['console', 'Main Console', 'CON-001', 'AC123456', 'ORD-AVI-001', 'No', 'Console system operational']
+            },
+            troopseat: {
+                name: 'Troop_Seat_Import_Template',
+                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Inspection_Date', 'Next_Inspection', 'Work_In_Progress', 'Order', 'Comments'],
+                example: ['Troop Seat 1', 'TS-001', 'TS123456', '2024-01-15', '2027-01-15', 'No', 'ORD-TS-001', 'Seat in good condition']
+            },
+            engine: {
+                name: 'Engine_Import_Template',
+                headers: ['Part_Number', 'Designation', 'Serial_Number', 'Inspection_Type', 'Inspection_Date', 'Next_24M', 'Next_48M', 'Serviceability', 'Work_In_Progress', 'Comments'],
+                example: ['S720A10A2000', 'RTM322, Engine', 'ENG123456', '48M', '2024-01-15', '2026-01-15', '2028-01-15', 'Serviceable', 'No', 'Engine operational']
+            },
+            rotorbay: {
+                name: 'Rotor_Bay_Import_Template',
+                headers: ['Part_Number', 'Designation', 'Serial_Number', 'Inspection_Date', 'Next_Short', 'Next_Long', 'Short_Label', 'Long_Label', 'Serviceability', 'Work_In_Progress', 'Comments'],
+                example: ['N632G0040051', 'MAIN GEARBOX ASSEMBLY', 'GB123456', '2024-01-15', '2024-07-15', '2026-01-15', '6M', '24M', 'Serviceable', 'No', 'Gearbox in good condition']
+            }
+        };
+
+        function downloadTemplate(moduleType) {
+            const template = templates[moduleType];
+            if (!template) return;
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Create data with headers and example
+            const data = [
+                template.headers,
+                template.example
+            ];
+            
+            // Create worksheet
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // Style the header row
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let col = range.s.c; col <= range.e.c; col++) {
+                const cellAddress = XLSX.utils.encode_cell({r: 0, c: col});
+                if (!ws[cellAddress]) continue;
+                
+                ws[cellAddress].s = {
+                    font: { bold: true, color: { rgb: "FFFFFF" } },
+                    fill: { fgColor: { rgb: "3498db" } },
+                    alignment: { horizontal: "center" }
+                };
+            }
+            
+            // Set column widths
+            const colWidths = template.headers.map(() => ({ width: 20 }));
+            ws['!cols'] = colWidths;
+            
+            XLSX.utils.book_append_sheet(wb, ws, "Import_Data");
+            
+            // Download
+            XLSX.writeFile(wb, `${template.name}.xlsx`);
+            
+            showMessage(`Template downloaded: ${template.name}.xlsx`, 'success');
+        }
+
+        function setupDropZone() {
+            const uploadArea = document.querySelector('.upload-area');
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.backgroundColor = '#e3f2fd';
+                uploadArea.style.borderColor = '#2196f3';
+            });
+            
+            uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadArea.style.backgroundColor = '';
+                uploadArea.style.borderColor = '#3498db';
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.backgroundColor = '';
+                uploadArea.style.borderColor = '#3498db';
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file) return;
+            
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                showMessage('Please select a valid Excel file (.xlsx or .xls)', 'error');
+                return;
+            }
+
+            showMessage('Reading Excel file...', 'info');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+                    
+                    // Get first sheet - read twice: raw for dates, formatted for text
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rawData = XLSX.utils.sheet_to_json(firstSheet, { raw: true });
+                    const formattedData = XLSX.utils.sheet_to_json(firstSheet, { raw: false });
+                    
+                    // Merge: use formatted for text, but override date columns with parsed raw values
+                    const dateColumns = ['Inspection_Date', 'inspection_date', 'Next_18M', 'next_18m', 'Next_36M', 'next_36m', 'Next_24M', 'next_24m', 'Next_48M', 'next_48m', 'Next_Short', 'next_short', 'Next_Long', 'next_long', 'Next_Inspection', 'next_inspection'];
+                    
+                    const jsonData = formattedData.map((row, i) => {
+                        const merged = { ...row };
+                        const rawRow = rawData[i] || {};
+                        dateColumns.forEach(col => {
+                            if (rawRow[col] !== undefined && rawRow[col] !== null && rawRow[col] !== '') {
+                                // If raw value is a number, it's an Excel serial date
+                                if (typeof rawRow[col] === 'number' && rawRow[col] > 10000 && rawRow[col] < 100000) {
+                                    const d = new Date((rawRow[col] - 25569) * 86400000);
+                                    merged[col] = d.toISOString().split('T')[0];
+                                } else {
+                                    // Use formatted value and run through parseDate
+                                    merged[col] = row[col] || rawRow[col];
+                                }
+                            }
+                        });
+                        return merged;
+                    });
+                    
+                    if (jsonData.length === 0) {
+                        showMessage('Excel file appears to be empty', 'error');
+                        return;
+                    }
+                    
+                    // Detect module type from headers
+                    const headers = Object.keys(jsonData[0]).map(h => h.toLowerCase());
+                    selectedModule = detectModuleType(headers);
+                    
+                    if (!selectedModule) {
+                        showMessage('Could not detect data type. Please use the provided templates.', 'error');
+                        return;
+                    }
+                    
+                    parsedData = jsonData;
+                    showPreview(jsonData, selectedModule);
+                    
+                } catch (error) {
+                    console.error('Error reading Excel file:', error);
+                    showMessage('Error reading Excel file. Please check the format.', 'error');
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function detectModuleType(headers) {
+            // Detect based on unique header combinations
+            if (headers.includes('next_18m') || headers.includes('next_36m')) return 'efs';
+            if (headers.includes('next_24m') || headers.includes('next_48m')) return 'engine';
+            if (headers.includes('next_short') && headers.includes('next_long')) return 'rotorbay';
+            if (headers.includes('position') && headers.includes('flight_hours')) return 'wheel';
+            if (headers.includes('type') && (headers.includes('designation'))) return 'avionic';
+            if (headers.includes('next_inspection') && headers.includes('inspection_date')) return 'troopseat';
+            if (headers.includes('sr_number')) return headers.includes('flight_hours') ? 'maintenance' : 'composite';
+            if (headers.includes('designation') && headers.includes('part_number')) return 'liferaft';
+            
+            return null;
+        }
+
+        function showPreview(data, moduleType) {
+            const previewSection = document.getElementById('previewSection');
+            const previewContent = document.getElementById('previewContent');
+            
+            let html = `
+                <div class="message message-info mb-20">
+                    <strong>Detected Module:</strong> ${moduleType.toUpperCase()} | 
+                    <strong>Records Found:</strong> ${data.length}
+                </div>
+                
+                <div class="data-table">
+                    <table style="font-size: 0.9em;">
+                        <thead>
+                            <tr>
+            `;
+            
+            // Headers
+            const headers = Object.keys(data[0]);
+            headers.forEach(header => {
+                html += `<th>${header}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            // Show first 5 rows
+            const previewRows = data.slice(0, 5);
+            previewRows.forEach(row => {
+                html += '<tr>';
+                headers.forEach(header => {
+                    const value = row[header] || '-';
+                    html += `<td>${value}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            if (data.length > 5) {
+                html += `<tr><td colspan="${headers.length}" style="text-align: center; color: #636e72; font-style: italic;">... and ${data.length - 5} more records</td></tr>`;
+            }
+            
+            html += '</tbody></table></div>';
+            
+            previewContent.innerHTML = html;
+            previewSection.classList.remove('hidden');
+        }
+
+        async function importData() {
+            if (!parsedData || !selectedModule) return;
+            
+            const storageKey = getStorageKey(selectedModule);
+            const supabaseTable = getSupabaseTable(selectedModule);
+            const existingData = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            
+            let finalData = [];
+            
+            // If data already exists, ask user
+            if (existingData.length > 0) {
+                const choice = confirm(
+                    `⚠️ Il y a déjà ${existingData.length} items dans ${selectedModule.toUpperCase()}.\n\n` +
+                    `OK = REMPLACER tout (supprimer les anciens)\n` +
+                    `Annuler = AJOUTER aux données existantes`
+                );
+                if (choice) {
+                    // Replace: bulk delete old data from Supabase
+                    if (window.ComponentsBayDB && supabaseTable) {
+                        await window.ComponentsBayDB.bulkDelete(supabaseTable);
+                    }
+                    finalData = [];
+                } else {
+                    finalData = [...existingData];
+                }
+            }
+            
+            showMessage('Importing data...', 'info');
+            importCounter = 0;
+            
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            const newItems = [];
+            
+            parsedData.forEach((row, index) => {
+                try {
+                    const formattedData = formatDataForModule(row, selectedModule);
+                    finalData.push(formattedData);
+                    newItems.push(formattedData);
+                    successCount++;
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`Row ${index + 1}: ${error.message}`);
+                }
+            });
+            
+            // Save to localStorage
+            localStorage.setItem(storageKey, JSON.stringify(finalData));
+            
+            // Push to Supabase in bulk
+            if (window.ComponentsBayDB && supabaseTable) {
+                const inserted = await window.ComponentsBayDB.bulkSave(supabaseTable, newItems);
+                console.log(`✅ ${inserted}/${newItems.length} items pushed to Supabase table: ${supabaseTable}`);
+            }
+
+            // Post-import: check overdue items and mark unserviceable
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            let overdueCount = 0;
+            
+            finalData.forEach(item => {
+                let isOverdue = false;
+                let reason = '';
+                
+                // EFS dates
+                if (item.next18M && new Date(item.next18M) < today) { isOverdue = true; reason = 'EFS 18M overdue'; }
+                if (item.next36M && new Date(item.next36M) < today) { isOverdue = true; reason = 'EFS 36M overdue'; }
+                // Engine dates
+                if (item.next24M && new Date(item.next24M) < today) { isOverdue = true; reason = 'Preservation Overdue (24M)'; }
+                if (item.next48M && new Date(item.next48M) < today) { isOverdue = true; reason = 'Preservation Overdue (48M)'; }
+                // Rotor Bay dates
+                if (item.nextShort && new Date(item.nextShort) < today) { isOverdue = true; reason = `Overdue (${item.shortLabel || 'Short'})`; }
+                if (item.nextLong && new Date(item.nextLong) < today) { isOverdue = true; reason = `Overdue (${item.longLabel || 'Long'})`; }
+                // Troop Seat dates
+                if (item.nextInspection && new Date(item.nextInspection) < today) { isOverdue = true; reason = '3Y Inspection Overdue'; }
+                
+                if (isOverdue) {
+                    item.serviceability = 'Unserviceable';
+                    item.reason = reason;
+                    overdueCount++;
+                }
+            });
+            
+            if (overdueCount > 0) {
+                localStorage.setItem(storageKey, JSON.stringify(finalData));
+                if (window.ComponentsBayDB && supabaseTable) {
+                    const overdueItems = finalData.filter(i => i.serviceability === 'Unserviceable');
+                    await window.ComponentsBayDB.bulkSave(supabaseTable, overdueItems);
+                }
+                console.log(`⚠️ ${overdueCount} items marked as Unserviceable (overdue)`);
+            }
+            
+            // Show results
+            showResults(successCount, errorCount, errors, overdueCount);
+        }
+
+        function getSupabaseTable(moduleType) {
+            const tableMap = {
+                'liferaft': 'liferafts',
+                'efs': 'efs',
+                'wheel': 'wheels',
+                'maintenance': 'maintenance',
+                'composite': 'composite',
+                'avionic': 'avionic',
+                'troopseat': 'troopseats',
+                'engine': 'engine',
+                'rotorbay': 'rotorbay'
+            };
+            return tableMap[moduleType] || null;
+        }
+
+        function getStorageKey(moduleType) {
+            const keyMap = {
+                'liferaft': 'componentsBayLifeRafts',  // avec S
+                'efs': 'componentsBayEFS',
+                'wheel': 'componentsBayWheel',
+                'maintenance': 'componentsBayMaintenance',
+                'composite': 'componentsBayComposite',
+                'avionic': 'componentsBayAvionic',
+                'troopseat': 'componentsBayTroopSeats',
+                'engine': 'componentsBayEngine',
+                'rotorbay': 'componentsBayRotorBay'
+            };
+            return keyMap[moduleType];
+        }
+
+        // Parse any date format into YYYY-MM-DD
+        function parseDate(value) {
+            if (!value) return '';
+            const str = String(value).trim();
+            let result = '';
+            
+            // Already YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}/.test(str)) { result = str.substring(0, 10); }
+            
+            // Excel serial number (number like 45307)
+            else if (/^\d{5,}$/.test(str) || (!isNaN(str) && Number(str) > 10000 && Number(str) < 100000)) {
+                const d = new Date((Number(str) - 25569) * 86400000);
+                if (!isNaN(d.getTime())) result = d.toISOString().split('T')[0];
+            }
+            
+            // DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+            else if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}$/.test(str)) {
+                const dmy = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+                if (dmy) {
+                    const a = parseInt(dmy[1]);
+                    const b = parseInt(dmy[2]);
+                    if (a > 12) {
+                        result = `${dmy[3]}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;
+                    } else if (b > 12) {
+                        result = `${dmy[3]}-${dmy[1].padStart(2,'0')}-${dmy[2].padStart(2,'0')}`;
+                    } else {
+                        result = `${dmy[3]}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;
+                    }
+                }
+            }
+            
+            // YYYY/MM/DD
+            else if (/^\d{4}[\/\.]\d{1,2}[\/\.]\d{1,2}$/.test(str)) {
+                const ymd = str.match(/^(\d{4})[\/\.](\d{1,2})[\/\.](\d{1,2})$/);
+                if (ymd) result = `${ymd[1]}-${ymd[2].padStart(2,'0')}-${ymd[3].padStart(2,'0')}`;
+            }
+            
+            // Last resort: JS Date parse
+            else {
+                const d = new Date(str);
+                if (!isNaN(d.getTime())) result = d.toISOString().split('T')[0];
+            }
+            
+            if (!result) console.warn('❌ Could not parse date:', value, typeof value);
+            else console.log('✅ Parsed date:', value, '->', result);
+            
+            return result;
+        }
+
+        let importCounter = 0;
+        
+        function formatDataForModule(row, moduleType) {
+            importCounter++;
+            const baseData = {
+                id: Date.now().toString() + '-' + importCounter.toString().padStart(4, '0') + '-' + Math.random().toString(36).substr(2, 6),
+                lastModified: new Date().toISOString(),
+                modifiedBy: currentUser,
+                serviceability: row.Serviceability || row.serviceability || 'Serviceable'
+            };
+            
+            switch (moduleType) {
+                case 'liferaft':
+                    return {
+                        ...baseData,
+                        designation: row.Designation || row.designation || '',
+                        partNumber: row.Part_Number || row.part_number || '',
+                        serialNumber: row.Serial_Number || row.serial_number || '',
+                        order: row.Order || row.order || '',
+                        workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
+                        inspectionDate: parseDate(row.Inspection_Date || row.inspection_date),
+                        comments: row.Comments || row.comments || '',
+                        subItems: []
+                    };
+                    
+                case 'efs':
+                    return {
+                        ...baseData,
+                        designation: row.Designation || row.designation || '',
+                        partNumber: row.Part_Number || row.part_number || '',
+                        serialNumber: row.Serial_Number || row.serial_number || '',
+                        order: row.Order || row.order || '',
+                        workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
+                        inspectionDate: parseDate(row.Inspection_Date || row.inspection_date),
+                        inspectionInterval: '18M/36M',
+                        next18M: parseDate(row.Next_18M || row.next_18m),
+                        next36M: parseDate(row.Next_36M || row.next_36m),
+                        comments: row.Comments || row.comments || ''
+                    };
+                    
+                case 'troopseat':
+                    return {
+                        ...baseData,
+                        designation: row.Designation || row.designation || '',
+                        partNumber: row.Part_Number || row.part_number || '',
+                        serialNumber: row.Serial_Number || row.serial_number || '',
+                        inspectionDate: parseDate(row.Inspection_Date || row.inspection_date),
+                        inspectionInterval: '3Y',
+                        nextInspection: parseDate(row.Next_Inspection || row.next_inspection),
+                        workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
+                        order: row.Order || row.order || '',
+                        comments: row.Comments || row.comments || ''
+                    };
+
+                case 'engine':
+                    return {
+                        ...baseData,
+                        partNumber: row.Part_Number || row.part_number || '',
+                        designation: row.Designation || row.designation || '',
+                        serialNumber: row.Serial_Number || row.serial_number || '',
+                        inspectionType: row.Inspection_Type || row.inspection_type || '',
+                        inspectionDate: parseDate(row.Inspection_Date || row.inspection_date),
+                        next24M: parseDate(row.Next_24M || row.next_24m),
+                        next48M: parseDate(row.Next_48M || row.next_48m),
+                        workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
+                        comments: row.Comments || row.comments || '',
+                        reason: ''
+                    };
+
+                case 'rotorbay':
+                    return {
+                        ...baseData,
+                        partNumber: row.Part_Number || row.part_number || '',
+                        designation: row.Designation || row.designation || '',
+                        serialNumber: row.Serial_Number || row.serial_number || '',
+                        inspectionDate: parseDate(row.Inspection_Date || row.inspection_date),
+                        nextShort: parseDate(row.Next_Short || row.next_short),
+                        nextLong: parseDate(row.Next_Long || row.next_long),
+                        shortLabel: row.Short_Label || row.short_label || '',
+                        longLabel: row.Long_Label || row.long_label || '',
+                        workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
+                        comments: row.Comments || row.comments || '',
+                        reason: ''
+                    };
+
+                case 'wheel':
+                    return {
+                        ...baseData,
+                        designation: row.Designation || row.designation || '',
+                        pnTire: row.Part_Number || row.part_number || '',
+                        serialNumber: row.Serial_Number || row.serial_number || '',
+                        position: row.Position || row.position || '',
+                        flightHours: row.Flight_Hours || row.flight_hours || '',
+                        order: row.Order || row.order || '',
+                        srNumber: row.SR_Number || row.sr_number || '',
+                        logCard: row.Log_Card || row.log_card || '',
+                        workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
+                        comments: row.Comments || row.comments || ''
+                    };
+
+                case 'maintenance':
+                    return {
+                        ...baseData,
+                        designation: row.Designation || row.designation || '',
+                        partNumber: row.Part_Number || row.part_number || '',
+                        serialNumber: row.Serial_Number || row.serial_number || '',
+                        flightHours: row.Flight_Hours || row.flight_hours || '',
+                        order: row.Order || row.order || '',
+                        srNumber: row.SR_Number || row.sr_number || '',
+                        logCard: row.Log_Card || row.log_card || '',
+                        workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
+                        comments: row.Comments || row.comments || ''
+                    };
+
+                case 'composite':
+                    return {
+                        ...baseData,
+                        designation: row.Designation || row.designation || '',
+                        partNumber: row.Part_Number || row.part_number || '',
+                        serialNumber: row.Serial_Number || row.serial_number || '',
+                        flightHours: row.Flight_Hours || row.flight_hours || '',
+                        order: row.Order || row.order || '',
+                        srNumber: row.SR_Number || row.sr_number || '',
+                        logCard: row.Log_Card || row.log_card || '',
+                        workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
+                        comments: row.Comments || row.comments || ''
+                    };
+
+                case 'avionic':
+                    return {
+                        ...baseData,
+                        type: row.Type || row.type || 'console',
+                        designation: row.Designation || row.designation || '',
+                        partNumber: row.Part_Number || row.part_number || '',
+                        serialNumber: row.Serial_Number || row.serial_number || '',
+                        order: row.Order || row.order || '',
+                        workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
+                        comments: row.Comments || row.comments || ''
+                    };
+                    
+                default:
+                    return { ...baseData, ...row };
+            }
+        }
+
+        function showResults(successCount, errorCount, errors, overdueCount = 0) {
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            let html = `
+                <div class="summary-cards" style="grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 25px;">
+                    <div class="summary-card serviceable">
+                        <div class="summary-content">
+                            <h3>Successfully Imported</h3>
+                            <span class="count">${successCount}</span>
+                        </div>
+                        <div class="summary-icon">✅</div>
+                    </div>
+                    <div class="summary-card ${errorCount > 0 ? 'unserviceable' : 'serviceable'}">
+                        <div class="summary-content">
+                            <h3>Errors</h3>
+                            <span class="count">${errorCount}</span>
+                        </div>
+                        <div class="summary-icon">${errorCount > 0 ? '⚠️' : '✅'}</div>
+                    </div>
+                </div>
+                ${overdueCount > 0 ? `<div class="message message-error mb-20"><strong>⚠️ ${overdueCount} item(s) marked Unserviceable</strong> — inspection dates are overdue.</div>` : ''}
+            `;
+            
+            if (errorCount > 0) {
+                html += `
+                    <div class="message message-error mb-20">
+                        <strong>Import Errors:</strong>
+                        <ul style="margin: 10px 0 0 20px;">
+                            ${errors.map(error => `<li>${error}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            html += `
+                <div class="mt-20">
+                    <button onclick="window.location.href='index.html'" class="btn btn-add">🏠 Return to Main Menu</button>
+                    <button onclick="location.reload()" class="btn" style="margin-left: 15px;">🔄 Import More Data</button>
+                </div>
+            `;
+            
+            resultsContent.innerHTML = html;
+            resultsSection.classList.remove('hidden');
+            
+            // Hide preview section
+            document.getElementById('previewSection').classList.add('hidden');
+            
+            showMessage(`Import completed: ${successCount} successful, ${errorCount} errors`, 
+                        errorCount === 0 ? 'success' : 'warning');
+        }
+
+        function cancelImport() {
+            parsedData = null;
+            selectedModule = null;
+            document.getElementById('previewSection').classList.add('hidden');
+            document.getElementById('excelFile').value = '';
+        }
+
+        function showMessage(message, type = 'info') {
+            const messageDiv = document.getElementById('uploadMessage');
+            messageDiv.textContent = message;
+            messageDiv.className = `message message-${type}`;
+            messageDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+
+    <style>
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .template-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .template-card:hover {
+            border-color: #3498db;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .template-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .template-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .template-card h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        
+        .template-card p {
+            color: #636e72;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            background-color: #f8f9fa;
+            border-color: #2196f3;
+        }
+    </style>
+</body>
+</html>

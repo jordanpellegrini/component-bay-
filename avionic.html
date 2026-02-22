@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avionic - Components Bay V3.3</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <script type="module" src="supabase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <a href="http://10.10.0.21:8080/QATAR_V1_2/index.htm" target="_blank" class="nav-btn ietp-btn">🔗 IETP</a>
+                <a href="index.html" class="nav-btn">🏠 Home</a>
+            </div>
+            <div class="nav-right">
+                <button onclick="exportAvionicData()" class="nav-btn export-btn">📊 Export Excel</button>
+                <span id="userInfo" class="nav-btn user-btn"></span>
+                <button onclick="logout()" class="nav-btn logout-btn">🚪 Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Header -->
+        <div class="main-header module-avionic">
+            <div class="header-content">
+                <h1>📊 Avionic</h1>
+                <p>Console systems management</p>
+            </div>
+            <div class="header-actions">
+                <button onclick="showAddConsole()" class="btn btn-add">+ Add Console</button>
+                <button onclick="showAddItems()" class="btn btn-add">+ Add Items</button>
+                <button onclick="showAddBattery()" class="btn btn-add">+ Add Battery</button>
+                <button onclick="showAddSonar()" class="btn btn-add">+ Add Sonar</button>
+                <button onclick="showAllConsoles()" class="btn">📋 View All Items</button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card serviceable">
+                <div class="summary-number" id="serviceableCount">0</div>
+                <div class="summary-label">Serviceable</div>
+            </div>
+            <div class="summary-card unserviceable">
+                <div class="summary-number" id="unserviceableCount">0</div>
+                <div class="summary-label">Unserviceable</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number" id="totalCount">0</div>
+                <div class="summary-label">Total Consoles</div>
+            </div>
+        </div>
+
+        <!-- Unserviceable Items Summary -->
+        <div id="unserviceableSection" class="panel">
+            <div class="panel-header" style="background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);">
+                <span>⚠️ Unserviceable parts</span>
+                <span class="badge" id="unserviceableBadge">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="unserviceableTable"></div>
+            </div>
+        </div>
+
+        <!-- Add Items Form -->
+        <div id="addItemsForm" class="card hidden">
+            <h2 style="margin-bottom: 25px;">Add Items</h2>
+            <div id="itemsMessage" class="hidden"></div>
+            
+            <form onsubmit="handleItemsSubmit(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <input type="text" id="itemsDesignation" class="form-control" placeholder="Enter designation">
+                    </div>
+                    
+                    <div class="form-group required">
+                        <label>Part Number (P/N)</label>
+                        <input type="text" id="itemsPartNumber" class="form-control" placeholder="Enter part number" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Serial Number (S/N)</label>
+                        <input type="text" id="itemsSerialNumber" class="form-control" placeholder="Enter serial number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="itemsWorkInProgress">
+                            Work in Progress
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Order</label>
+                        <input type="text" id="itemsOrder" class="form-control" placeholder="Enter order number">
+                    </div>
+                    
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <textarea id="itemsComments" class="form-control" placeholder="Enter detailed comments..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="mt-20">
+                    <button type="submit" class="btn btn-success">💾 Save Item</button>
+                    <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Add Battery Form -->
+        <div id="addBatteryForm" class="card hidden">
+            <h2 style="margin-bottom: 25px;">Add Battery</h2>
+            <div id="batteryMessage" class="hidden"></div>
+            
+            <form onsubmit="handleBatterySubmit(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="batteryDescription" class="form-control" placeholder="Enter battery description">
+                    </div>
+                    
+                    <div class="form-group required">
+                        <label>Part Number (P/N)</label>
+                        <input type="text" id="batteryPartNumber" class="form-control" placeholder="Enter part number" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Serial Number (S/N)</label>
+                        <input type="text" id="batterySerialNumber" class="form-control" placeholder="Enter serial number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Order</label>
+                        <input type="text" id="batteryOrder" class="form-control" placeholder="Enter order number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Log Card</label>
+                        <select id="batteryLogCard" class="form-control">
+                            <option value="">Select option</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="batteryWorkInProgress">
+                            Work in Progress
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="batteryDate" class="form-control" onchange="calculateBatteryInspections()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Inspection Cycle</label>
+                        <select id="batteryCycle" class="form-control" onchange="calculateBatteryInspections()">
+                            <option value="">Select cycle</option>
+                            <option value="1Y">1Y only</option>
+                            <option value="2Y">2Y (includes both 1Y and 2Y)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Next 1Y Inspection</label>
+                        <input type="date" id="batteryNext1Y" class="form-control" style="background: #f8f9fa;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Next 2Y Inspection</label>
+                        <input type="date" id="batteryNext2Y" class="form-control" style="background: #f8f9fa;">
+                    </div>
+                    
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <textarea id="batteryComments" class="form-control" placeholder="Enter detailed comments..." rows="4"></textarea>
+                    </div>
+                </div>
+                
+                <div class="message message-info mt-20">
+                    <strong>Inspection Cycle Information:</strong><br>
+                    • 1Y only: Calculates next 1-year inspection only<br>
+                    • 2Y: Calculates both 1Y and 2Y inspections (2Y includes 1Y)
+                </div>
+                
+                <div class="mt-20 text-center">
+                    <button type="submit" class="btn btn-success" style="padding: 15px 30px; font-size: 1.1em; font-weight: 600;">💾 SAVE BATTERY</button>
+                    <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px; padding: 15px 30px;">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Add Sonar Form -->
+        <div id="addSonarForm" class="card hidden">
+            <h2 style="margin-bottom: 25px;">Add Sonar</h2>
+            <div id="sonarMessage" class="hidden"></div>
+            
+            <form onsubmit="handleSonarSubmit(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <input type="text" id="sonarDesignation" class="form-control" placeholder="Auto-filled from P/N" readonly style="background: #f8f9fa;">
+                    </div>
+                    
+                    <div class="form-group required">
+                        <label>Part Number (P/N)</label>
+                        <input type="text" id="sonarPartNumber" class="form-control" placeholder="Enter part number" onchange="setSonarDynamicFields()" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Serial Number (S/N)</label>
+                        <input type="text" id="sonarSerialNumber" class="form-control" placeholder="Enter serial number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="sonarWorkInProgress">
+                            Work in Progress
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Order</label>
+                        <input type="text" id="sonarOrder" class="form-control" placeholder="Enter order number">
+                    </div>
+                    
+                    <!-- Dynamic fields container -->
+                    <div id="sonarDynamicFields" style="grid-column: 1 / -1;">
+                        <!-- Will be populated dynamically based on P/N -->
+                    </div>
+                    
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <textarea id="sonarComments" class="form-control" placeholder="Enter detailed comments..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="message message-info mt-20">
+                    <strong>P/N Auto-Mapping:</strong><br>
+                    • 63690033AA → Wet End (1M + 1Y independent)<br>
+                    • 63685380AA → CAP (18M only)<br>
+                    • 63690026AA → RMIU (3Y only)
+                </div>
+                
+                <div class="mt-20">
+                    <button type="submit" class="btn btn-success">💾 Save Sonar</button>
+                    <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Add Console Form -->
+        <div id="addConsoleForm" class="card hidden">
+            <h2 style="margin-bottom: 25px;">Add Console System</h2>
+            <div id="consoleMessage" class="hidden"></div>
+            
+            <form onsubmit="handleConsoleSubmit(event)">
+                <input type="hidden" id="editConsoleId">
+                
+                <!-- Main Console Info -->
+                <div class="card" style="background: #f8f9fa; margin-bottom: 25px;">
+                    <h3 style="margin-bottom: 20px; color: #17a2b8;">Main Console Information</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Designation</label>
+                            <input type="text" id="consoleDesignation" class="form-control" placeholder="Enter console designation">
+                        </div>
+                        
+                        <div class="form-group required">
+                            <label>Part Number (P/N)</label>
+                            <input type="text" id="consolePartNumber" class="form-control" placeholder="Enter console part number" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Serial Number (S/N)</label>
+                            <input type="text" id="consoleSerialNumber" class="form-control" placeholder="Enter console serial number">
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Comments</label>
+                            <textarea id="consoleComments" class="form-control" placeholder="Enter detailed comments about the console..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sub-Components -->
+                <div class="card" style="background: #f8f9fa; margin-bottom: 25px;">
+                    <h3 style="margin-bottom: 20px; color: #17a2b8;">Console Sub-Components</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Fixed designations (admin only can modify)</p>
+                    <div id="consoleSubComponents"></div>
+                </div>
+                
+                <div id="consoleMissingWarning" class="message message-error hidden">
+                    ⚠️ <strong>Warning:</strong> Missing components will make the entire console <strong>Unserviceable</strong> with reason "Missing part: [component names]".
+                </div>
+                
+                <div class="mt-20">
+                    <button type="submit" class="btn btn-success">💾 Save Console</button>
+                    <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- View All Consoles Table -->
+        <div id="viewAllSection" class="panel hidden">
+            <div class="panel-header module-avionic">
+                <span>📋 All Console Systems</span>
+                <span class="badge" id="tableCount">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="consoleTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Console Detail Modal -->
+    <div id="consoleModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Console Details</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent"></div>
+                <div class="mt-20 text-center">
+                    <button onclick="editCurrentConsole()" class="btn">✏️ Edit</button>
+                    <button onclick="deleteCurrentConsole()" class="btn btn-danger" style="margin-left: 15px;">🗑️ Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let consoleData = [];
+        let currentUser = sessionStorage.getItem('componentsBayCurrentUser') || sessionStorage.getItem('currentUser') || 'Unknown User';
+        let userRole = sessionStorage.getItem('componentsBayUserRole') || sessionStorage.getItem('userRole') || 'user';
+        let editingConsole = null;
+        let editingSonar = null;
+        let editingBattery = null;
+        let editingItem = null;
+        let currentConsoleId = null;
+
+        const consoleSubComponents = ['TDU', 'DKU', 'MFD', 'CCU', 'CHCU', 'Control Panel', 'Light'];
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            checkAuthentication();
+            await loadData();
+            updateSummary();
+            updateUnserviceableSection();
+            generateConsoleSubComponents();
+        });
+
+        function checkAuthentication() {
+            if (!currentUser || currentUser === 'null') {
+                window.location.href = 'index.html';
+                return;
+            }
+            document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+        }
+
+        async function loadData() {
+            try {
+                if (window.ComponentsBayDB) {
+                    consoleData = await window.ComponentsBayDB.load('avionic');
+                    console.log('✅ Avionic loaded from Supabase:', consoleData.length, 'items');
+                } else {
+                    console.error('Avionic: Supabase not available, using localStorage');
+                    const saved = localStorage.getItem('componentsBayAvionic');
+                    if (saved) consoleData = JSON.parse(saved);
+                }
+            } catch(e) {
+                const saved = localStorage.getItem('componentsBayAvionic');
+                if (saved) consoleData = JSON.parse(saved);
+            }
+        }
+
+        async function saveData() {
+            localStorage.setItem('componentsBayAvionic', JSON.stringify(consoleData));
+            if (window.ComponentsBayDB) {
+                for (const item of consoleData) {
+                    try {
+                        await window.ComponentsBayDB.save('avionic', {...item});
+                    } catch(e) {
+                        console.error('Avionic save error:', e);
+                    }
+                }
+            }
+        }
+
+        function updateSummary() {
+            // Check for overdue items first
+            checkOverdueItems();
+            
+            const serviceable = consoleData.filter(item => item.serviceability === 'Serviceable').length;
+            const unserviceable = consoleData.filter(item => item.serviceability === 'Unserviceable').length;
+            
+            document.getElementById('serviceableCount').textContent = serviceable;
+            document.getElementById('unserviceableCount').textContent = unserviceable;
+            document.getElementById('totalCount').textContent = consoleData.length;
+        }
+
+        function checkOverdueItems() {
+            const today = new Date();
+            let hasChanges = false;
+            
+            consoleData.forEach(item => {
+                let isOverdue = false;
+                let overdueReasons = [];
+                
+                // ONLY check next inspection dates - not other dates
+                
+                // Check battery next inspection dates
+                if (item.type === 'battery') {
+                    if (item.next1Y) {
+                        const next1Y = new Date(item.next1Y);
+                        if (today > next1Y) {
+                            isOverdue = true;
+                            overdueReasons.push('1Y inspection overdue');
+                        }
+                    }
+                    if (item.next2Y) {
+                        const next2Y = new Date(item.next2Y);
+                        if (today > next2Y) {
+                            isOverdue = true;
+                            overdueReasons.push('2Y inspection overdue');
+                        }
+                    }
+                }
+                
+                // Check sonar next inspection dates
+                if (item.type === 'sonar') {
+                    // Check next inspection date
+                    if (item.nextInspection) {
+                        const nextInspection = new Date(item.nextInspection);
+                        if (today > nextInspection) {
+                            isOverdue = true;
+                            overdueReasons.push('Scheduled inspection overdue');
+                        }
+                    }
+                }
+                
+                // Update item if overdue and not already unserviceable
+                if (isOverdue && item.serviceability !== 'Unserviceable') {
+                    item.serviceability = 'Unserviceable';
+                    item.reason = overdueReasons.join(', ');
+                    hasChanges = true;
+                }
+            });
+            
+            if (hasChanges) {
+                saveData();
+            }
+        }
+
+        function updateUnserviceableSection() {
+            const unserviceableItems = consoleData.filter(item => item.serviceability === 'Unserviceable');
+            const tableContainer = document.getElementById('unserviceableTable');
+            document.getElementById('unserviceableBadge').textContent = unserviceableItems.length;
+
+            if (unserviceableItems.length === 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <p style="color: #00695c; font-weight: 600;">Excellent! No unserviceable console systems</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Designation</th>
+                                <th>P/N</th>
+                                <th>S/N</th>
+                                <th>Reason</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            unserviceableItems.forEach(item => {
+                const reasonText = item.reason || 'Unserviceable';
+                const reasonClass = item.reason && item.reason.includes('Missing part') ? 'status-missing' : 'status-unserviceable';
+                
+                tableHTML += `
+                    <tr>
+                        <td>${item.designation || '-'}</td>
+                        <td>${item.partNumber}</td>
+                        <td><a href="#" class="clickable" onclick="showConsoleDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td><span class="status-badge ${reasonClass}">${reasonText}</span></td>
+                        <td>
+                            <button class="btn" onclick="editConsole('${item.id}')" style="padding: 6px 12px; font-size: 12px;">✏️ Edit</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table></div>';
+            tableContainer.innerHTML = tableHTML;
+        }
+
+        function hideAllForms() {
+            document.getElementById('addConsoleForm').classList.add('hidden');
+            document.getElementById('addItemsForm').classList.add('hidden');
+            document.getElementById('addBatteryForm').classList.add('hidden');
+            document.getElementById('addSonarForm').classList.add('hidden');
+            document.getElementById('viewAllSection').classList.add('hidden');
+        }
+
+        function showAddConsole() {
+            hideAllForms();
+            const consoleForm = document.getElementById('addConsoleForm');
+            consoleForm.classList.remove('hidden');
+            consoleForm.style.display = 'block';
+            
+            // Only reset form if not editing
+            if (!editingConsole) {
+                resetForm();
+            }
+        }
+
+        function showAddItems() {
+            hideAllForms();
+            document.getElementById('addItemsForm').classList.remove('hidden');
+        }
+
+        function showAddBattery() {
+            console.log('DEBUG showAddBattery - editingBattery AVANT:', editingBattery);
+            hideAllForms();
+            document.getElementById('addBatteryForm').classList.remove('hidden');
+            // Only reset form if not editing
+            if (!editingBattery) {
+                console.log('DEBUG showAddBattery - NO editingBattery, resetting form');
+                // Reset battery form if needed
+                document.getElementById('batteryDescription').value = '';
+                document.getElementById('batteryPartNumber').value = '';
+                document.getElementById('batterySerialNumber').value = '';
+                document.getElementById('batteryOrder').value = '';
+                document.getElementById('batteryLogCard').value = '';
+                document.getElementById('batteryWorkInProgress').checked = false;
+                document.getElementById('batteryDate').value = '';
+                document.getElementById('batteryCycle').value = '';
+                document.getElementById('batteryNext1Y').value = '';
+                document.getElementById('batteryNext2Y').value = '';
+                document.getElementById('batteryComments').value = '';
+            } else {
+                console.log('DEBUG showAddBattery - editingBattery EXISTS, preserving');
+            }
+            console.log('DEBUG showAddBattery - editingBattery APRÈS:', editingBattery);
+        }
+
+        function showAddSonar() {
+            console.log('DEBUG showAddSonar - editingSonar AVANT:', editingSonar);
+            hideAllForms();
+            document.getElementById('addSonarForm').classList.remove('hidden');
+            // Only reset form if not editing
+            if (!editingSonar) {
+                console.log('DEBUG showAddSonar - NO editingSonar, resetting form');
+                // Reset sonar form if needed
+                document.getElementById('sonarDesignation').value = '';
+                document.getElementById('sonarPartNumber').value = '';
+                document.getElementById('sonarSerialNumber').value = '';
+                document.getElementById('sonarOrder').value = '';
+                document.getElementById('sonarWorkInProgress').checked = false;
+                document.getElementById('sonarComments').value = '';
+                const container = document.getElementById('sonarDynamicFields');
+                if (container) container.innerHTML = '';
+            } else {
+                console.log('DEBUG showAddSonar - editingSonar EXISTS, preserving');
+            }
+            console.log('DEBUG showAddSonar - editingSonar APRÈS:', editingSonar);
+        }
+
+        function showAllConsoles() {
+            hideAllForms();
+            document.getElementById('viewAllSection').classList.remove('hidden');
+            refreshTable();
+        }
+
+        function handleItemsSubmit(event) {
+            event.preventDefault();
+            
+            const partNumber = document.getElementById('itemsPartNumber').value.trim();
+            if (!partNumber) {
+                showMessage('Part Number (P/N) is required', 'error', 'itemsMessage');
+                return;
+            }
+
+            const formData = {
+                id: Date.now().toString(),
+                type: 'item',
+                designation: document.getElementById('itemsDesignation').value.trim(),
+                partNumber: partNumber,
+                serialNumber: document.getElementById('itemsSerialNumber').value.trim(),
+                workInProgress: document.getElementById('itemsWorkInProgress').checked,
+                order: document.getElementById('itemsOrder').value.trim(),
+                comments: document.getElementById('itemsComments').value.trim(),
+                serviceability: 'Serviceable',
+                lastModified: new Date().toISOString(),
+                modifiedBy: currentUser
+            };
+
+            consoleData.push(formData);
+            saveData();
+            updateSummary();
+            updateUnserviceableSection();
+            showMessage('Item saved successfully', 'success', 'itemsMessage');
+            event.target.reset();
+            document.getElementById('itemsWorkInProgress').checked = false;
+        }
+
+        function calculateBatteryInspections() {
+            const dateInput = document.getElementById('batteryDate').value;
+            const cycle = document.getElementById('batteryCycle').value;
+            
+            if (!dateInput || !cycle) return;
+            
+            const baseDate = new Date(dateInput);
+            
+            if (cycle === '1Y') {
+                // Only update 1Y, don't touch 2Y
+                const oneYear = new Date(baseDate);
+                oneYear.setFullYear(oneYear.getFullYear() + 1);
+                document.getElementById('batteryNext1Y').value = oneYear.toISOString().split('T')[0];
+            } else if (cycle === '2Y') {
+                // 2Y includes 1Y, so update both
+                const oneYear = new Date(baseDate);
+                oneYear.setFullYear(oneYear.getFullYear() + 1);
+                document.getElementById('batteryNext1Y').value = oneYear.toISOString().split('T')[0];
+                
+                const twoYear = new Date(baseDate);
+                twoYear.setFullYear(twoYear.getFullYear() + 2);
+                document.getElementById('batteryNext2Y').value = twoYear.toISOString().split('T')[0];
+            }
+        }
+
+        function handleBatterySubmit(event) {
+            event.preventDefault();
+            
+            const partNumber = document.getElementById('batteryPartNumber').value.trim();
+            if (!partNumber) {
+                showMessage('Part Number (P/N) is required', 'error', 'batteryMessage');
+                return;
+            }
+
+            const formData = {
+                id: editingBattery ? editingBattery.id : Date.now().toString(),
+                type: 'battery',
+                description: document.getElementById('batteryDescription').value.trim(),
+                partNumber: partNumber,
+                serialNumber: document.getElementById('batterySerialNumber').value.trim(),
+                order: document.getElementById('batteryOrder').value.trim(),
+                logCard: document.getElementById('batteryLogCard').value,
+                workInProgress: document.getElementById('batteryWorkInProgress').checked,
+                date: document.getElementById('batteryDate').value,
+                cycle: document.getElementById('batteryCycle').value,
+                next1Y: document.getElementById('batteryNext1Y').value,
+                next2Y: document.getElementById('batteryNext2Y').value,
+                comments: document.getElementById('batteryComments').value.trim(),
+                serviceability: 'Serviceable',
+                lastModified: new Date().toISOString(),
+                modifiedBy: currentUser
+            };
+
+            if (editingBattery) {
+                // MODE EDIT - Remplacer l'item existant
+                const index = consoleData.findIndex(item => item.id === editingBattery.id);
+                if (index !== -1) {
+                    consoleData[index] = formData;
+                }
+                editingBattery = null;
+                showMessage('Battery updated successfully', 'success', 'batteryMessage');
+            } else {
+                // MODE ADD - Ajouter nouvel item
+                consoleData.push(formData);
+                showMessage('Battery saved successfully', 'success', 'batteryMessage');
+            }
+            
+            saveData();
+            updateSummary();
+            updateUnserviceableSection();
+            event.target.reset();
+            document.getElementById('batteryWorkInProgress').checked = false;
+            
+            // Clear calculated fields
+            document.getElementById('batteryNext1Y').value = '';
+            document.getElementById('batteryNext2Y').value = '';
+        }
+
+        const sonarInspectionMapping = {
+            '63690033AA': { designation: 'Wet End', inspections: ['1M', '1Y'] },
+            '63685380AA': { designation: 'CAP', inspections: ['18M'] },
+            '63690026AA': { designation: 'RMIU', inspections: ['3Y'] }
+        };
+
+        function setSonarDynamicFields() {
+            const partNumber = document.getElementById('sonarPartNumber').value.trim();
+            const mapping = sonarInspectionMapping[partNumber];
+            const container = document.getElementById('sonarDynamicFields');
+            
+            // Clear designation
+            document.getElementById('sonarDesignation').value = '';
+            container.innerHTML = '';
+            
+            if (!mapping) return;
+            
+            // Set designation
+            document.getElementById('sonarDesignation').value = mapping.designation;
+            
+            // Create dynamic fields based on P/N
+            let fieldsHTML = '<div class="form-grid" style="margin-top: 20px;">';
+            
+            // Base date field
+            fieldsHTML += `
+                <div class="form-group">
+                    <label>Inspection Date</label>
+                    <input type="date" id="sonarBaseDate" class="form-control" onchange="calculateSonarInspections()">
+                </div>
+            `;
+            
+            if (mapping.inspections.includes('1M') && mapping.inspections.includes('1Y')) {
+                // For Wet End (63690033AA) - both 1M and 1Y
+                fieldsHTML += `
+                    <div class="form-group">
+                        <label>Inspection Type</label>
+                        <select id="sonarInspectionType" class="form-control" onchange="calculateSonarInspections()">
+                            <option value="">Select type</option>
+                            <option value="1M">1M (1 Month)</option>
+                            <option value="1Y">1Y (1 Year)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Next 1M Inspection</label>
+                        <input type="date" id="sonarNext1M" class="form-control" style="background: #f8f9fa;">
+                    </div>
+                    <div class="form-group">
+                        <label>Next 1Y Inspection</label>
+                        <input type="date" id="sonarNext1Y" class="form-control" style="background: #f8f9fa;">
+                    </div>
+                `;
+            } else if (mapping.inspections.includes('18M')) {
+                // For CAP (63685380AA) - only 18M
+                fieldsHTML += `
+                    <div class="form-group">
+                        <label>Next 18M Inspection</label>
+                        <input type="date" id="sonarNext18M" class="form-control" style="background: #f8f9fa;">
+                    </div>
+                `;
+            } else if (mapping.inspections.includes('3Y')) {
+                // For RMIU (63690026AA) - only 3Y
+                fieldsHTML += `
+                    <div class="form-group">
+                        <label>Next 3Y Inspection</label>
+                        <input type="date" id="sonarNext3Y" class="form-control" style="background: #f8f9fa;">
+                    </div>
+                `;
+            }
+            
+            fieldsHTML += '</div>';
+            container.innerHTML = fieldsHTML;
+        }
+
+        function calculateSonarInspections() {
+            const partNumber = document.getElementById('sonarPartNumber').value.trim();
+            const baseDate = document.getElementById('sonarBaseDate').value;
+            const mapping = sonarInspectionMapping[partNumber];
+            
+            if (!baseDate || !mapping) return;
+            
+            const base = new Date(baseDate);
+            
+            if (partNumber === '63690033AA') {
+                // Wet End - calculate both 1M and 1Y
+                const inspType = document.getElementById('sonarInspectionType').value;
+                if (inspType === '1M') {
+                    const next1M = new Date(base);
+                    next1M.setMonth(next1M.getMonth() + 1);
+                    document.getElementById('sonarNext1M').value = next1M.toISOString().split('T')[0];
+                } else if (inspType === '1Y') {
+                    // 1Y includes 1M
+                    const next1M = new Date(base);
+                    next1M.setMonth(next1M.getMonth() + 1);
+                    document.getElementById('sonarNext1M').value = next1M.toISOString().split('T')[0];
+                    
+                    const next1Y = new Date(base);
+                    next1Y.setFullYear(next1Y.getFullYear() + 1);
+                    document.getElementById('sonarNext1Y').value = next1Y.toISOString().split('T')[0];
+                }
+                
+            } else if (partNumber === '63685380AA') {
+                // CAP - calculate 18M
+                const next18M = new Date(base);
+                next18M.setMonth(next18M.getMonth() + 18);
+                document.getElementById('sonarNext18M').value = next18M.toISOString().split('T')[0];
+                
+            } else if (partNumber === '63690026AA') {
+                // RMIU - calculate 3Y
+                const next3Y = new Date(base);
+                next3Y.setFullYear(next3Y.getFullYear() + 3);
+                document.getElementById('sonarNext3Y').value = next3Y.toISOString().split('T')[0];
+            }
+        }
+
+        function handleSonarSubmit(event) {
+            event.preventDefault();
+            
+            const partNumber = document.getElementById('sonarPartNumber').value.trim();
+            if (!partNumber) {
+                showMessage('Part Number (P/N) is required', 'error', 'sonarMessage');
+                return;
+            }
+
+            const mapping = sonarInspectionMapping[partNumber];
+            if (!mapping) {
+                showMessage('Invalid Part Number for Sonar', 'error', 'sonarMessage');
+                return;
+            }
+
+            // Collect inspection dates based on P/N
+            let inspectionData = {};
+            if (partNumber === '63690033AA') {
+                inspectionData = {
+                    baseDate: document.getElementById('sonarBaseDate').value,
+                    inspectionType: document.getElementById('sonarInspectionType').value,
+                    next1M: document.getElementById('sonarNext1M').value,
+                    next1Y: document.getElementById('sonarNext1Y').value
+                };
+            } else if (partNumber === '63685380AA') {
+                inspectionData = {
+                    baseDate: document.getElementById('sonarBaseDate').value,
+                    next18M: document.getElementById('sonarNext18M').value
+                };
+            } else if (partNumber === '63690026AA') {
+                inspectionData = {
+                    baseDate: document.getElementById('sonarBaseDate').value,
+                    next3Y: document.getElementById('sonarNext3Y').value
+                };
+            }
+
+            const formData = {
+                id: editingSonar ? editingSonar.id : Date.now().toString(),
+                type: 'sonar',
+                designation: document.getElementById('sonarDesignation').value.trim(),
+                partNumber: partNumber,
+                serialNumber: document.getElementById('sonarSerialNumber').value.trim(),
+                workInProgress: document.getElementById('sonarWorkInProgress').checked,
+                order: document.getElementById('sonarOrder').value.trim(),
+                inspectionData: inspectionData,
+                availableInspections: mapping.inspections,
+                comments: document.getElementById('sonarComments').value.trim(),
+                serviceability: 'Serviceable',
+                lastModified: new Date().toISOString(),
+                modifiedBy: currentUser
+            };
+
+            if (editingSonar) {
+                // MODE EDIT - Remplacer l'item existant
+                const index = consoleData.findIndex(item => item.id === editingSonar.id);
+                if (index !== -1) {
+                    consoleData[index] = formData;
+                }
+                editingSonar = null;
+                showMessage('Sonar updated successfully', 'success', 'sonarMessage');
+            } else {
+                // MODE ADD - Ajouter nouvel item
+                consoleData.push(formData);
+                showMessage('Sonar saved successfully', 'success', 'sonarMessage');
+            }
+            
+            saveData();
+            updateSummary();
+            updateUnserviceableSection();
+            event.target.reset();
+            document.getElementById('sonarWorkInProgress').checked = false;
+            document.getElementById('sonarDynamicFields').innerHTML = '';
+            document.getElementById('sonarDesignation').value = '';
+        }
+
+        function generateConsoleSubComponents() {
+            const container = document.getElementById('consoleSubComponents');
+            container.innerHTML = '';
+            
+            consoleSubComponents.forEach((component, index) => {
+                const div = document.createElement('div');
+                div.className = 'form-grid';
+                div.style.marginBottom = '15px';
+                div.innerHTML = `
+                    <div class="form-group">
+                        <label style="font-weight: 600; color: #17a2b8;">${component}</label>
+                        <div style="color: #666; font-size: 0.9em; background: #f0f0f0; padding: 8px; border-radius: 4px;">Fixed designation</div>
+                    </div>
+                    <div class="form-group">
+                        <label>P/N</label>
+                        <input type="text" name="console_pn_${index}" class="form-control" placeholder="Enter part number">
+                    </div>
+                    <div class="form-group">
+                        <label>S/N</label>
+                        <input type="text" name="console_sn_${index}" class="form-control" placeholder="Enter serial number">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
+                        <label style="display: flex; align-items: center; gap: 8px; margin: 0; color: #ff4757; font-weight: 600;">
+                            <input type="checkbox" name="console_missing_${index}" onchange="checkConsoleMissing()" style="width: 20px; height: 20px;">
+                            Missing
+                        </label>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function checkConsoleMissing() {
+            const warning = document.getElementById('consoleMissingWarning');
+            let hasMissing = false;
+            
+            consoleSubComponents.forEach((comp, index) => {
+                const checkbox = document.querySelector(`input[name="console_missing_${index}"]`);
+                if (checkbox && checkbox.checked) {
+                    hasMissing = true;
+                }
+            });
+            
+            warning.classList.toggle('hidden', !hasMissing);
+        }
+
+        function handleConsoleSubmit(event) {
+            event.preventDefault();
+            
+            // DEBUG - voir l'état d'editingConsole
+            console.log('DEBUG handleConsoleSubmit - editingConsole:', editingConsole);
+            
+            const partNumber = document.getElementById('consolePartNumber').value.trim();
+            if (!partNumber) {
+                showMessage('Console Part Number (P/N) is required', 'error', 'consoleMessage');
+                return;
+            }
+
+            const components = [];
+            let hasMissing = false;
+            let missingParts = [];
+            
+            consoleSubComponents.forEach((comp, index) => {
+                const pn = document.querySelector(`input[name="console_pn_${index}"]`).value.trim();
+                const sn = document.querySelector(`input[name="console_sn_${index}"]`).value.trim();
+                const missing = document.querySelector(`input[name="console_missing_${index}"]`).checked;
+                
+                if (missing) {
+                    hasMissing = true;
+                    missingParts.push(comp);
+                }
+                
+                components.push({
+                    designation: comp,
+                    partNumber: pn,
+                    serialNumber: sn,
+                    missing: missing
+                });
+            });
+
+            const formData = {
+                id: editingConsole ? editingConsole.id : Date.now().toString(),
+                type: 'console',
+                designation: document.getElementById('consoleDesignation').value.trim(),
+                partNumber: partNumber,
+                serialNumber: document.getElementById('consoleSerialNumber').value.trim(),
+                comments: document.getElementById('consoleComments').value.trim(),
+                components: components,
+                serviceability: hasMissing ? 'Unserviceable' : 'Serviceable',
+                reason: hasMissing ? `Missing part: ${missingParts.join(', ')}` : '',
+                lastModified: new Date().toISOString(),
+                modifiedBy: currentUser
+            };
+
+            if (editingConsole) {
+                const index = consoleData.findIndex(item => item.id === editingConsole.id);
+                if (index !== -1) {
+                    consoleData[index] = formData;
+                }
+                editingConsole = null;
+            } else {
+                consoleData.push(formData);
+            }
+
+            saveData();
+            updateSummary();
+            updateUnserviceableSection();
+            showMessage('Console saved successfully', 'success', 'consoleMessage');
+            resetForm();
+            
+            if (!document.getElementById('viewAllSection').classList.contains('hidden')) {
+                refreshTable();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('consoleDesignation').value = '';
+            document.getElementById('consolePartNumber').value = '';
+            document.getElementById('consoleSerialNumber').value = '';
+            document.getElementById('consoleComments').value = '';
+            document.getElementById('editConsoleId').value = '';
+            // Don't reset editingConsole here - it should only be reset after successful save
+            generateConsoleSubComponents();
+            checkConsoleMissing();
+            hideMessage();
+        }
+
+        function refreshTable() {
+            const tableContainer = document.getElementById('consoleTable');
+            document.getElementById('tableCount').textContent = consoleData.length;
+
+            if (consoleData.length === 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <p>No items registered</p>
+                        <button onclick="showAddConsole()" class="btn btn-add mt-20">+ Add First Item</button>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Designation</th>
+                                <th>P/N</th>
+                                <th>S/N</th>
+                                <th>Serviceability</th>
+                                <th>Details</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            consoleData.forEach(item => {
+                const statusClass = item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable';
+                const itemType = item.type || 'console';
+                
+                // Different details based on type
+                let details = '';
+                if (itemType === 'console') {
+                    details = `${item.components ? item.components.length : 0} components`;
+                } else if (itemType === 'battery') {
+                    details = item.cycle || 'Battery';
+                } else if (itemType === 'sonar') {
+                    const inspections = item.availableInspections ? item.availableInspections.join(', ') : 'Sonar';
+                    details = inspections;
+                } else {
+                    details = 'Item';
+                }
+                
+                tableHTML += `
+                    <tr>
+                        <td><span class="status-badge" style="background: #17a2b8;">${itemType.toUpperCase()}</span></td>
+                        <td>${item.designation || item.description || '-'}</td>
+                        <td>${item.partNumber}</td>
+                        <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td><span class="status-badge ${statusClass}">${item.serviceability || 'N/A'}</span></td>
+                        <td>${details}</td>
+                        <td>
+                            <button class="btn" onclick="editConsole('${item.id}')" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;">✏️</button>
+                            <button class="btn btn-danger" onclick="deleteConsole('${item.id}')" style="padding: 6px 12px; font-size: 12px;">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table></div>';
+            tableContainer.innerHTML = tableHTML;
+        }
+
+        function showItemDetail(id) {
+            const item = consoleData.find(item => item.id === id);
+            if (!item) return;
+
+            currentConsoleId = id;
+            const itemType = item.type || 'console';
+            document.getElementById('modalTitle').textContent = `${itemType.toUpperCase()} - ${item.partNumber}`;
+            
+            let content = `
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Type</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${itemType.toUpperCase()}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.designation || item.description || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Part Number</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.partNumber}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Serial Number</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.serialNumber || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <span class="status-badge ${item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable'}">${item.serviceability || 'N/A'}</span>
+                        </div>
+                    </div>
+            `;
+            
+            // Add type-specific details
+            if (itemType === 'console' && item.components) {
+                let componentsHTML = '';
+                item.components.forEach(comp => {
+                    const missingBadge = comp.missing ? '<span class="status-badge status-missing">MISSING</span>' : '';
+                    componentsHTML += `
+                        <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: center; padding: 10px; background: #f8f9fa; border-radius: 6px; margin-bottom: 10px;">
+                            <div><strong>${comp.designation}</strong></div>
+                            <div>P/N: ${comp.partNumber || '-'}</div>
+                            <div>S/N: ${comp.serialNumber || '-'}</div>
+                            <div>${missingBadge}</div>
+                        </div>
+                    `;
+                });
+                content += `
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Sub-Components (${item.components.length} items)</label>
+                        <div style="margin-top: 10px;">
+                            ${componentsHTML}
+                        </div>
+                    </div>
+                `;
+            } else if (itemType === 'battery') {
+                content += `
+                    <div class="form-group">
+                        <label>Cycle</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.cycle || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Log Card</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.logCard || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Next 1Y</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.next1Y || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Next 2Y</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.next2Y || '-'}</div>
+                    </div>
+                `;
+            } else if (itemType === 'sonar') {
+                content += `
+                    <div class="form-group">
+                        <label>Available Inspections</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.availableInspections ? item.availableInspections.join(', ') : '-'}</div>
+                    </div>
+                `;
+                if (item.inspectionData) {
+                    Object.entries(item.inspectionData).forEach(([key, value]) => {
+                        if (value) {
+                            content += `
+                                <div class="form-group">
+                                    <label>${key}</label>
+                                    <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${value}</div>
+                                </div>
+                            `;
+                        }
+                    });
+                }
+            }
+            
+            content += `
+                    <div class="form-group">
+                        <label>Work in Progress</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.workInProgress ? 'Yes' : 'No'}</div>
+                    </div>
+                    ${item.reason ? `
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Reason</label>
+                        <div style="padding: 10px; background: #fadbd8; border-radius: 6px; color: #c62828; font-weight: 600;">${item.reason}</div>
+                    </div>
+                    ` : ''}
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; min-height: 60px;">${item.comments || '-'}</div>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Last Modified</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 0.9em; color: #636e72;">${new Date(item.lastModified).toLocaleString()} by ${item.modifiedBy}</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('consoleModal').classList.add('active');
+        }
+
+        function showConsoleDetail(id) {
+            const item = consoleData.find(item => item.id === id);
+            if (!item) return;
+
+            currentConsoleId = id;
+            document.getElementById('modalTitle').textContent = `Console - ${item.partNumber}`;
+            
+            let componentsHTML = '';
+            item.components.forEach(comp => {
+                const missingBadge = comp.missing ? '<span class="status-badge status-missing">MISSING</span>' : '';
+                componentsHTML += `
+                    <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: center; padding: 10px; background: #f8f9fa; border-radius: 6px; margin-bottom: 10px;">
+                        <div><strong>${comp.designation}</strong></div>
+                        <div>P/N: ${comp.partNumber || '-'}</div>
+                        <div>S/N: ${comp.serialNumber || '-'}</div>
+                        <div>${missingBadge}</div>
+                    </div>
+                `;
+            });
+            
+            const content = `
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.designation || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Part Number</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.partNumber}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Serial Number</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.serialNumber || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <span class="status-badge ${item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable'}">${item.serviceability || 'N/A'}</span>
+                        </div>
+                    </div>
+                    ${item.reason ? `
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Reason</label>
+                        <div style="padding: 10px; background: #fadbd8; border-radius: 6px; color: #c62828; font-weight: 600;">${item.reason}</div>
+                    </div>
+                    ` : ''}
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; min-height: 60px;">${item.comments || '-'}</div>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Sub-Components</label>
+                        <div style="margin-top: 10px;">
+                            ${componentsHTML}
+                        </div>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Last Modified</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 0.9em; color: #636e72;">${new Date(item.lastModified).toLocaleString()} by ${item.modifiedBy}</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('consoleModal').classList.add('active');
+        }
+
+        function editConsole(id) {
+            console.log('DEBUG editConsole - ID:', id);
+            const itemToEdit = consoleData.find(item => item.id === id);
+            console.log('DEBUG editConsole - itemToEdit:', itemToEdit);
+            if (!itemToEdit) return;
+
+            editingConsole = itemToEdit;
+            console.log('DEBUG editConsole - editingConsole SET to:', editingConsole);
+            
+            // Fill main console form based on item type
+            if (itemToEdit.type === 'console') {
+                document.getElementById('consoleDesignation').value = itemToEdit.designation || '';
+                document.getElementById('consolePartNumber').value = itemToEdit.partNumber || '';
+                document.getElementById('consoleSerialNumber').value = itemToEdit.serialNumber || '';
+                document.getElementById('consoleComments').value = itemToEdit.comments || '';
+
+                // Fill sub-components - wait for form to be visible first
+                setTimeout(() => {
+                    if (itemToEdit.components && itemToEdit.components.length > 0) {
+                        itemToEdit.components.forEach((comp, index) => {
+                            const pnField = document.querySelector(`input[name="console_pn_${index}"]`);
+                            const snField = document.querySelector(`input[name="console_sn_${index}"]`);
+                            const missingField = document.querySelector(`input[name="console_missing_${index}"]`);
+                            
+                            if (pnField) pnField.value = comp.partNumber || '';
+                            if (snField) snField.value = comp.serialNumber || '';
+                            if (missingField) missingField.checked = comp.missing || false;
+                        });
+                    }
+                    checkConsoleMissing();
+                }, 100);
+
+                showAddConsole();
+            } else if (itemToEdit.type === 'battery') {
+                // Set editing variable for battery
+                editingBattery = itemToEdit;
+                console.log('DEBUG editConsole - editingBattery SET to:', editingBattery);
+                
+                // Fill battery form
+                document.getElementById('batteryDescription').value = itemToEdit.description || '';
+                document.getElementById('batteryPartNumber').value = itemToEdit.partNumber || '';
+                document.getElementById('batterySerialNumber').value = itemToEdit.serialNumber || '';
+                document.getElementById('batteryOrder').value = itemToEdit.order || '';
+                document.getElementById('batteryLogCard').value = itemToEdit.logCard || '';
+                document.getElementById('batteryWorkInProgress').checked = itemToEdit.workInProgress || false;
+                document.getElementById('batteryDate').value = itemToEdit.date || '';
+                document.getElementById('batteryCycle').value = itemToEdit.cycle || '';
+                document.getElementById('batteryNext1Y').value = itemToEdit.next1Y || '';
+                document.getElementById('batteryNext2Y').value = itemToEdit.next2Y || '';
+                document.getElementById('batteryComments').value = itemToEdit.comments || '';
+                
+                showAddBattery();
+            } else if (itemToEdit.type === 'sonar') {
+                // Set editing variable for sonar
+                editingSonar = itemToEdit;
+                console.log('DEBUG editConsole - editingSonar SET to:', editingSonar);
+                
+                // Fill sonar form
+                document.getElementById('sonarDesignation').value = itemToEdit.designation || '';
+                document.getElementById('sonarPartNumber').value = itemToEdit.partNumber || '';
+                document.getElementById('sonarSerialNumber').value = itemToEdit.serialNumber || '';
+                document.getElementById('sonarOrder').value = itemToEdit.order || '';
+                document.getElementById('sonarWorkInProgress').checked = itemToEdit.workInProgress || false;
+                document.getElementById('sonarComments').value = itemToEdit.comments || '';
+                
+                // Set dynamic fields if they exist
+                if (itemToEdit.inspectionData) {
+                    setSonarDynamicFields();
+                }
+                
+                showAddSonar();
+            } else if (itemToEdit.type === 'item') {
+                // Fill items form
+                document.getElementById('itemsDesignation').value = itemToEdit.designation || '';
+                document.getElementById('itemsPartNumber').value = itemToEdit.partNumber || '';
+                document.getElementById('itemsSerialNumber').value = itemToEdit.serialNumber || '';
+                document.getElementById('itemsOrder').value = itemToEdit.order || '';
+                document.getElementById('itemsWorkInProgress').checked = itemToEdit.workInProgress || false;
+                document.getElementById('itemsComments').value = itemToEdit.comments || '';
+                
+                showAddItems();
+            }
+            
+            closeModal();
+        }
+
+        function editCurrentConsole() {
+            if (currentConsoleId) {
+                editConsole(currentConsoleId);
+            }
+        }
+
+        async function deleteConsole(id) {
+            if (confirm('Are you sure you want to delete this console system?')) {
+                consoleData = consoleData.filter(item => item.id !== id);
+                saveData();
+                if (window.ComponentsBayDB) {
+                    try { await window.ComponentsBayDB.delete('avionic', id); } catch(e) { console.error('Avionic delete error:', e); }
+                }
+                showMessage('Console deleted successfully', 'success');
+                updateSummary();
+                updateUnserviceableSection();
+                refreshTable();
+            }
+        }
+
+        function deleteCurrentConsole() {
+            if (currentConsoleId) {
+                deleteConsole(currentConsoleId);
+                closeModal();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('consoleModal').classList.remove('active');
+            currentConsoleId = null;
+        }
+
+        function exportAvionicData() {
+            if (consoleData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const data = consoleData.map(item => ({
+                'Designation': item.designation || '',
+                'Part Number': item.partNumber,
+                'Serial Number': item.serialNumber || '',
+                'Serviceability': item.serviceability || '',
+                'Reason': item.reason || '',
+                'Components': item.components.map(c => `${c.designation}: ${c.partNumber || '-'} (${c.serialNumber || '-'})${c.missing ? ' [MISSING]' : ''}`).join(' | '),
+                'Comments': item.comments || '',
+                'Last Modified': new Date(item.lastModified).toLocaleString(),
+                'Modified By': item.modifiedBy || ''
+            }));
+
+            downloadCSV(data, `Avionic_Consoles_Export_${new Date().toISOString().split('T')[0]}.csv`);
+            showMessage('Export completed successfully', 'success');
+        }
+
+        function downloadCSV(data, filename) {
+            const csvContent = convertToCSV(data);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        function convertToCSV(data) {
+            if (!data.length) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvRows = [];
+            
+            csvRows.push(headers.join(','));
+            
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    const value = row[header] || '';
+                    return `"${value.toString().replace(/"/g, '""')}"`;
+                });
+                csvRows.push(values.join(','));
+            });
+            
+            return csvRows.join('\n');
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('componentsBayCurrentUser');
+                localStorage.removeItem('componentsBayUserRole');
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('userRole');
+                window.location.href = 'index.html';
+            }
+        }
+
+        function showMessage(message, type, elementId = null) {
+            const element = elementId ? document.getElementById(elementId) : null;
+            
+            if (element) {
+                element.textContent = message;
+                element.className = `message message-${type}`;
+                element.classList.remove('hidden');
+                
+                if (type === 'success') {
+                    setTimeout(() => {
+                        element.classList.add('hidden');
+                    }, 3000);
+                }
+            } else {
+                alert(message);
+            }
+        }
+
+        function hideMessage() {
+            const messageDiv = document.getElementById('consoleMessage');
+            if (messageDiv) {
+                messageDiv.classList.add('hidden');
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('consoleModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

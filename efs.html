@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EFS Float - Components Bay V3.3</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <script type="module" src="supabase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <a href="http://10.10.0.21:8080/QATAR_V1_2/index.htm" target="_blank" class="nav-btn ietp-btn">🔗 IETP</a>
+                <a href="index.html" class="nav-btn">🏠 Home</a>
+            </div>
+            <div class="nav-right">
+                <button onclick="exportData()" class="nav-btn export-btn">📊 Export Excel</button>
+                <span id="userInfo" class="nav-btn user-btn"></span>
+                <button onclick="logout()" class="nav-btn logout-btn">🚪 Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Header -->
+        <div class="main-header module-efs">
+            <div class="header-content">
+                <h1>🎈 EFS Float</h1>
+                <p>Emergency Flotation System management</p>
+            </div>
+            <div class="header-actions">
+                <button onclick="showAddEFS()" class="btn btn-add">+ Add EFS Float</button>
+                <button onclick="showAllEFS()" class="btn">📋 View All EFS</button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card serviceable">
+                <div class="summary-number" id="serviceableCount">0</div>
+                <div class="summary-label">Serviceable</div>
+            </div>
+            <div class="summary-card unserviceable">
+                <div class="summary-number" id="unserviceableCount">0</div>
+                <div class="summary-label">Unserviceable</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number" id="totalCount">0</div>
+                <div class="summary-label">Total EFS Floats</div>
+            </div>
+        </div>
+
+        <!-- Unserviceable Items Summary -->
+        <div id="unserviceableSection" class="panel">
+            <div class="panel-header" style="background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);">
+                <span>⚠️ Unserviceable EFS Floats Summary</span>
+                <span class="badge" id="unserviceableBadge">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="unserviceableTable"></div>
+            </div>
+        </div>
+
+        <!-- Add EFS Form -->
+        <div id="addEFSForm" class="card hidden">
+            <h2 style="margin-bottom: 25px;">Add EFS Float</h2>
+            <div id="efsMessage" class="hidden"></div>
+            
+            <form onsubmit="handleEFSSubmit(event)">
+                <input type="hidden" id="editEFSId">
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <input type="text" id="efsDesignation" class="form-control" placeholder="Auto-filled from P/N" readonly style="background: #f8f9fa;">
+                    </div>
+                    
+                    <div class="form-group required">
+                        <label>Part Number (P/N)</label>
+                        <input type="text" id="efsPartNumber" class="form-control" placeholder="Enter part number" onchange="handleEFSPartNumberChange()" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Serial Number (S/N)</label>
+                        <input type="text" id="efsSerialNumber" class="form-control" placeholder="Enter serial number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Order</label>
+                        <input type="text" id="efsOrder" class="form-control" placeholder="Enter order number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <select id="efsServiceability" class="form-control">
+                            <option value="">Select status</option>
+                            <option value="Serviceable">Serviceable</option>
+                            <option value="Unserviceable">Unserviceable</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="efsWorkInProgress">
+                            Work in Progress
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Inspection Date</label>
+                        <input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspection()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Inspection Interval</label>
+                        <select id="inspectionInterval" class="form-control" onchange="calculateNextInspection()">
+                            <option value="">Select interval</option>
+                            <option value="18">18M (18 months)</option>
+                            <option value="36">36M (36 months)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Next 18M Inspection</label>
+                        <input type="date" id="next18M" class="form-control" style="background: #f8f9fa;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Next 36M Inspection</label>
+                        <input type="date" id="next36M" class="form-control" style="background: #f8f9fa;">
+                    </div>
+                    
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <textarea id="efsComments" class="form-control" placeholder="Enter detailed comments..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="message message-info mt-20">
+                    <strong>P/N Auto-Mapping:</strong><br>
+                    • S956A20A1004 → LH FWD EFS<br>
+                    • S956A20A1005 → RH FWD EFS<br>
+                    • S956A20A1006 → LH AFT EFS<br>
+                    • S956A20A1013 → LH AFT EFS<br>
+                    • S956A20A1007 → RH AFT EFS<br>
+                    • S956A20A1014 → RH AFT EFS
+                </div>
+                
+                <div class="mt-20">
+                    <button type="submit" class="btn btn-success">💾 Save EFS Float</button>
+                    <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- View All EFS Table -->
+        <div id="viewAllSection" class="panel hidden">
+            <div class="panel-header module-efs">
+                <span>📋 All EFS Floats</span>
+                <span class="badge" id="tableCount">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="efsTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EFS Detail Modal -->
+    <div id="efsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">EFS Float Details</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent"></div>
+                <div class="mt-20 text-center">
+                    <button onclick="editCurrentEFS()" class="btn">✏️ Edit</button>
+                    <button onclick="deleteCurrentEFS()" class="btn btn-danger" style="margin-left: 15px;">🗑️ Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let efsData = [];
+        let currentUser = sessionStorage.getItem('componentsBayCurrentUser') || sessionStorage.getItem('currentUser') || 'Unknown User';
+        let userRole = localStorage.getItem('componentsBayUserRole') || localStorage.getItem('userRole') || 'user';
+        let editingEFS = null;
+        let currentEFSId = null;
+
+        // EFS Part Number to Designation mapping
+        const efsMapping = {
+            'S956A20A1004': 'LH FWD EFS',
+            'S956A20A1005': 'RH FWD EFS',
+            'S956A20A1006': 'LH AFT EFS',
+            'S956A20A1013': 'LH AFT EFS',
+            'S956A20A1007': 'RH AFT EFS',
+            'S956A20A1014': 'RH AFT EFS'
+        };
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            checkAuthentication();
+            await loadData();
+            updateSummary();
+            updateUnserviceableSection();
+        });
+
+        function checkAuthentication() {
+            if (!currentUser || currentUser === 'null') {
+                window.location.href = 'index.html';
+                return;
+            }
+            document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+        }
+
+        async function loadData() {
+            if (window.ComponentsBayDB) {
+                try {
+                    efsData = await window.ComponentsBayDB.load('efs');
+                    console.log('✅ EFS loaded from Supabase:', efsData.length, 'items');
+                } catch(e) {
+                    console.error('EFS Supabase load failed, using localStorage');
+                    const saved = localStorage.getItem('componentsBayEFS');
+                    if (saved) efsData = JSON.parse(saved);
+                }
+            } else {
+                const saved = localStorage.getItem('componentsBayEFS');
+                if (saved) efsData = JSON.parse(saved);
+            }
+        }
+
+        async function saveData() {
+            localStorage.setItem('componentsBayEFS', JSON.stringify(efsData));
+            if (window.ComponentsBayDB) {
+                for (const item of efsData) {
+                    try {
+                        await window.ComponentsBayDB.save('efs', {...item});
+                    } catch(e) {
+                        console.error('EFS save error:', e);
+                    }
+                }
+                console.log('✅ EFS synced to Supabase');
+            }
+        }
+
+        function updateSummary() {
+            // Check for overdue items first
+            checkOverdueItems();
+            
+            const serviceable = efsData.filter(item => item.serviceability === 'Serviceable').length;
+            const unserviceable = efsData.filter(item => item.serviceability === 'Unserviceable').length;
+            
+            document.getElementById('serviceableCount').textContent = serviceable;
+            document.getElementById('unserviceableCount').textContent = unserviceable;
+            document.getElementById('totalCount').textContent = efsData.length;
+        }
+
+        function checkOverdueItems() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            let hasChanges = false;
+            
+            efsData.forEach(item => {
+                let isOverdue = false;
+                let reason = '';
+                
+                if (item.next18M) {
+                    const next18M = new Date(item.next18M);
+                    if (today > next18M) {
+                        isOverdue = true;
+                        reason = 'EFS 18M inspection overdue';
+                    }
+                }
+                
+                if (item.next36M) {
+                    const next36M = new Date(item.next36M);
+                    if (today > next36M) {
+                        isOverdue = true;
+                        reason = 'EFS 36M inspection overdue';
+                    }
+                }
+                
+                if (isOverdue && item.serviceability !== 'Unserviceable') {
+                    item.serviceability = 'Unserviceable';
+                    item.reason = reason;
+                    hasChanges = true;
+                } else if (isOverdue && !item.reason) {
+                    item.reason = reason;
+                    hasChanges = true;
+                }
+            });
+            
+            if (hasChanges) {
+                saveData();
+            }
+        }
+
+        function updateUnserviceableSection() {
+            const unserviceableItems = efsData.filter(item => item.serviceability === 'Unserviceable');
+            const tableContainer = document.getElementById('unserviceableTable');
+            document.getElementById('unserviceableBadge').textContent = unserviceableItems.length;
+
+            if (unserviceableItems.length === 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <p style="color: #00695c; font-weight: 600;">Excellent! No unserviceable EFS floats</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Designation</th>
+                                <th>P/N</th>
+                                <th>S/N</th>
+                                <th>Reason</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            unserviceableItems.forEach(item => {
+                const reasonText = item.reason || 'Unserviceable';
+                const reasonClass = 'status-unserviceable';
+                
+                tableHTML += `
+                    <tr>
+                        <td>${item.designation || '-'}</td>
+                        <td>${item.partNumber}</td>
+                        <td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td><span class="status-badge ${reasonClass}">${reasonText}</span></td>
+                        <td>
+                            <button class="btn" onclick="editEFS('${item.id}')" style="padding: 6px 12px; font-size: 12px;">✏️ Edit</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table></div>';
+            tableContainer.innerHTML = tableHTML;
+        }
+
+        function hideAllForms() {
+            document.getElementById('addEFSForm').classList.add('hidden');
+            document.getElementById('viewAllSection').classList.add('hidden');
+        }
+
+        function showAddEFS() {
+            hideAllForms();
+            document.getElementById('addEFSForm').classList.remove('hidden');
+            // Only reset form if not editing
+            if (!editingEFS) {
+                resetForm();
+            }
+        }
+
+        function showAllEFS() {
+            hideAllForms();
+            document.getElementById('viewAllSection').classList.remove('hidden');
+            refreshTable();
+        }
+
+        function handleEFSPartNumberChange() {
+            const partNumber = document.getElementById('efsPartNumber').value.trim();
+            const designation = efsMapping[partNumber];
+            
+            if (designation) {
+                document.getElementById('efsDesignation').value = designation;
+            } else {
+                document.getElementById('efsDesignation').value = '';
+            }
+        }
+
+        function calculateNextInspection() {
+            const inspectionDate = document.getElementById('inspectionDate').value;
+            const interval = document.getElementById('inspectionInterval').value;
+            
+            if (!inspectionDate || !interval) return;
+            
+            const baseDate = new Date(inspectionDate);
+            
+            if (interval === '18') {
+                // Only update 18M, don't touch 36M
+                const next18M = new Date(baseDate);
+                next18M.setMonth(next18M.getMonth() + 18);
+                document.getElementById('next18M').value = next18M.toISOString().split('T')[0];
+            } else if (interval === '36') {
+                // 36M includes 18M, so update both
+                const next18M = new Date(baseDate);
+                next18M.setMonth(next18M.getMonth() + 18);
+                document.getElementById('next18M').value = next18M.toISOString().split('T')[0];
+                
+                const next36M = new Date(baseDate);
+                next36M.setMonth(next36M.getMonth() + 36);
+                document.getElementById('next36M').value = next36M.toISOString().split('T')[0];
+            }
+        }
+
+        function handleEFSSubmit(event) {
+            event.preventDefault();
+            
+            const partNumber = document.getElementById('efsPartNumber').value.trim();
+            if (!partNumber) {
+                showMessage('Part Number (P/N) is required', 'error', 'efsMessage');
+                return;
+            }
+
+            const formData = {
+                id: editingEFS ? editingEFS.id : Date.now().toString(),
+                designation: document.getElementById('efsDesignation').value.trim(),
+                partNumber: partNumber,
+                serialNumber: document.getElementById('efsSerialNumber').value.trim(),
+                order: document.getElementById('efsOrder').value.trim(),
+                serviceability: document.getElementById('efsServiceability').value || 'Serviceable',
+                workInProgress: document.getElementById('efsWorkInProgress').checked,
+                inspectionDate: document.getElementById('inspectionDate').value,
+                inspectionInterval: document.getElementById('inspectionInterval').value,
+                next18M: document.getElementById('next18M').value,
+                next36M: document.getElementById('next36M').value,
+                comments: document.getElementById('efsComments').value.trim(),
+                lastModified: new Date().toISOString(),
+                modifiedBy: currentUser
+            };
+
+            if (editingEFS) {
+                const index = efsData.findIndex(item => item.id === editingEFS.id);
+                if (index !== -1) {
+                    efsData[index] = formData;
+                }
+                editingEFS = null;
+            } else {
+                efsData.push(formData);
+            }
+
+            saveData();
+            updateSummary();
+            updateUnserviceableSection();
+            showMessage('EFS Float saved successfully', 'success', 'efsMessage');
+            resetForm();
+            
+            if (!document.getElementById('viewAllSection').classList.contains('hidden')) {
+                refreshTable();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('efsDesignation').value = '';
+            document.getElementById('efsPartNumber').value = '';
+            document.getElementById('efsSerialNumber').value = '';
+            document.getElementById('efsOrder').value = '';
+            document.getElementById('efsServiceability').value = '';
+            document.getElementById('efsWorkInProgress').checked = false;
+            document.getElementById('inspectionDate').value = '';
+            document.getElementById('inspectionInterval').value = '';
+            document.getElementById('next18M').value = '';
+            document.getElementById('next36M').value = '';
+            document.getElementById('efsComments').value = '';
+            document.getElementById('editEFSId').value = '';
+            // Don't reset editingEFS here - it should only be reset after successful save
+            hideMessage();
+        }
+
+        function refreshTable() {
+            const tableContainer = document.getElementById('efsTable');
+            document.getElementById('tableCount').textContent = efsData.length;
+
+            if (efsData.length === 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎈</div>
+                        <p>No EFS floats registered</p>
+                        <button onclick="showAddEFS()" class="btn btn-add mt-20">+ Add First EFS Float</button>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Designation</th>
+                                <th>P/N</th>
+                                <th>S/N</th>
+                                <th>Next Inspection</th>
+                                <th>Interval</th>
+                                <th>Serviceability</th>
+                                <th>Work in Progress</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            efsData.forEach(item => {
+                const statusClass = item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable';
+                
+                tableHTML += `
+                    <tr>
+                        <td>${item.designation || '-'}</td>
+                        <td>${item.partNumber}</td>
+                        <td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td>${item.nextInspection || '-'}</td>
+                        <td>${item.inspectionInterval ? item.inspectionInterval + 'M' : '-'}</td>
+                        <td><span class="status-badge ${statusClass}">${item.serviceability || 'N/A'}</span></td>
+                        <td>${item.workInProgress ? 'Yes' : 'No'}</td>
+                        <td>
+                            <button class="btn" onclick="editEFS('${item.id}')" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;">✏️</button>
+                            <button class="btn btn-danger" onclick="deleteEFS('${item.id}')" style="padding: 6px 12px; font-size: 12px;">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table></div>';
+            tableContainer.innerHTML = tableHTML;
+        }
+
+        function showEFSDetail(id) {
+            const item = efsData.find(item => item.id === id);
+            if (!item) return;
+
+            currentEFSId = id;
+            document.getElementById('modalTitle').textContent = `EFS Float - ${item.partNumber}`;
+            
+            const content = `
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.designation || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Part Number</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.partNumber}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Serial Number</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.serialNumber || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Next Inspection</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.nextInspection || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Inspection Interval</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.inspectionInterval ? item.inspectionInterval + 'M' : '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <span class="status-badge ${item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable'}">${item.serviceability || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Work in Progress</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.workInProgress ? 'Yes' : 'No'}</div>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; min-height: 60px;">${item.comments || '-'}</div>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Last Modified</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 0.9em; color: #636e72;">${new Date(item.lastModified).toLocaleString()} by ${item.modifiedBy}</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('efsModal').classList.add('active');
+        }
+
+        function editEFS(id) {
+            editingEFS = efsData.find(item => item.id === id);
+            if (!editingEFS) return;
+
+            // Fill form with existing data
+            document.getElementById('efsDesignation').value = editingEFS.designation || '';
+            document.getElementById('efsPartNumber').value = editingEFS.partNumber || '';
+            document.getElementById('efsSerialNumber').value = editingEFS.serialNumber || '';
+            document.getElementById('efsOrder').value = editingEFS.order || '';
+            document.getElementById('efsServiceability').value = editingEFS.serviceability || '';
+            document.getElementById('efsWorkInProgress').checked = editingEFS.workInProgress || false;
+            document.getElementById('inspectionDate').value = editingEFS.inspectionDate || '';
+            document.getElementById('inspectionInterval').value = editingEFS.inspectionInterval || '';
+            
+            // Use new field names
+            document.getElementById('next18M').value = editingEFS.next18M || editingEFS.nextInspection || '';
+            document.getElementById('next36M').value = editingEFS.next36M || '';
+            
+            document.getElementById('efsComments').value = editingEFS.comments || '';
+
+            showAddEFS();
+            closeModal();
+        }
+
+        function editCurrentEFS() {
+            if (currentEFSId) {
+                editEFS(currentEFSId);
+            }
+        }
+
+        async function deleteEFS(id) {
+            if (confirm('Are you sure you want to delete this EFS float?')) {
+                efsData = efsData.filter(item => item.id !== id);
+                saveData();
+                if (window.ComponentsBayDB) {
+                    try { await window.ComponentsBayDB.delete('efs', id); } catch(e) { console.error('EFS delete error:', e); }
+                }
+                showMessage('EFS Float deleted successfully', 'success');
+                updateSummary();
+                updateUnserviceableSection();
+                refreshTable();
+            }
+        }
+
+        function deleteCurrentEFS() {
+            if (currentEFSId) {
+                deleteEFS(currentEFSId);
+                closeModal();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('efsModal').classList.remove('active');
+            currentEFSId = null;
+        }
+
+        function exportData() {
+            if (efsData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const data = efsData.map(item => ({
+                'Designation': item.designation || '',
+                'Part Number': item.partNumber,
+                'Serial Number': item.serialNumber || '',
+                'Next Inspection': item.nextInspection || '',
+                'Inspection Interval': item.inspectionInterval ? item.inspectionInterval + 'M' : '',
+                'Serviceability': item.serviceability || '',
+                'Work in Progress': item.workInProgress ? 'Yes' : 'No',
+                'Order': item.order || '',
+                'Comments': item.comments || '',
+                'Last Modified': new Date(item.lastModified).toLocaleString(),
+                'Modified By': item.modifiedBy || ''
+            }));
+
+            downloadCSV(data, `EFS_Float_Export_${new Date().toISOString().split('T')[0]}.csv`);
+            showMessage('Export completed successfully', 'success');
+        }
+
+        function downloadCSV(data, filename) {
+            const csvContent = convertToCSV(data);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        function convertToCSV(data) {
+            if (!data.length) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvRows = [];
+            
+            csvRows.push(headers.join(','));
+            
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    const value = row[header] || '';
+                    return `"${value.toString().replace(/"/g, '""')}"`;
+                });
+                csvRows.push(values.join(','));
+            });
+            
+            return csvRows.join('\n');
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('componentsBayCurrentUser');
+                localStorage.removeItem('componentsBayUserRole');
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('userRole');
+                window.location.href = 'index.html';
+            }
+        }
+
+        function showMessage(message, type, elementId = null) {
+            const element = elementId ? document.getElementById(elementId) : null;
+            
+            if (element) {
+                element.textContent = message;
+                element.className = `message message-${type}`;
+                element.classList.remove('hidden');
+                
+                if (type === 'success') {
+                    setTimeout(() => {
+                        element.classList.add('hidden');
+                    }, 3000);
+                }
+            } else {
+                alert(message);
+            }
+        }
+
+        function hideMessage() {
+            const messageDiv = document.getElementById('efsMessage');
+            if (messageDiv) {
+                messageDiv.classList.add('hidden');
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('efsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

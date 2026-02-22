@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wheel - Components Bay V3.3</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <script type="module" src="supabase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <a href="http://10.10.0.21:8080/QATAR_V1_2/index.htm" target="_blank" class="nav-btn ietp-btn">🔗 IETP</a>
+                <a href="index.html" class="nav-btn">🏠 Home</a>
+            </div>
+            <div class="nav-right">
+                <button onclick="exportWheelData()" class="nav-btn export-btn">📊 Export Excel</button>
+                <span id="userInfo" class="nav-btn user-btn"></span>
+                <button onclick="logout()" class="nav-btn logout-btn">🚪 Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Header -->
+        <div class="main-header module-wheel">
+            <div class="header-content">
+                <h1>⚙️ Wheel</h1>
+                <p>MLG/NLG wheel and tire management</p>
+            </div>
+            <div class="header-actions">
+                <button onclick="showAddForm()" class="btn btn-add">+ Add Items</button>
+                <button onclick="showAllItems()" class="btn">📋 View All Items</button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card serviceable">
+                <div class="summary-number" id="serviceableCount">0</div>
+                <div class="summary-label">Serviceable</div>
+            </div>
+            <div class="summary-card unserviceable">
+                <div class="summary-number" id="unserviceableCount">0</div>
+                <div class="summary-label">Unserviceable</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number" id="totalCount">0</div>
+                <div class="summary-label">Total Items</div>
+            </div>
+        </div>
+
+        <!-- Unserviceable Items Summary -->
+        <div id="unserviceableSection" class="panel">
+            <div class="panel-header" style="background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);">
+                <span>⚠️ Unserviceable Items Summary</span>
+                <span class="badge" id="unserviceableBadge">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="unserviceableTable"></div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Form -->
+        <div id="addForm" class="card hidden">
+            <h2 style="margin-bottom: 25px;">Add Items / Edit Wheel</h2>
+            <div id="formMessage" class="hidden"></div>
+            
+            <form id="wheelForm" onsubmit="handleFormSubmit(event)">
+                <input type="hidden" id="editId">
+                
+                <div class="form-grid">
+                    <!-- Row 1: Designation, P/N Tire, S/N -->
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <input type="text" id="designation" class="form-control" placeholder="Auto-filled from tire P/N" readonly style="background: #f8f9fa;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>P/N Tire</label>
+                        <select id="pnTire" class="form-control" onchange="handleTireSelection()">
+                            <option value="">Select P/N Tire</option>
+                            <option value="S322F1021200">S322F1021200</option>
+                            <option value="S322F1022200">S322F1022200</option>
+                            <option value="S322F1023200">S322F1023200</option>
+                            <option value="S324F1121200">S324F1121200</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Serial Number (S/N)</label>
+                        <input type="text" id="serialNumber" class="form-control" placeholder="Enter serial number">
+                    </div>
+                    
+                    <!-- Row 2: P/N Wheel, Type, Position -->
+                    <div class="form-group">
+                        <label>P/N Wheel</label>
+                        <input type="text" id="pnWheel" class="form-control" placeholder="Auto-filled from tire" readonly style="background: #f8f9fa;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Type</label>
+                        <input type="text" id="type" class="form-control" placeholder="Auto-filled from tire" readonly style="background: #f8f9fa;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Position</label>
+                        <input type="text" id="position" class="form-control" placeholder="Auto-filled from tire" readonly style="background: #f8f9fa;">
+                    </div>
+                    
+                    <!-- Row 3: Number Tire Change, Flight Hours, Date of Removal -->
+                    <div class="form-group">
+                        <label>Number Tire Change</label>
+                        <select id="numberTireChange" class="form-control" onchange="checkEddyCurrent()">
+                            <option value="">Select number</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                            <option value="13">13</option>
+                            <option value="14">14</option>
+                            <option value="15">15</option>
+                            <option value="16">16</option>
+                            <option value="17">17</option>
+                            <option value="18">18</option>
+                            <option value="19">19</option>
+                            <option value="20">20</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Flight Hours</label>
+                        <input type="number" id="flightHours" class="form-control" placeholder="Enter flight hours">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Date of Removal</label>
+                        <input type="date" id="dateOfRemoval" class="form-control">
+                    </div>
+                    
+                    <!-- Row 4: Remove from H/C, Serviceability, Order -->
+                    <div class="form-group">
+                        <label>Remove from H/C</label>
+                        <input type="text" id="removeFromHC" class="form-control" placeholder="Enter H/C registration">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <select id="serviceability" class="form-control" onchange="handleServiceabilityChange()">
+                            <option value="">Select status</option>
+                            <option value="Serviceable">Serviceable</option>
+                            <option value="Unserviceable">Unserviceable</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Order</label>
+                        <input type="text" id="order" class="form-control" placeholder="Enter order number">
+                        <div id="orderNotice" class="message message-info hidden">Order automatically cleared when item becomes Serviceable</div>
+                    </div>
+                    
+                    <!-- Row 5: Work in Progress, Eddy Current c/out -->
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="workInProgress">
+                            Work in Progress
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="eddyCurrentCout">
+                            Eddy current c/out
+                        </label>
+                    </div>
+                    
+                    <!-- Row 6: Comments (full width) -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <textarea id="comments" class="form-control" placeholder="Enter detailed comments..." onchange="checkMissingLogcard()"></textarea>
+                    </div>
+                </div>
+                
+                <div id="missingLogcardWarning" class="message message-error hidden">
+                    ⚠️ <strong>Warning:</strong> "Missing logcard" detected in comments. Item will be marked as Unserviceable.
+                </div>
+                
+                <div class="mt-20">
+                    <button type="submit" class="btn btn-success">💾 Save</button>
+                    <button type="button" onclick="resetForm()" class="btn" style="margin-left: 15px;">🔄 Reset</button>
+                    <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- View All Items Table -->
+        <div id="viewAllSection" class="panel hidden">
+            <div class="panel-header module-wheel">
+                <span>📋 All Wheel Items</span>
+                <span class="badge" id="tableCount">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="wheelTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Eddy Current Popup -->
+    <div id="eddyPopup" class="modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <div class="modal-header">
+                <h2 class="modal-title" style="color: #ff4757;">⚠️ Warning</h2>
+            </div>
+            <div style="padding: 20px;">
+                <p style="font-size: 1.1em; margin-bottom: 20px; color: #ff4757; font-weight: 600;">
+                    Be careful Eddy current to be c/out
+                </p>
+                <button onclick="closeEddyPopup()" class="btn btn-success">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Item Detail Modal -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Wheel Details</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent"></div>
+                <div class="mt-20 text-center">
+                    <button onclick="editCurrentItem()" class="btn">✏️ Edit</button>
+                    <button onclick="deleteCurrentItem()" class="btn btn-danger" style="margin-left: 15px;">🗑️ Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let wheelData = [];
+        let currentUser = localStorage.getItem('componentsBayCurrentUser') || localStorage.getItem('currentUser') || 'Unknown User';
+        let userRole = localStorage.getItem('componentsBayUserRole') || localStorage.getItem('userRole') || 'user';
+        let editingItem = null;
+        let currentItemId = null;
+
+        // Tire to wheel mapping with designation
+        const tireMapping = {
+            'S322F1021200': { pnWheel: 'S324F1851855', type: 'TTH', position: 'MLG', designation: 'MLG Wheel TTH' },
+            'S322F1022200': { pnWheel: 'S324F1851856', type: 'NFH', position: 'MLG', designation: 'MLG Wheel NFH' },
+            'S322F1023200': { pnWheel: 'S324F1851861', type: 'TTH', position: 'MLG', designation: 'MLG Wheel TTH' },
+            'S324F1121200': { pnWheel: 'S324F1852853', type: 'TTH/NFH', position: 'NLG', designation: 'NLG Wheel TTH/NFH' }
+        };
+
+        // Eddy current tire change numbers
+        const eddyCurrentNumbers = ['5', '8', '10', '12', '14', '16', '17', '18', '19', '20'];
+
+        // Add event listener to eddy current checkbox
+        document.addEventListener('DOMContentLoaded', async function() {
+            checkAuthentication();
+            await loadData();
+            updateSummary();
+            updateUnserviceableSection();
+            setupDefaultView();
+            
+            // Add event listener to eddy current checkbox
+            setTimeout(() => {
+                const eddyCheckbox = document.getElementById('eddyCurrentCout');
+                if (eddyCheckbox) {
+                    eddyCheckbox.addEventListener('change', function() {
+                        updateServiceabilityFromEddyCurrent();
+                    });
+                }
+            }, 100);
+        });
+
+        function checkAuthentication() {
+            if (!currentUser || currentUser === 'null') {
+                window.location.href = 'index.html';
+                return;
+            }
+            document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+        }
+
+        async function loadData() {
+            if (window.ComponentsBayDB) {
+                try {
+                    wheelData = await window.ComponentsBayDB.load('wheels');
+                    console.log('✅ Wheels loaded from Supabase:', wheelData.length, 'items');
+                } catch(e) {
+                    console.error('Wheel Supabase load failed, using localStorage');
+                    const saved = localStorage.getItem('componentsBayWheel');
+                    if (saved) {
+                        wheelData = JSON.parse(saved);
+                        console.log('Loaded wheel data:', wheelData);
+                    }
+                }
+            } else {
+                const saved = localStorage.getItem('componentsBayWheel');
+                if (saved) {
+                    wheelData = JSON.parse(saved);
+                    console.log('Loaded wheel data:', wheelData);
+                }
+            }
+        }
+
+        async function saveData() {
+            localStorage.setItem('componentsBayWheel', JSON.stringify(wheelData));
+            console.log('Saved wheel data:', wheelData);
+            if (window.ComponentsBayDB) {
+                for (const item of wheelData) {
+                    try {
+                        await window.ComponentsBayDB.save('wheels', {...item});
+                    } catch(e) {
+                        console.error('Wheel save error:', e);
+                    }
+                }
+            }
+        }
+
+        function setupDefaultView() {
+            // Show only unserviceable summary by default, hide add form
+            document.getElementById('addForm').classList.add('hidden');
+            document.getElementById('viewAllSection').classList.add('hidden');
+        }
+
+        function updateSummary() {
+            const serviceable = wheelData.filter(item => item.serviceability === 'Serviceable').length;
+            const unserviceable = wheelData.filter(item => item.serviceability === 'Unserviceable').length;
+            
+            document.getElementById('serviceableCount').textContent = serviceable;
+            document.getElementById('unserviceableCount').textContent = unserviceable;
+            document.getElementById('totalCount').textContent = wheelData.length;
+            
+            updateUnserviceableSection();
+        }
+
+        function updateUnserviceableSection() {
+            const unserviceableItems = wheelData.filter(item => item.serviceability === 'Unserviceable');
+            const tableContainer = document.getElementById('unserviceableTable');
+            document.getElementById('unserviceableBadge').textContent = unserviceableItems.length;
+
+            if (unserviceableItems.length === 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <p style="color: #00695c; font-weight: 600;">Excellent! No unserviceable wheel items</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Designation</th>
+                                <th>P/N Tire</th>
+                                <th>S/N</th>
+                                <th>Position</th>
+                                <th>Reason</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            unserviceableItems.forEach(item => {
+                const reasonText = item.reason || 'Unserviceable';
+                const reasonClass = item.reason === 'Missing logcard' ? 'status-missing' : 'status-unserviceable';
+                const positionClass = item.position === 'MLG' ? 'position-mlg' : 'position-nlg';
+                
+                tableHTML += `
+                    <tr>
+                        <td>${item.designation || '-'}</td>
+                        <td>${item.pnTire || '-'}</td>
+                        <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td><span class="status-badge ${positionClass}">${item.position || '-'}</span></td>
+                        <td><span class="status-badge ${reasonClass}">${reasonText}</span></td>
+                        <td>
+                            <button class="btn" onclick="editItem('${item.id}')" style="padding: 6px 12px; font-size: 12px;">✏️ Edit</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table></div>';
+            tableContainer.innerHTML = tableHTML;
+        }
+
+        function hideAllForms() {
+            document.getElementById('addForm').classList.add('hidden');
+            document.getElementById('viewAllSection').classList.add('hidden');
+        }
+
+        function showAddForm() {
+            hideAllForms();
+            document.getElementById('addForm').classList.remove('hidden');
+        }
+
+        function showAllItems() {
+            hideAllForms();
+            document.getElementById('viewAllSection').classList.remove('hidden');
+            refreshTable();
+        }
+
+        function handleTireSelection() {
+            const selectedTire = document.getElementById('pnTire').value;
+            const mapping = tireMapping[selectedTire];
+            
+            if (mapping) {
+                document.getElementById('designation').value = mapping.designation;
+                document.getElementById('pnWheel').value = mapping.pnWheel;
+                document.getElementById('type').value = mapping.type;
+                document.getElementById('position').value = mapping.position;
+            } else {
+                document.getElementById('designation').value = '';
+                document.getElementById('pnWheel').value = '';
+                document.getElementById('type').value = '';
+                document.getElementById('position').value = '';
+            }
+        }
+
+        function checkEddyCurrent() {
+            const tireChangeNumber = document.getElementById('numberTireChange').value;
+            if (eddyCurrentNumbers.includes(tireChangeNumber)) {
+                // Show popup
+                document.getElementById('eddyPopup').classList.add('active');
+                // UNCHECK the box (user needs to check it when done)
+                document.getElementById('eddyCurrentCout').checked = false;
+                // Set wheel as unserviceable until user checks the box
+                document.getElementById('serviceability').value = 'Unserviceable';
+            } else {
+                // If number is NOT in eddy current list, uncheck the box
+                document.getElementById('eddyCurrentCout').checked = false;
+                // No eddy current needed, can be serviceable
+                updateServiceabilityFromEddyCurrent();
+            }
+        }
+
+        function updateServiceabilityFromEddyCurrent() {
+            const eddyCurrentChecked = document.getElementById('eddyCurrentCout').checked;
+            const tireChangeNumber = document.getElementById('numberTireChange').value;
+            
+            if (eddyCurrentNumbers.includes(tireChangeNumber)) {
+                if (eddyCurrentChecked) {
+                    // Eddy current done -> Serviceable
+                    document.getElementById('serviceability').value = 'Serviceable';
+                } else {
+                    // Eddy current needed but not done -> Unserviceable
+                    document.getElementById('serviceability').value = 'Unserviceable';
+                }
+            } else {
+                // No eddy current needed, can be serviceable (unless other reasons)
+                if (document.getElementById('serviceability').value === 'Unserviceable') {
+                    // Only change to serviceable if it was unserviceable due to eddy current
+                    const currentReason = document.querySelector('[data-reason]');
+                    if (!currentReason || !currentReason.textContent.includes('missing logcard')) {
+                        document.getElementById('serviceability').value = 'Serviceable';
+                    }
+                }
+            }
+        }
+
+
+
+        function closeEddyPopup() {
+            document.getElementById('eddyPopup').classList.remove('active');
+        }
+
+        function handleServiceabilityChange() {
+            const serviceability = document.getElementById('serviceability').value;
+            const orderField = document.getElementById('order');
+            const orderNotice = document.getElementById('orderNotice');
+            
+            if (serviceability === 'Serviceable' && orderField.value) {
+                orderField.value = '';
+                orderNotice.classList.remove('hidden');
+                setTimeout(() => orderNotice.classList.add('hidden'), 3000);
+            }
+        }
+
+        function checkMissingLogcard() {
+            const comments = document.getElementById('comments').value.toLowerCase();
+            const warning = document.getElementById('missingLogcardWarning');
+            
+            if (comments.includes('missing logcard')) {
+                warning.classList.remove('hidden');
+                document.getElementById('serviceability').value = 'Unserviceable';
+            } else {
+                warning.classList.add('hidden');
+            }
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            const formData = {
+                id: editingItem ? editingItem.id : Date.now().toString(),
+                designation: document.getElementById('designation').value.trim(),
+                pnTire: document.getElementById('pnTire').value,
+                serialNumber: document.getElementById('serialNumber').value.trim(),
+                pnWheel: document.getElementById('pnWheel').value,
+                type: document.getElementById('type').value,
+                position: document.getElementById('position').value,
+                numberTireChange: document.getElementById('numberTireChange').value,
+                flightHours: document.getElementById('flightHours').value,
+                dateOfRemoval: document.getElementById('dateOfRemoval').value,
+                removeFromHC: document.getElementById('removeFromHC').value.trim(),
+                serviceability: document.getElementById('serviceability').value || 'Serviceable',
+                order: document.getElementById('order').value.trim(),
+                workInProgress: document.getElementById('workInProgress').checked,
+                eddyCurrentCout: document.getElementById('eddyCurrentCout').checked,
+                comments: document.getElementById('comments').value.trim(),
+                reason: '',
+                lastModified: new Date().toISOString(),
+                modifiedBy: currentUser
+            };
+
+            // Handle missing logcard logic
+            if (formData.comments && formData.comments.toLowerCase().includes('missing logcard')) {
+                formData.serviceability = 'Unserviceable';
+                formData.reason = 'Missing logcard';
+            }
+
+            // Save or update
+            if (editingItem) {
+                const index = wheelData.findIndex(item => item.id === editingItem.id);
+                if (index !== -1) {
+                    wheelData[index] = formData;
+                }
+                editingItem = null;
+            } else {
+                wheelData.push(formData);
+            }
+
+            saveData();
+            showMessage('Wheel item saved successfully', 'success');
+            resetForm();
+            updateSummary();
+            
+            if (!document.getElementById('viewAllSection').classList.contains('hidden')) {
+                refreshTable();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('wheelForm').reset();
+            editingItem = null;
+            document.getElementById('editId').value = '';
+            document.getElementById('missingLogcardWarning').classList.add('hidden');
+            document.getElementById('orderNotice').classList.add('hidden');
+            document.getElementById('workInProgress').checked = false;
+            document.getElementById('eddyCurrentCout').checked = false;
+            hideMessage();
+        }
+
+        function refreshTable() {
+            const tableContainer = document.getElementById('wheelTable');
+            document.getElementById('tableCount').textContent = wheelData.length;
+
+            if (wheelData.length === 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚙️</div>
+                        <p>No wheel items registered</p>
+                        <button onclick="showAddForm()" class="btn btn-add mt-20">+ Add First Wheel</button>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Designation</th>
+                                <th>P/N Tire</th>
+                                <th>S/N</th>
+                                <th>P/N Wheel</th>
+                                <th>Type</th>
+                                <th>Position</th>
+                                <th>Tire Change</th>
+                                <th>Serviceability</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            wheelData.forEach(item => {
+                const statusClass = item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable';
+                const positionClass = item.position === 'MLG' ? 'position-mlg' : 'position-nlg';
+                
+                tableHTML += `
+                    <tr>
+                        <td>${item.designation || '-'}</td>
+                        <td>${item.pnTire || '-'}</td>
+                        <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td>${item.pnWheel || '-'}</td>
+                        <td>${item.type || '-'}</td>
+                        <td><span class="${positionClass}">${item.position || '-'}</span></td>
+                        <td>${item.numberTireChange || '-'}</td>
+                        <td><span class="status-badge ${statusClass}">${item.serviceability || 'N/A'}</span></td>
+                        <td>
+                            <button class="btn" onclick="editItem('${item.id}')" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;">✏️</button>
+                            <button class="btn btn-danger" onclick="deleteItem('${item.id}')" style="padding: 6px 12px; font-size: 12px;">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table></div>';
+            tableContainer.innerHTML = tableHTML;
+        }
+
+        function showItemDetail(id) {
+            const item = wheelData.find(item => item.id === id);
+            if (!item) return;
+
+            currentItemId = id;
+            document.getElementById('modalTitle').textContent = `Wheel - ${item.pnTire || 'Unknown'}`;
+            
+            const positionBadge = item.position === 'MLG' ? '<span class="position-mlg">MLG</span>' : 
+                                 item.position === 'NLG' ? '<span class="position-nlg">NLG</span>' : 
+                                 (item.position || '-');
+            
+            const content = `
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.designation || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>P/N Tire</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.pnTire || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Serial Number</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.serialNumber || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>P/N Wheel</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.pnWheel || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.type || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Position</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${positionBadge}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Number Tire Change</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.numberTireChange || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Flight Hours</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.flightHours || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <span class="status-badge ${item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable'}">${item.serviceability || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Work in Progress</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.workInProgress ? 'Yes' : 'No'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Eddy Current c/out</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.eddyCurrentCout ? 'Yes' : 'No'}</div>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; min-height: 60px;">${item.comments || '-'}</div>
+                    </div>
+                    ${item.reason ? `
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Reason</label>
+                        <div style="padding: 10px; background: #fadbd8; border-radius: 6px; color: #c62828; font-weight: 600;">${item.reason}</div>
+                    </div>
+                    ` : ''}
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Last Modified</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 0.9em; color: #636e72;">${new Date(item.lastModified).toLocaleString()} by ${item.modifiedBy}</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('itemModal').classList.add('active');
+        }
+
+        function editItem(id) {
+            editingItem = wheelData.find(item => item.id === id);
+            if (!editingItem) return;
+
+            // Fill form with existing data
+            document.getElementById('designation').value = editingItem.designation || '';
+            document.getElementById('pnTire').value = editingItem.pnTire || '';
+            document.getElementById('serialNumber').value = editingItem.serialNumber || '';
+            document.getElementById('pnWheel').value = editingItem.pnWheel || '';
+            document.getElementById('type').value = editingItem.type || '';
+            document.getElementById('position').value = editingItem.position || '';
+            document.getElementById('numberTireChange').value = editingItem.numberTireChange || '';
+            document.getElementById('flightHours').value = editingItem.flightHours || '';
+            document.getElementById('dateOfRemoval').value = editingItem.dateOfRemoval || '';
+            document.getElementById('removeFromHC').value = editingItem.removeFromHC || '';
+            document.getElementById('serviceability').value = editingItem.serviceability || '';
+            document.getElementById('order').value = editingItem.order || '';
+            document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
+            document.getElementById('eddyCurrentCout').checked = editingItem.eddyCurrentCout || false;
+            document.getElementById('comments').value = editingItem.comments || '';
+
+            showAddForm();
+            closeModal();
+        }
+
+        function editCurrentItem() {
+            if (currentItemId) {
+                editItem(currentItemId);
+            }
+        }
+
+        async function deleteItem(id) {
+            if (confirm('Are you sure you want to delete this wheel item?')) {
+                wheelData = wheelData.filter(item => item.id !== id);
+                saveData();
+                if (window.ComponentsBayDB) {
+                    try { await window.ComponentsBayDB.delete('wheels', id); } catch(e) { console.error('Wheel delete error:', e); }
+                }
+                showMessage('Wheel item deleted successfully', 'success');
+                updateSummary();
+                refreshTable();
+            }
+        }
+
+        function deleteCurrentItem() {
+            if (currentItemId) {
+                deleteItem(currentItemId);
+                closeModal();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('itemModal').classList.remove('active');
+            currentItemId = null;
+        }
+
+        function exportWheelData() {
+            if (wheelData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const data = wheelData.map(item => ({
+                'Designation': item.designation || '',
+                'P/N Tire': item.pnTire || '',
+                'Serial Number': item.serialNumber || '',
+                'P/N Wheel': item.pnWheel || '',
+                'Type': item.type || '',
+                'Position': item.position || '',
+                'Number Tire Change': item.numberTireChange || '',
+                'Flight Hours': item.flightHours || '',
+                'Date of Removal': item.dateOfRemoval || '',
+                'Remove from H/C': item.removeFromHC || '',
+                'Serviceability': item.serviceability || '',
+                'Order': item.order || '',
+                'Work in Progress': item.workInProgress ? 'Yes' : 'No',
+                'Eddy Current c/out': item.eddyCurrentCout ? 'Yes' : 'No',
+                'Comments': item.comments || '',
+                'Reason': item.reason || '',
+                'Last Modified': new Date(item.lastModified).toLocaleString(),
+                'Modified By': item.modifiedBy || ''
+            }));
+
+            downloadCSV(data, `Wheel_Export_${new Date().toISOString().split('T')[0]}.csv`);
+            showMessage('Export completed successfully', 'success');
+        }
+
+        function downloadCSV(data, filename) {
+            const csvContent = convertToCSV(data);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        function convertToCSV(data) {
+            if (!data.length) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvRows = [];
+            
+            csvRows.push(headers.join(','));
+            
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    const value = row[header] || '';
+                    return `"${value.toString().replace(/"/g, '""')}"`;
+                });
+                csvRows.push(values.join(','));
+            });
+            
+            return csvRows.join('\n');
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('componentsBayCurrentUser');
+                localStorage.removeItem('componentsBayUserRole');
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('userRole');
+                window.location.href = 'index.html';
+            }
+        }
+
+        function showMessage(message, type, elementId = null) {
+            const element = elementId ? document.getElementById(elementId) : null;
+            
+            if (element) {
+                element.textContent = message;
+                element.className = `message message-${type}`;
+                element.classList.remove('hidden');
+                
+                if (type === 'success') {
+                    setTimeout(() => {
+                        element.classList.add('hidden');
+                    }, 3000);
+                }
+            } else {
+                // Create a temporary notification
+                const notification = document.createElement('div');
+                notification.className = `message message-${type}`;
+                notification.textContent = message;
+                notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1000; padding: 15px; border-radius: 6px;';
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 3000);
+            }
+        }
+
+        function hideMessage() {
+            const messageDiv = document.getElementById('formMessage');
+            if (messageDiv) {
+                messageDiv.classList.add('hidden');
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('itemModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Close popup when clicking outside
+        document.getElementById('eddyPopup').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEddyPopup();
+            }
+        });
+    </script>
+</body>
+</html>

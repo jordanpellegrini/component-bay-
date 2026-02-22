@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotor Bay - Components Bay</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <script type="module" src="supabase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <a href="http://10.10.0.21:8080/QATAR_V1_2/index.htm" target="_blank" class="nav-btn ietp-btn">🔗 IETP</a>
+                <a href="index.html" class="nav-btn">🏠 Home</a>
+            </div>
+            <div class="nav-right">
+                <button onclick="exportData()" class="nav-btn export-btn">📊 Export Excel</button>
+                <span id="userInfo" class="nav-btn user-btn"></span>
+                <button onclick="logout()" class="nav-btn logout-btn">🚪 Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Header -->
+        <div class="main-header">
+            <div class="header-content">
+                <h1>⚙️ Rotor Bay</h1>
+                <p>Gearbox, rotor and swashplate inspection management</p>
+            </div>
+            <div class="header-actions">
+                <button onclick="showAddForm()" class="btn btn-add">+ Add New</button>
+                <button onclick="showAllItems()" class="btn">📋 View All</button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card serviceable">
+                <div class="summary-number" id="serviceableCount">0</div>
+                <div class="summary-label">Serviceable</div>
+            </div>
+            <div class="summary-card unserviceable">
+                <div class="summary-number" id="unserviceableCount">0</div>
+                <div class="summary-label">Unserviceable</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number" id="totalCount">0</div>
+                <div class="summary-label">Total Items</div>
+            </div>
+        </div>
+
+        <!-- Unserviceable Summary -->
+        <div id="unserviceableSection" class="panel">
+            <div class="panel-header" style="background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%); color: white;">
+                <span>⚠️ Unserviceable Items Summary</span>
+                <span id="unserviceableBadge">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="unserviceableTable"></div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Form -->
+        <div id="addForm" class="card hidden">
+            <h2 style="margin-bottom: 25px;">Add / Edit Rotor Bay Item</h2>
+            <div id="formMessage" class="hidden"></div>
+
+            <form id="rotorForm" onsubmit="handleFormSubmit(event)">
+                <input type="hidden" id="editId">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>P/N</label>
+                        <select id="partNumber" class="form-control" onchange="handlePNSelection()" required>
+                            <option value="">Select P/N</option>
+                            <optgroup label="Main Gearbox">
+                                <option value="N632G0040051">N632G0040051</option>
+                            </optgroup>
+                            <optgroup label="RAGB Assembly">
+                                <option value="S639A0001051">S639A0001051</option>
+                                <option value="S639A0001053">S639A0001053</option>
+                            </optgroup>
+                            <optgroup label="IGB Assembly">
+                                <option value="S653F1003053">S653F1003053</option>
+                            </optgroup>
+                            <optgroup label="TGB Assembly">
+                                <option value="S652A0000052">S652A0000052</option>
+                                <option value="S652A0000055">S652A0000055</option>
+                            </optgroup>
+                            <optgroup label="Swashplate">
+                                <option value="S623A2103051">S623A2103051</option>
+                                <option value="S623A2103052">S623A2103052</option>
+                                <option value="S623A2202051">S623A2202051</option>
+                                <option value="S623A2202052">S623A2202052</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <input type="text" id="designation" class="form-control" placeholder="Auto-filled from P/N" readonly style="background: #f8f9fa;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>S/N</label>
+                        <input type="text" id="serialNumber" class="form-control" placeholder="Enter serial number" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Inspection Performed</label>
+                        <select id="inspectionPerformed" class="form-control" onchange="updateInspectionFields()">
+                            <option value="">Select which inspection</option>
+                            <option value="short" id="optShort">Short</option>
+                            <option value="long" id="optLong">Long (includes Short)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Inspection Date</label>
+                        <input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspections()">
+                    </div>
+
+                    <div class="form-group">
+                        <label id="labelShort">Next Short Inspection</label>
+                        <input type="date" id="nextShort" class="form-control" style="background: #f8f9fa;">
+                    </div>
+
+                    <div class="form-group">
+                        <label id="labelLong">Next Long Inspection</label>
+                        <input type="date" id="nextLong" class="form-control" style="background: #f8f9fa;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <select id="serviceability" class="form-control">
+                            <option value="">Select status</option>
+                            <option value="Serviceable">Serviceable</option>
+                            <option value="Unserviceable">Unserviceable</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="workInProgress">
+                            Work in Progress
+                        </label>
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <textarea id="comments" class="form-control" placeholder="Enter comments..."></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-20">
+                    <button type="submit" class="btn btn-success">💾 Save</button>
+                    <button type="button" onclick="resetForm()" class="btn" style="margin-left: 15px;">🔄 Reset</button>
+                    <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- View All Table -->
+        <div id="viewAllSection" class="panel hidden">
+            <div class="panel-header">
+                <span>📋 All Rotor Bay Items</span>
+                <span id="tableCount">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="dataTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Rotor Bay Details</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent"></div>
+                <div class="mt-20 text-center">
+                    <button onclick="editCurrentItem()" class="btn">✏️ Edit</button>
+                    <button onclick="deleteCurrentItem()" class="btn btn-danger" style="margin-left: 15px;">🗑️ Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let rotorData = [];
+        let currentUser = localStorage.getItem('componentsBayCurrentUser') || 'Unknown User';
+        let userRole = localStorage.getItem('componentsBayUserRole') || 'user';
+        let editingItem = null;
+        let currentItemId = null;
+
+        // P/N → { designation, shortMonths, longMonths, shortLabel, longLabel }
+        const pnConfig = {
+            'N632G0040051': { designation: 'MAIN GEARBOX ASSEMBLY', shortMonths: 6, longMonths: 24, shortLabel: '6M', longLabel: '24M' },
+            'S639A0001051': { designation: 'RAGB ASSEMBLY', shortMonths: 3, longMonths: 60, shortLabel: '3M', longLabel: '60M' },
+            'S639A0001053': { designation: 'RAGB ASSEMBLY', shortMonths: 3, longMonths: 60, shortLabel: '3M', longLabel: '60M' },
+            'S653F1003053': { designation: 'IGB ASSEMBLY', shortMonths: 24, longMonths: 72, shortLabel: '24M', longLabel: '72M' },
+            'S652A0000052': { designation: 'TGB ASSEMBLY', shortMonths: 3, longMonths: 60, shortLabel: '3M', longLabel: '60M' },
+            'S652A0000055': { designation: 'TGB ASSEMBLY', shortMonths: 3, longMonths: 60, shortLabel: '3M', longLabel: '60M' },
+            'S623A2103051': { designation: 'SWASHPLATE', shortMonths: 24, longMonths: 60, shortLabel: '24M', longLabel: '60M' },
+            'S623A2103052': { designation: 'SWASHPLATE', shortMonths: 24, longMonths: 60, shortLabel: '24M', longLabel: '60M' },
+            'S623A2202051': { designation: 'SWASHPLATE', shortMonths: 24, longMonths: 60, shortLabel: '24M', longLabel: '60M' },
+            'S623A2202052': { designation: 'SWASHPLATE', shortMonths: 24, longMonths: 60, shortLabel: '24M', longLabel: '60M' }
+        };
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            checkAuthentication();
+            await loadData();
+            updateSummary();
+            updateUnserviceableSection();
+        });
+
+        function checkAuthentication() {
+            if (!currentUser || currentUser === 'null') { window.location.href = 'index.html'; return; }
+            document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+        }
+
+        async function loadData() {
+            try {
+                if (window.ComponentsBayDB) {
+                    rotorData = await window.ComponentsBayDB.load('rotorbay');
+                    console.log('✅ Rotor Bay loaded from Supabase:', rotorData.length, 'items');
+                } else {
+                    const saved = localStorage.getItem('componentsBayRotorBay');
+                    if (saved) rotorData = JSON.parse(saved);
+                }
+            } catch(e) {
+                const saved = localStorage.getItem('componentsBayRotorBay');
+                if (saved) rotorData = JSON.parse(saved);
+            }
+            checkOverdueItems();
+            updateSummary();
+            updateUnserviceableSection();
+            setupDefaultView();
+        }
+
+        async function saveData() {
+            localStorage.setItem('componentsBayRotorBay', JSON.stringify(rotorData));
+            if (window.ComponentsBayDB) {
+                for (const item of rotorData) {
+                    try { await window.ComponentsBayDB.save('rotorbay', {...item}); } catch(e) { console.error('RotorBay save error:', e); }
+                }
+            }
+        }
+
+        function handlePNSelection() {
+            const pn = document.getElementById('partNumber').value;
+            const config = pnConfig[pn];
+            if (config) {
+                document.getElementById('designation').value = config.designation;
+                document.getElementById('labelShort').textContent = `Next ${config.shortLabel} Inspection`;
+                document.getElementById('labelLong').textContent = `Next ${config.longLabel} Inspection`;
+                document.getElementById('optShort').textContent = `${config.shortLabel} (Short)`;
+                document.getElementById('optLong').textContent = `${config.longLabel} (Long — includes ${config.shortLabel})`;
+            } else {
+                document.getElementById('designation').value = '';
+                document.getElementById('labelShort').textContent = 'Next Short Inspection';
+                document.getElementById('labelLong').textContent = 'Next Long Inspection';
+                document.getElementById('optShort').textContent = 'Short';
+                document.getElementById('optLong').textContent = 'Long (includes Short)';
+            }
+            document.getElementById('inspectionPerformed').value = '';
+            updateInspectionFields();
+        }
+
+        function updateInspectionFields() {
+            // Just update labels, actual calc happens on date change
+            calculateNextInspections();
+        }
+
+        function calculateNextInspections() {
+            const date = document.getElementById('inspectionDate').value;
+            const pn = document.getElementById('partNumber').value;
+            const type = document.getElementById('inspectionPerformed').value;
+            const config = pnConfig[pn];
+            if (!date || !config || !type) return;
+
+            const baseDate = new Date(date);
+
+            if (type === 'short') {
+                // Only update the short next inspection
+                const nextShort = new Date(baseDate);
+                nextShort.setMonth(nextShort.getMonth() + config.shortMonths);
+                document.getElementById('nextShort').value = nextShort.toISOString().split('T')[0];
+                // Don't touch nextLong
+            } else if (type === 'long') {
+                // Long includes short, so update both
+                const nextShort = new Date(baseDate);
+                nextShort.setMonth(nextShort.getMonth() + config.shortMonths);
+                document.getElementById('nextShort').value = nextShort.toISOString().split('T')[0];
+
+                const nextLong = new Date(baseDate);
+                nextLong.setMonth(nextLong.getMonth() + config.longMonths);
+                document.getElementById('nextLong').value = nextLong.toISOString().split('T')[0];
+            }
+        }
+
+        function checkOverdueItems() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            let changed = false;
+
+            rotorData.forEach(item => {
+                const config = pnConfig[item.partNumber];
+                if (!config) return;
+                let overdue = false; let reason = '';
+
+                if (item.nextShort && new Date(item.nextShort) < today) {
+                    overdue = true;
+                    reason = `Overdue (${config.shortLabel})`;
+                }
+                if (item.nextLong && new Date(item.nextLong) < today) {
+                    overdue = true;
+                    reason = `Overdue (${config.longLabel})`;
+                }
+
+                if (overdue && item.serviceability !== 'Unserviceable') {
+                    item.serviceability = 'Unserviceable';
+                    item.reason = reason;
+                    changed = true;
+                } else if (overdue && !item.reason) {
+                    item.reason = reason;
+                    changed = true;
+                }
+            });
+            if (changed) saveData();
+        }
+
+        function setupDefaultView() { document.getElementById('addForm').classList.add('hidden'); document.getElementById('viewAllSection').classList.add('hidden'); }
+        function hideAllForms() { setupDefaultView(); }
+        function showAddForm() { hideAllForms(); document.getElementById('addForm').classList.remove('hidden'); }
+        function showAllItems() { hideAllForms(); document.getElementById('viewAllSection').classList.remove('hidden'); refreshTable(); }
+
+        function updateSummary() {
+            const s = rotorData.filter(i => i.serviceability === 'Serviceable').length;
+            const u = rotorData.filter(i => i.serviceability === 'Unserviceable').length;
+            document.getElementById('serviceableCount').textContent = s;
+            document.getElementById('unserviceableCount').textContent = u;
+            document.getElementById('totalCount').textContent = rotorData.length;
+            updateUnserviceableSection();
+        }
+
+        function updateUnserviceableSection() {
+            const items = rotorData.filter(i => i.serviceability === 'Unserviceable');
+            const container = document.getElementById('unserviceableTable');
+            document.getElementById('unserviceableBadge').textContent = items.length;
+
+            if (items.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color: #00695c; font-weight: 600;">No unserviceable rotor bay items</p></div>';
+                return;
+            }
+
+            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Reason</th><th>Actions</th></tr></thead><tbody>';
+            items.forEach(item => {
+                const reasonClass = item.reason && item.reason.includes('Overdue') ? 'status-overdue' : 'status-unserviceable';
+                html += `<tr>
+                    <td>${item.designation || '-'}</td>
+                    <td>${item.partNumber || '-'}</td>
+                    <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                    <td><span class="status-badge ${reasonClass}">${item.reason || 'Unserviceable'}</span></td>
+                    <td><button class="btn" onclick="editItem('${item.id}')" style="padding: 6px 12px; font-size: 12px;">✏️ Edit</button></td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            const pn = document.getElementById('partNumber').value;
+            const config = pnConfig[pn];
+
+            const formData = {
+                id: editingItem ? editingItem.id : Date.now().toString(),
+                partNumber: pn,
+                designation: document.getElementById('designation').value,
+                serialNumber: document.getElementById('serialNumber').value.trim(),
+                inspectionPerformed: document.getElementById('inspectionPerformed').value,
+                inspectionDate: document.getElementById('inspectionDate').value,
+                nextShort: document.getElementById('nextShort').value,
+                nextLong: document.getElementById('nextLong').value,
+                shortLabel: config ? config.shortLabel : '',
+                longLabel: config ? config.longLabel : '',
+                serviceability: document.getElementById('serviceability').value || 'Serviceable',
+                workInProgress: document.getElementById('workInProgress').checked,
+                comments: document.getElementById('comments').value.trim(),
+                reason: '',
+                lastModified: new Date().toISOString(),
+                modifiedBy: currentUser
+            };
+
+            // Check overdue
+            const today = new Date(); today.setHours(0,0,0,0);
+            if (formData.nextShort && new Date(formData.nextShort) < today) {
+                formData.serviceability = 'Unserviceable';
+                formData.reason = `Overdue (${formData.shortLabel})`;
+            }
+            if (formData.nextLong && new Date(formData.nextLong) < today) {
+                formData.serviceability = 'Unserviceable';
+                formData.reason = `Overdue (${formData.longLabel})`;
+            }
+
+            if (editingItem) {
+                const idx = rotorData.findIndex(i => i.id === editingItem.id);
+                if (idx !== -1) rotorData[idx] = formData;
+                editingItem = null;
+            } else {
+                rotorData.push(formData);
+            }
+
+            saveData();
+            showMessage('Rotor Bay item saved successfully', 'success');
+            resetForm();
+            updateSummary();
+            if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
+        }
+
+        function resetForm() {
+            document.getElementById('rotorForm').reset();
+            editingItem = null;
+            document.getElementById('nextShort').value = '';
+            document.getElementById('nextLong').value = '';
+            document.getElementById('inspectionPerformed').value = '';
+            document.getElementById('labelShort').textContent = 'Next Short Inspection';
+            document.getElementById('labelLong').textContent = 'Next Long Inspection';
+        }
+
+        function refreshTable() {
+            const container = document.getElementById('dataTable');
+            document.getElementById('tableCount').textContent = rotorData.length;
+
+            if (rotorData.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚙️</div><p>No rotor bay items registered</p><button onclick="showAddForm()" class="btn btn-add mt-20">+ Add First Item</button></div>';
+                return;
+            }
+
+            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Short Insp.</th><th>Long Insp.</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+            rotorData.forEach(item => {
+                const statusClass = item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable';
+                const overdueClass = item.reason && item.reason.includes('Overdue') ? 'status-overdue' : statusClass;
+                html += `<tr>
+                    <td>${item.designation || '-'}</td>
+                    <td>${item.partNumber || '-'}</td>
+                    <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                    <td>${item.nextShort || '-'} <small style="color:#8e8e93;">${item.shortLabel||''}</small></td>
+                    <td>${item.nextLong || '-'} <small style="color:#8e8e93;">${item.longLabel||''}</small></td>
+                    <td><span class="status-badge ${overdueClass}">${item.reason && item.reason.includes('Overdue') ? item.reason : (item.serviceability || 'N/A')}</span></td>
+                    <td>
+                        <button class="btn" onclick="editItem('${item.id}')" style="padding:6px 12px;font-size:12px;margin-right:5px;">✏️</button>
+                        <button class="btn btn-danger" onclick="deleteItem('${item.id}')" style="padding:6px 12px;font-size:12px;">🗑️</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function showItemDetail(id) {
+            const item = rotorData.find(i => i.id === id);
+            if (!item) return;
+            currentItemId = id;
+            document.getElementById('modalTitle').textContent = `Rotor Bay - ${item.designation || 'Unknown'}`;
+            document.getElementById('modalContent').innerHTML = `
+                <div class="form-grid">
+                    <div class="form-group"><label>Designation</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.designation||'-'}</div></div>
+                    <div class="form-group"><label>P/N</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.partNumber||'-'}</div></div>
+                    <div class="form-group"><label>S/N</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.serialNumber||'-'}</div></div>
+                    <div class="form-group"><label>Inspection Date</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.inspectionDate||'-'}</div></div>
+                    <div class="form-group"><label>Next ${item.shortLabel||'Short'}</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.nextShort||'-'}</div></div>
+                    <div class="form-group"><label>Next ${item.longLabel||'Long'}</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.nextLong||'-'}</div></div>
+                    <div class="form-group"><label>Serviceability</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;"><span class="status-badge ${item.serviceability==='Unserviceable'?'status-unserviceable':'status-serviceable'}">${item.serviceability||'N/A'}</span></div></div>
+                    <div class="form-group"><label>Work in Progress</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.workInProgress?'Yes':'No'}</div></div>
+                    ${item.reason?`<div class="form-group" style="grid-column:1/-1;"><label>Reason</label><div style="padding:10px;background:#fadbd8;border-radius:4px;color:#c62828;font-weight:600;">${item.reason}</div></div>`:''}
+                    <div class="form-group" style="grid-column:1/-1;"><label>Comments</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;min-height:50px;">${item.comments||'-'}</div></div>
+                    <div class="form-group" style="grid-column:1/-1;"><label>Last Modified</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;font-size:12px;color:#636e72;">${new Date(item.lastModified).toLocaleString()} by ${item.modifiedBy}</div></div>
+                </div>`;
+            document.getElementById('itemModal').classList.add('active');
+        }
+
+        function editItem(id) {
+            editingItem = rotorData.find(i => i.id === id);
+            if (!editingItem) return;
+            document.getElementById('partNumber').value = editingItem.partNumber || '';
+            handlePNSelection();
+            document.getElementById('inspectionPerformed').value = editingItem.inspectionPerformed || '';
+            document.getElementById('serialNumber').value = editingItem.serialNumber || '';
+            document.getElementById('inspectionDate').value = editingItem.inspectionDate || '';
+            document.getElementById('nextShort').value = editingItem.nextShort || '';
+            document.getElementById('nextLong').value = editingItem.nextLong || '';
+            document.getElementById('serviceability').value = editingItem.serviceability || '';
+            document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
+            document.getElementById('comments').value = editingItem.comments || '';
+            showAddForm(); closeModal();
+        }
+
+        function editCurrentItem() { if (currentItemId) editItem(currentItemId); }
+
+        async function deleteItem(id) {
+            if (confirm('Delete this rotor bay item?')) {
+                rotorData = rotorData.filter(i => i.id !== id);
+                saveData();
+                if (window.ComponentsBayDB) { try { await window.ComponentsBayDB.delete('rotorbay', id); } catch(e) {} }
+                showMessage('Rotor Bay item deleted', 'success');
+                updateSummary(); refreshTable();
+            }
+        }
+
+        function deleteCurrentItem() { if (currentItemId) { deleteItem(currentItemId); closeModal(); } }
+        function closeModal() { document.getElementById('itemModal').classList.remove('active'); currentItemId = null; }
+
+        function exportData() {
+            if (rotorData.length === 0) { alert('No data to export'); return; }
+            const data = rotorData.map(i => ({ 'Designation': i.designation||'', 'P/N': i.partNumber||'', 'S/N': i.serialNumber||'', 'Inspection Date': i.inspectionDate||'', [`Next ${i.shortLabel||'Short'}`]: i.nextShort||'', [`Next ${i.longLabel||'Long'}`]: i.nextLong||'', 'Serviceability': i.serviceability||'', 'Work in Progress': i.workInProgress?'Yes':'No', 'Comments': i.comments||'', 'Reason': i.reason||'', 'Last Modified': new Date(i.lastModified).toLocaleString(), 'Modified By': i.modifiedBy||'' }));
+            const headers = Object.keys(data[0]);
+            let csv = headers.join(',') + '\n';
+            data.forEach(row => { csv += headers.map(h => `"${(row[h]||'').toString().replace(/"/g,'""')}"`).join(',') + '\n'; });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `RotorBay_Export_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            showMessage('Export completed', 'success');
+        }
+
+        function logout() { if (confirm('Logout?')) { localStorage.removeItem('componentsBayCurrentUser'); localStorage.removeItem('componentsBayUserRole'); window.location.href = 'index.html'; } }
+
+        function showMessage(msg, type) {
+            const n = document.createElement('div');
+            n.className = `message message-${type}`;
+            n.textContent = msg;
+            n.style.cssText = 'position:fixed;top:20px;right:20px;z-index:1000;padding:15px;border-radius:4px;';
+            document.body.appendChild(n);
+            setTimeout(() => document.body.removeChild(n), 3000);
+        }
+
+        document.getElementById('itemModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+    </script>
+</body>
+</html>
