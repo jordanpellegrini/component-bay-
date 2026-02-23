@@ -177,8 +177,14 @@
             document.getElementById('unserviceableBadge').textContent = items.length;
             if (items.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color:#00695c;font-weight:600;">Excellent! No unserviceable tools</p></div>'; return; }
             let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Next Inspection</th><th>Reason</th><th>Actions</th></tr></thead><tbody>';
-            items.forEach(item => { html += `<tr><td>${item.designation}</td><td>${item.partNumber}</td><td><a href="#" onclick="showDetail('${item.id}')" class="clickable">${item.serialNumber||'-'}</a></td><td>${item.nextInspection||'-'}</td><td><span class="status-badge status-overdue">${item.reason||'Unserviceable'}</span></td><td><button onclick="showDetail('${item.id}')" class="btn" style="padding:4px 10px;font-size:12px;">👁️</button></td></tr>`; });
+            items.forEach(item => { html += `<tr><td>${item.designation}</td><td>${item.partNumber}</td><td><a href="#" class="clickable detail-link" data-id="${item.id}">${item.serialNumber||'-'}</a></td><td>${item.nextInspection||'-'}</td><td><span class="status-badge status-overdue">${item.reason||'Unserviceable'}</span></td><td><button class="btn detail-btn" data-id="${item.id}" style="padding:4px 10px;font-size:12px;">👁️</button></td></tr>`; });
             html += '</tbody></table>'; container.innerHTML = html;
+            container.querySelectorAll('.detail-link').forEach(link => {
+                link.addEventListener('click', (e) => { e.preventDefault(); showDetail(link.dataset.id); });
+            });
+            container.querySelectorAll('.detail-btn').forEach(btn => {
+                btn.addEventListener('click', () => showDetail(btn.dataset.id));
+            });
         }
 
         function handleSubmit(event) {
@@ -217,9 +223,18 @@
             let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Localisation</th><th>Inspection Date</th><th>Next Inspection</th><th>Status</th><th>Order</th><th>WIP</th><th>Actions</th></tr></thead><tbody>';
             toolsData.forEach(item => {
                 const sc = item.serviceability === 'Serviceable' ? 'status-serviceable' : 'status-unserviceable';
-                html += `<tr><td>${item.designation}</td><td>${item.partNumber}</td><td><a href="#" onclick="showDetail('${item.id}')" class="clickable">${item.serialNumber||'-'}</a></td><td>${item.localisation||'-'}</td><td>${item.inspectionDate||'-'}</td><td>${item.nextInspection||'-'}</td><td><span class="status-badge ${sc}">${item.serviceability}</span></td><td>${item.orderRef||'-'}</td><td>${item.workInProgress?'Yes':'No'}</td><td><button onclick="editItem('${item.id}')" class="btn btn-add" style="padding:4px 10px;font-size:12px;">✏️</button> <button onclick="deleteItem('${item.id}')" class="btn btn-danger" style="padding:4px 10px;font-size:12px;">🗑️</button></td></tr>`;
+                html += `<tr><td>${item.designation}</td><td>${item.partNumber}</td><td><a href="#" class="clickable detail-link" data-id="${item.id}">${item.serialNumber||'-'}</a></td><td>${item.localisation||'-'}</td><td>${item.inspectionDate||'-'}</td><td>${item.nextInspection||'-'}</td><td><span class="status-badge ${sc}">${item.serviceability}</span></td><td>${item.orderRef||'-'}</td><td>${item.workInProgress?'Yes':'No'}</td><td><button class="btn btn-add edit-btn" data-id="${item.id}" style="padding:4px 10px;font-size:12px;">✏️</button> <button class="btn btn-danger delete-btn" data-id="${item.id}" style="padding:4px 10px;font-size:12px;">🗑️</button></td></tr>`;
             });
             html += '</tbody></table>'; container.innerHTML = html;
+            container.querySelectorAll('.detail-link').forEach(link => {
+                link.addEventListener('click', (e) => { e.preventDefault(); showDetail(link.dataset.id); });
+            });
+            container.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => editItem(btn.dataset.id));
+            });
+            container.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => deleteItem(btn.dataset.id));
+            });
         }
 
         function showDetail(id) {
