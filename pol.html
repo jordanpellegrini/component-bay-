@@ -108,6 +108,10 @@
                         <label>Brand</label>
                         <input type="text" id="brand" class="form-control" placeholder="Enter brand">
                     </div>
+                    <div class="form-group">
+                        <label>Order</label>
+                        <input type="text" id="orderRef" class="form-control" placeholder="Enter order number">
+                    </div>
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="comments" class="form-control" rows="2"></textarea>
@@ -361,20 +365,13 @@
                     <td>${item.orderRef || '-'}</td>
                     <td>${statusBadge}</td>
                     <td>
-                        <button class="btn btn-add edit-btn" data-id="${item.id}" style="padding:4px 10px;font-size:12px;">✏️</button>
-                        <button class="btn btn-danger delete-btn" data-id="${item.id}" style="padding:4px 10px;font-size:12px;">🗑️</button>
+                        <button class="btn btn-add" onclick="editItem('${item.id}')" style="padding:4px 10px;font-size:12px;">✏️</button>
+                        <button class="btn btn-danger" onclick="deleteItem('${item.id}')" style="padding:4px 10px;font-size:12px;">🗑️</button>
                     </td>
                 </tr>`;
             });
             html += '</tbody></table>';
             container.innerHTML = html;
-            // Event delegation for edit/delete buttons
-            container.querySelectorAll('.edit-btn').forEach(btn => {
-                btn.addEventListener('click', () => editItem(btn.dataset.id));
-            });
-            container.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', () => deleteItem(btn.dataset.id));
-            });
         }
 
         function showDetail(id) {
@@ -398,10 +395,8 @@
         function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
 
         function editItem(id) {
-            console.log('Edit requested for ID:', id, typeof id);
-            console.log('Available IDs:', polData.map(i => i.id));
             editingItem = polData.find(i => String(i.id) === String(id));
-            if (!editingItem) { alert('Item not found! ID: ' + id); return; }
+            if (!editingItem) return;
             document.getElementById('designation').value = editingItem.designation || '';
             document.getElementById('partNumber').value = editingItem.partNumber || '';
             document.getElementById('batchNumber').value = editingItem.batchNumber || '';
