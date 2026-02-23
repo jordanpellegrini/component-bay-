@@ -7,6 +7,28 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+// Mapping table Supabase → clé localStorage (doit matcher les pages)
+const localStorageKeyMap = {
+    'efs': 'componentsBayEFS',
+    'liferafts': 'componentsBayLifeRafts',
+    'wheels': 'componentsBayWheel',
+    'maintenance': 'componentsBayMaintenance',
+    'composite': 'componentsBayComposite',
+    'avionic': 'componentsBayAvionic',
+    'troopseats': 'componentsBayTroopSeats',
+    'engine': 'componentsBayEngine',
+    'rotorbay': 'componentsBayRotorBay',
+    'iafteaft': 'componentsBayIaftEaft',
+    'pol': 'componentsBayPOL',
+    'tools': 'componentsBayTools',
+    'documents': 'componentsBayDocuments',
+    'users': 'componentsBayUsers'
+};
+
+function getLocalKey(tableName) {
+    return localStorageKeyMap[tableName] || `componentsBay${tableName}`;
+}
+
 // Helper Functions pour Components Bay
 window.ComponentsBayDB = {
     // Tables mapping
@@ -105,7 +127,7 @@ window.ComponentsBayDB = {
             console.error(`💥 Save failed (${tableName}):`, error.message);
             
             // Fallback to localStorage
-            const localKey = `componentsBay${tableName}`;
+            const localKey = getLocalKey(tableName);
             let localData = JSON.parse(localStorage.getItem(localKey) || '[]');
             
             const existingIndex = localData.findIndex(item => item.id === data.id);
@@ -152,7 +174,7 @@ window.ComponentsBayDB = {
             }
             
             // Sync to localStorage for offline access
-            const localKey = `componentsBay${tableName}`;
+            const localKey = getLocalKey(tableName);
             localStorage.setItem(localKey, JSON.stringify(items));
             
             return items || [];
@@ -161,7 +183,7 @@ window.ComponentsBayDB = {
             console.error(`💥 Load failed (${tableName}):`, error.message);
             
             // Fallback to localStorage
-            const localKey = `componentsBay${tableName}`;
+            const localKey = getLocalKey(tableName);
             const localData = JSON.parse(localStorage.getItem(localKey) || '[]');
             console.log(`💾 Fallback: Loaded ${localData.length} items from localStorage (${tableName})`);
             return localData;
@@ -241,7 +263,7 @@ window.ComponentsBayDB = {
             console.log(`✅ Deleted from ${tableName}:`, id);
             
             // Also remove from localStorage
-            const localKey = `componentsBay${tableName}`;
+            const localKey = getLocalKey(tableName);
             let localData = JSON.parse(localStorage.getItem(localKey) || '[]');
             localData = localData.filter(item => item.id !== id);
             localStorage.setItem(localKey, JSON.stringify(localData));
@@ -250,7 +272,7 @@ window.ComponentsBayDB = {
             console.error(`💥 Delete failed (${tableName}):`, error.message);
             
             // Fallback: remove from localStorage only
-            const localKey = `componentsBay${tableName}`;
+            const localKey = getLocalKey(tableName);
             let localData = JSON.parse(localStorage.getItem(localKey) || '[]');
             localData = localData.filter(item => item.id !== id);
             localStorage.setItem(localKey, JSON.stringify(localData));

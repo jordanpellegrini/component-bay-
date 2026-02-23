@@ -133,9 +133,21 @@
         }
 
         async function loadData() {
+            const saved = localStorage.getItem('componentsBayTools');
+            if (saved) toolsData = JSON.parse(saved);
+            
             if (window.ComponentsBayDB) {
-                try { toolsData = await window.ComponentsBayDB.load('tools'); } catch(e) { const s = localStorage.getItem('componentsBayTools'); if (s) toolsData = JSON.parse(s); }
-            } else { const s = localStorage.getItem('componentsBayTools'); if (s) toolsData = JSON.parse(s); }
+                try {
+                    const supaData = await window.ComponentsBayDB.load('tools');
+                    if (supaData && supaData.length > 0) {
+                        toolsData = supaData;
+                    } else if (toolsData.length > 0) {
+                        for (const item of toolsData) {
+                            try { await window.ComponentsBayDB.save('tools', {...item}); } catch(e) {}
+                        }
+                    }
+                } catch(e) { console.log('Supabase unavailable, using localStorage'); }
+            }
         }
 
         async function saveData() {

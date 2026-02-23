@@ -183,17 +183,22 @@
         }
 
         async function loadData() {
+            // Always load localStorage first
+            const saved = localStorage.getItem('componentsBayPOL');
+            if (saved) polData = JSON.parse(saved);
+            
             if (window.ComponentsBayDB) {
                 try {
-                    polData = await window.ComponentsBayDB.load('pol');
-                    console.log('✅ POL loaded from Supabase:', polData.length, 'items');
-                } catch(e) {
-                    const saved = localStorage.getItem('componentsBayPOL');
-                    if (saved) polData = JSON.parse(saved);
-                }
-            } else {
-                const saved = localStorage.getItem('componentsBayPOL');
-                if (saved) polData = JSON.parse(saved);
+                    const supaData = await window.ComponentsBayDB.load('pol');
+                    if (supaData && supaData.length > 0) {
+                        polData = supaData;
+                    } else if (polData.length > 0) {
+                        // Push local data to Supabase if Supabase is empty
+                        for (const item of polData) {
+                            try { await window.ComponentsBayDB.save('pol', {...item}); } catch(e) {}
+                        }
+                    }
+                } catch(e) { console.log('Supabase unavailable, using localStorage'); }
             }
         }
 
