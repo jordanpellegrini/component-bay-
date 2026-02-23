@@ -8,7 +8,7 @@
     <script type="module" src="supabase-config.js"></script>
     <style>
         .locked-field { position: relative; opacity: 0.5; pointer-events: none; }
-        .locked-field::after { content: '🔒 Available after 60M inspection'; position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); text-align: center; font-size: 0.8em; color: #e67e22; font-weight: 600; background: rgba(255,255,255,0.9); padding: 4px; border-radius: 4px; }
+        .locked-field::after { content: '🔒 Activates when 60M date is reached'; position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); text-align: center; font-size: 0.8em; color: #e67e22; font-weight: 600; background: rgba(255,255,255,0.9); padding: 4px; border-radius: 4px; }
         .inspection-note { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 12px 16px; margin: 10px 0; font-size: 0.9em; color: #856404; }
         .inspection-note strong { color: #664d03; }
         .status-60m-done { background: #d4edda; border: 1px solid #28a745; border-radius: 8px; padding: 12px 16px; margin: 10px 0; font-size: 0.9em; color: #155724; }
@@ -74,7 +74,7 @@
                     </div>
                     <div class="form-group"><label>Inspection Date</label><input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspections()"></div>
                     <div id="note60M" class="inspection-note" style="grid-column: 1 / -1;">⚠️ <strong>Per SCS §D:</strong> First action after <strong>60 months</strong> — Perform selective preservation (internal wall oiling). After 60M is done, 24M cycle starts (interface check every 24 months).</div>
-                    <div id="status60MDone" class="status-60m-done hidden" style="grid-column: 1 / -1;">✅ <strong>60M performed</strong> — 24M inspection cycle is now active. Check all interfaces for condition and clean if necessary every 24 months.</div>
+                    <div id="status60MDone" class="status-60m-done hidden" style="grid-column: 1 / -1;">✅ <strong>24M cycle active</strong> — 60M date has been reached. Check all interfaces for condition and clean if necessary every 24 months.</div>
                     <div class="form-group"><label>Next 60M Inspection</label><input type="date" id="next60M" class="form-control" style="background: #f8f9fa;"></div>
                     <div class="form-group" id="next24MGroup"><label>Next 24M Inspection</label><input type="date" id="next24M" class="form-control" style="background: #f8f9fa;"></div>
                     <div class="form-group"><label>Next 360M Inspection</label><input type="date" id="next360M" class="form-control" style="background: #f8f9fa;"></div>
@@ -163,8 +163,6 @@
         }
 
         function onInspectionChange() {
-            const performed = document.getElementById('inspectionPerformed').value;
-            if (performed === '60M' || performed === '360M') update24MFormState(true);
             calculateNextInspections();
         }
 
@@ -175,20 +173,21 @@
             const base = new Date(inspDate);
 
             if (performed === '60M') {
-                const d24 = new Date(base); d24.setMonth(d24.getMonth() + 24);
-                document.getElementById('next24M').value = d24.toISOString().split('T')[0];
+                // 60M done: set next60M only. 24M will activate when next60M date is reached
                 const d60 = new Date(base); d60.setMonth(d60.getMonth() + 60);
                 document.getElementById('next60M').value = d60.toISOString().split('T')[0];
+                // Don't set next24M yet - it activates when next60M is reached
             } else if (performed === '24M') {
+                // 24M cycle (only available when 60M date has passed)
                 const d24 = new Date(base); d24.setMonth(d24.getMonth() + 24);
                 document.getElementById('next24M').value = d24.toISOString().split('T')[0];
             } else if (performed === '360M') {
-                const d24 = new Date(base); d24.setMonth(d24.getMonth() + 24);
-                document.getElementById('next24M').value = d24.toISOString().split('T')[0];
+                // Full overhaul: reset all
                 const d60 = new Date(base); d60.setMonth(d60.getMonth() + 60);
                 document.getElementById('next60M').value = d60.toISOString().split('T')[0];
                 const d360 = new Date(base); d360.setMonth(d360.getMonth() + 360);
                 document.getElementById('next360M').value = d360.toISOString().split('T')[0];
+                // 24M will activate when next60M is reached
             }
         }
 
@@ -197,7 +196,15 @@
             let hasChanges = false;
             itemsData.forEach(item => {
                 let isOverdue = false, reason = '';
-                if (item.is60MDone && item.next24M && new Date(item.next24M) < today) { isOverdue = true; reason = '24M interface check overdue'; }
+                // 24M activates when 60M date has been reached
+                const is24MNowActive = item.has60MBeenDone && item.next60M && new Date(item.next60M) <= today;
+                if (is24MNowActive && item.next24M && new Date(item.next24M) < today) { isOverdue = true; reason = '24M interface check overdue'; }
+                // Auto-set first next24M when 60M date is reached and no 24M set yet
+                if (is24MNowActive && !item.next24M && item.next60M) {
+                    const d = new Date(item.next60M); d.setMonth(d.getMonth() + 24);
+                    item.next24M = d.toISOString().split('T')[0];
+                    hasChanges = true;
+                }
                 if (item.next60M && new Date(item.next60M) < today) { isOverdue = true; reason = '60M preservation overdue'; }
                 if (item.next360M && new Date(item.next360M) < today) { isOverdue = true; reason = '360M overhaul overdue'; }
                 if (isOverdue && item.serviceability !== 'Unserviceable') { item.serviceability = 'Unserviceable'; item.reason = reason; hasChanges = true; }
@@ -229,7 +236,12 @@
             const pn = document.getElementById('partNumber').value;
             if (!pn) { alert('P/N is required'); return; }
             const performed = document.getElementById('inspectionPerformed').value;
-            let is60MDone = (editingItem && editingItem.is60MDone) || performed === '60M' || performed === '360M';
+            // Track if 60M has ever been performed
+            let has60MBeenDone = (editingItem && editingItem.has60MBeenDone) || performed === '60M' || performed === '360M';
+            // 24M is active only when the 60M date has passed
+            const next60Mval = document.getElementById('next60M').value;
+            const today = new Date(); today.setHours(0,0,0,0);
+            let is24MActive = has60MBeenDone && next60Mval && new Date(next60Mval) <= today;
 
             const formData = {
                 id: editingItem ? editingItem.id : Date.now().toString() + '-' + Math.random().toString(36).substr(2, 6),
@@ -237,8 +249,9 @@
                 serialNumber: document.getElementById('serialNumber').value.trim(),
                 serviceability: document.getElementById('serviceability').value || 'Serviceable',
                 inspectionPerformed: performed, inspectionDate: document.getElementById('inspectionDate').value,
-                is60MDone: is60MDone,
-                next24M: is60MDone ? document.getElementById('next24M').value : '',
+                has60MBeenDone: has60MBeenDone,
+                is24MActive: is24MActive,
+                next24M: is24MActive ? document.getElementById('next24M').value : '',
                 next60M: document.getElementById('next60M').value, next360M: document.getElementById('next360M').value,
                 workInProgress: document.getElementById('workInProgress').checked,
                 comments: document.getElementById('comments').value.trim(),
@@ -258,11 +271,16 @@
             const container = document.getElementById('allItemsTable');
             document.getElementById('tableCount').textContent = itemsData.length;
             if (itemsData.length === 0) { container.innerHTML = '<div class="empty-state"><p>No items yet</p></div>'; return; }
-            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 60M</th><th>Next 24M</th><th>Next 360M</th><th>60M Done</th><th>Status</th><th>WIP</th><th>Actions</th></tr></thead><tbody>';
+            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 60M</th><th>Next 24M</th><th>Next 360M</th><th>60M</th><th>Status</th><th>WIP</th><th>Actions</th></tr></thead><tbody>';
             itemsData.forEach(item => {
                 const sc = item.serviceability === 'Serviceable' ? 'status-serviceable' : 'status-unserviceable';
-                const n24 = item.is60MDone ? (item.next24M || '-') : '<span style="color:#e67e22;font-size:0.85em;">🔒 After 60M</span>';
-                const d60 = item.is60MDone ? '<span style="color:#28a745;">✅</span>' : '<span style="color:#999;">❌</span>';
+                const now = new Date(); now.setHours(0,0,0,0);
+                const active24 = item.has60MBeenDone && item.next60M && new Date(item.next60M) <= now;
+                let n24;
+                if (active24) n24 = item.next24M || '<span style="color:#28a745;font-size:0.85em;">⏳ Pending</span>';
+                else if (item.has60MBeenDone) n24 = '<span style="color:#f39c12;font-size:0.85em;">⏳ Activates on ' + (item.next60M || '?') + '</span>';
+                else n24 = '<span style="color:#e67e22;font-size:0.85em;">🔒 After 60M</span>';
+                const d60 = item.has60MBeenDone ? '<span style="color:#28a745;">✅</span>' : '<span style="color:#999;">❌</span>';
                 html += `<tr><td>${item.designation}</td><td>${item.partNumber}</td><td><a href="#" onclick="showDetail('${item.id}')" class="clickable">${item.serialNumber||'-'}</a></td><td>${item.next60M||'-'}</td><td>${n24}</td><td>${item.next360M||'-'}</td><td>${d60}</td><td><span class="status-badge ${sc}">${item.serviceability}</span></td><td>${item.workInProgress?'Yes':'No'}</td><td><button onclick="editItem('${item.id}')" class="btn btn-add" style="padding:4px 10px;font-size:12px;">✏️</button> <button onclick="deleteItem('${item.id}')" class="btn btn-danger" style="padding:4px 10px;font-size:12px;">🗑️</button></td></tr>`;
             });
             html += '</tbody></table>'; container.innerHTML = html;
@@ -270,9 +288,11 @@
 
         function showDetail(id) {
             const item = itemsData.find(i => i.id === id); if (!item) return; currentItemId = id;
-            const n24 = item.is60MDone ? (item.next24M || '-') : '🔒 Not yet (60M required first)';
+            const nowD = new Date(); nowD.setHours(0,0,0,0);
+            const active24D = item.has60MBeenDone && item.next60M && new Date(item.next60M) <= nowD;
+            const n24 = active24D ? (item.next24M || 'Pending') : item.has60MBeenDone ? '⏳ Activates on ' + (item.next60M || '?') : '🔒 Not yet (60M required first)';
             document.getElementById('modalTitle').textContent = `${item.designation} - ${item.partNumber}`;
-            document.getElementById('modalBody').innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><strong>P/N:</strong> ${item.partNumber}</div><div><strong>S/N:</strong> ${item.serialNumber||'-'}</div><div><strong>Designation:</strong> ${item.designation}</div><div><strong>Status:</strong> <span class="status-badge ${item.serviceability==='Serviceable'?'status-serviceable':'status-unserviceable'}">${item.serviceability}</span></div><div><strong>Inspection Date:</strong> ${item.inspectionDate||'-'}</div><div><strong>Last Inspection:</strong> ${item.inspectionPerformed||'-'}</div><div><strong>60M Done:</strong> ${item.is60MDone?'✅ Yes':'❌ No'}</div><div><strong>Next 60M:</strong> ${item.next60M||'-'}</div><div><strong>Next 24M:</strong> ${n24}</div><div><strong>Next 360M:</strong> ${item.next360M||'-'}</div><div><strong>WIP:</strong> ${item.workInProgress?'Yes':'No'}</div>${item.reason?`<div style="grid-column:1/-1;"><strong>Reason:</strong> <span class="status-badge status-overdue">${item.reason}</span></div>`:''}${item.comments?`<div style="grid-column:1/-1;"><strong>Comments:</strong> ${item.comments}</div>`:''}</div>${!item.is60MDone?'<div class="inspection-note mt-20">⚠️ <strong>Reminder:</strong> First action is 60M preservation (SCS §D — internal wall oiling). 24M interface checks begin only after this is completed.</div>':''}`;
+            document.getElementById('modalBody').innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><strong>P/N:</strong> ${item.partNumber}</div><div><strong>S/N:</strong> ${item.serialNumber||'-'}</div><div><strong>Designation:</strong> ${item.designation}</div><div><strong>Status:</strong> <span class="status-badge ${item.serviceability==='Serviceable'?'status-serviceable':'status-unserviceable'}">${item.serviceability}</span></div><div><strong>Inspection Date:</strong> ${item.inspectionDate||'-'}</div><div><strong>Last Inspection:</strong> ${item.inspectionPerformed||'-'}</div><div><strong>60M Done:</strong> ${item.has60MBeenDone?'✅ Yes':'❌ No'}</div><div><strong>Next 60M:</strong> ${item.next60M||'-'}</div><div><strong>Next 24M:</strong> ${n24}</div><div><strong>Next 360M:</strong> ${item.next360M||'-'}</div><div><strong>WIP:</strong> ${item.workInProgress?'Yes':'No'}</div>${item.reason?`<div style="grid-column:1/-1;"><strong>Reason:</strong> <span class="status-badge status-overdue">${item.reason}</span></div>`:''}${item.comments?`<div style="grid-column:1/-1;"><strong>Comments:</strong> ${item.comments}</div>`:''}</div>${!item.has60MBeenDone?'<div class="inspection-note mt-20">⚠️ <strong>Reminder:</strong> First action is 60M preservation (SCS §D — internal wall oiling). 24M interface checks begin only after this is completed.</div>':''}`;
             document.getElementById('detailModal').classList.remove('hidden');
         }
 
@@ -291,7 +311,9 @@
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('comments').value = editingItem.comments || '';
             document.getElementById('formTitle').textContent = '✏️ Edit IAFT/EAFT Item';
-            update24MFormState(!!editingItem.is60MDone);
+            const nowE = new Date(); nowE.setHours(0,0,0,0);
+            const edit24MActive = !!editingItem.has60MBeenDone && editingItem.next60M && new Date(editingItem.next60M) <= nowE;
+            update24MFormState(edit24MActive);
             document.getElementById('addFormSection').classList.remove('hidden');
             document.getElementById('viewAllSection').classList.add('hidden');
             closeModal();
@@ -314,7 +336,7 @@
         function exportData() {
             if (itemsData.length === 0) { alert('No data'); return; }
             let csv = 'Designation,P/N,S/N,Inspection Performed,Inspection Date,60M Done,Next 24M,Next 60M,Next 360M,Serviceability,WIP,Comments\n';
-            itemsData.forEach(item => { csv += [item.designation,item.partNumber,item.serialNumber,item.inspectionPerformed,item.inspectionDate,item.is60MDone?'Yes':'No',item.is60MDone?(item.next24M||''):'N/A',item.next60M,item.next360M,item.serviceability,item.workInProgress?'Yes':'No',`"${(item.comments||'').replace(/"/g,'""')}"`].join(',') + '\n'; });
+            itemsData.forEach(item => { csv += [item.designation,item.partNumber,item.serialNumber,item.inspectionPerformed,item.inspectionDate,item.has60MBeenDone?'Yes':'No',item.is24MActive?(item.next24M||''):'N/A',item.next60M,item.next360M,item.serviceability,item.workInProgress?'Yes':'No',`"${(item.comments||'').replace(/"/g,'""')}"`].join(',') + '\n'; });
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'IAFT_EAFT_Export.csv'; a.click();
         }
     </script>

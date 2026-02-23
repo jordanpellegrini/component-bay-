@@ -807,7 +807,7 @@
                         partNumber: iaftPN, designation: iaftDesig,
                         serialNumber: row.Serial_Number || row.serial_number || '',
                         inspectionPerformed: iaftPerformed, inspectionDate: iaftInspDate,
-                        is60MDone: iaft60MDone,
+                        has60MBeenDone: iaft60MDone,
                         next24M: iaft60MDone ? iaftNext24M : '',
                         next60M: iaftNext60M, next360M: iaftNext360M,
                         workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
