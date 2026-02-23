@@ -141,6 +141,11 @@
                     </div>
 
                     <div class="form-group">
+                        <label>Order</label>
+                        <input type="text" id="orderRef" class="form-control" placeholder="Enter order number">
+                    </div>
+
+                    <div class="form-group">
                         <label style="display: flex; align-items: center; gap: 8px;">
                             <input type="checkbox" id="workInProgress">
                             Work in Progress
@@ -404,6 +409,7 @@
                 shortLabel: config ? config.shortLabel : '',
                 longLabel: config ? config.longLabel : '',
                 serviceability: document.getElementById('serviceability').value || 'Serviceable',
+                orderRef: document.getElementById('orderRef').value.trim(),
                 workInProgress: document.getElementById('workInProgress').checked,
                 comments: document.getElementById('comments').value.trim(),
                 reason: '',
@@ -492,6 +498,7 @@
                     <div class="form-group"><label>Next ${item.longLabel||'Long'}</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.nextLong||'-'}</div></div>
                     <div class="form-group"><label>Serviceability</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;"><span class="status-badge ${item.serviceability==='Unserviceable'?'status-unserviceable':'status-serviceable'}">${item.serviceability||'N/A'}</span></div></div>
                     <div class="form-group"><label>Work in Progress</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.workInProgress?'Yes':'No'}</div></div>
+                    <div class="form-group"><label>Order</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.orderRef||'-'}</div></div>
                     ${item.reason?`<div class="form-group" style="grid-column:1/-1;"><label>Reason</label><div style="padding:10px;background:#fadbd8;border-radius:4px;color:#c62828;font-weight:600;">${item.reason}</div></div>`:''}
                     <div class="form-group" style="grid-column:1/-1;"><label>Comments</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;min-height:50px;">${item.comments||'-'}</div></div>
                     <div class="form-group" style="grid-column:1/-1;"><label>Last Modified</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;font-size:12px;color:#636e72;">${new Date(item.lastModified).toLocaleString()} by ${item.modifiedBy}</div></div>
@@ -510,6 +517,7 @@
             document.getElementById('nextShort').value = editingItem.nextShort || '';
             document.getElementById('nextLong').value = editingItem.nextLong || '';
             document.getElementById('serviceability').value = editingItem.serviceability || '';
+            document.getElementById('orderRef').value = editingItem.orderRef || '';
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('comments').value = editingItem.comments || '';
             showAddForm(); closeModal();

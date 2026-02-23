@@ -135,6 +135,15 @@
                     <p>Import POL items with batch numbers and expiry dates</p>
                     <button onclick="downloadTemplate('pol')" class="btn btn-add">📥 Download Template</button>
                 </div>
+
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">🔧</span>
+                        <h3>Tools Template</h3>
+                    </div>
+                    <p>Import tools with 12M inspection validity</p>
+                    <button onclick="downloadTemplate('tools')" class="btn btn-add">📥 Download Template</button>
+                </div>
             </div>
         </div>
 
@@ -243,6 +252,11 @@
                 name: 'POL_Import_Template',
                 headers: ['Designation', 'Part_Number', 'Batch_Number', 'Expiry_Date', 'Brand', 'Comments'],
                 example: ['Hydraulic Fluid', 'HF-5606', 'BATCH-2024-001', '2025-06-15', 'Aeroshell', 'MIL-PRF-5606']
+            },
+            tools: {
+                name: 'Tools_Import_Template',
+                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Localisation', 'Inspection_Date', 'Next_Inspection', 'Serviceability', 'Order', 'Work_In_Progress', 'Comments'],
+                example: ['Torque Wrench', 'TW-12345', 'SN-001', 'G43 Component Bay', '2024-06-15', '2025-06-15', 'Serviceable', 'ORD-2024-001', 'No', 'Calibrated']
             }
         };
 
@@ -395,6 +409,7 @@
             if (headers.includes('next_24m') || headers.includes('next_48m')) return 'engine';
             if (headers.includes('next_60m') || headers.includes('next_360m') || headers.includes('inspection_performed')) return 'iafteaft';
             if (headers.includes('batch_number') && headers.includes('expiry_date')) return 'pol';
+            if (headers.includes('next_inspection') && !headers.includes('sr_number') && !headers.includes('position')) return 'tools';
             if (headers.includes('next_short') && headers.includes('next_long')) return 'rotorbay';
             if (headers.includes('position') && headers.includes('flight_hours')) return 'wheel';
             if (headers.includes('type') && (headers.includes('designation'))) return 'avionic';
@@ -561,7 +576,8 @@
                 'engine': 'engine',
                 'rotorbay': 'rotorbay',
                 'iafteaft': 'iafteaft',
-                'pol': 'pol'
+                'pol': 'pol',
+                'tools': 'tools'
             };
             return tableMap[moduleType] || null;
         }
@@ -578,7 +594,8 @@
                 'engine': 'componentsBayEngine',
                 'rotorbay': 'componentsBayRotorBay',
                 'iafteaft': 'componentsBayIaftEaft',
-                'pol': 'componentsBayPOL'
+                'pol': 'componentsBayPOL',
+                'tools': 'componentsBayTools'
             };
             return keyMap[moduleType];
         }
@@ -822,6 +839,26 @@
                         batchNumber: row.Batch_Number || row.batch_number || '',
                         expiryDate: parseDate(row.Expiry_Date || row.expiry_date),
                         brand: row.Brand || row.brand || '',
+                        comments: row.Comments || row.comments || ''
+                    };
+
+                case 'tools':
+                    const toolInspDate = parseDate(row.Inspection_Date || row.inspection_date);
+                    let toolNextInsp = parseDate(row.Next_Inspection || row.next_inspection);
+                    if (toolInspDate && !toolNextInsp) {
+                        const d = new Date(toolInspDate); d.setMonth(d.getMonth() + 12);
+                        toolNextInsp = d.toISOString().split('T')[0];
+                    }
+                    return {
+                        ...baseData,
+                        designation: row.Designation || row.designation || '',
+                        partNumber: row.Part_Number || row.part_number || '',
+                        serialNumber: row.Serial_Number || row.serial_number || '',
+                        localisation: row.Localisation || row.localisation || '',
+                        inspectionDate: toolInspDate,
+                        nextInspection: toolNextInsp,
+                        orderRef: row.Order || row.order || '',
+                        workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
                         comments: row.Comments || row.comments || ''
                     };
 

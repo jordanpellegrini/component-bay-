@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tools - Components Bay</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <script type="module" src="supabase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="top-nav">
+            <div class="nav-left">
+                <a href="http://10.10.0.21:8080/QATAR_V1_2/index.htm" target="_blank" class="nav-btn ietp-btn">🔗 IETP</a>
+                <a href="index.html" class="nav-btn">🏠 Home</a>
+            </div>
+            <div class="nav-right">
+                <button onclick="exportData()" class="nav-btn export-btn">📊 Export Excel</button>
+                <span id="userInfo" class="nav-btn user-btn"></span>
+            </div>
+        </div>
+        <div class="main-header">
+            <div class="header-content"><h1>🔧 Tools Management</h1></div>
+            <div class="header-actions">
+                <button onclick="showAddForm()" class="btn btn-add">➕ Add Tool</button>
+                <button onclick="showViewAll()" class="btn">📋 View All</button>
+            </div>
+        </div>
+        <div class="summary-cards">
+            <div class="summary-card serviceable"><div class="summary-number" id="serviceableCount">0</div><div class="summary-label">SERVICEABLE</div></div>
+            <div class="summary-card unserviceable"><div class="summary-number" id="unserviceableCount">0</div><div class="summary-label">UNSERVICEABLE</div></div>
+            <div class="summary-card"><div class="summary-number" id="totalCount">0</div><div class="summary-label">TOTAL TOOLS</div></div>
+        </div>
+
+        <div class="panel unserviceable-panel">
+            <div class="panel-header unserviceable-header">⚠️ UNSERVICEABLE TOOLS SUMMARY <span class="badge" id="unserviceableBadge">0</span></div>
+            <div class="panel-body" id="unserviceableTable"></div>
+        </div>
+
+        <!-- Add/Edit Form -->
+        <div id="addFormSection" class="card hidden">
+            <h2 id="formTitle">➕ Add Tool</h2>
+            <div id="formMessage"></div>
+            <form onsubmit="handleSubmit(event)">
+                <div class="form-grid">
+                    <div class="form-group"><label>Designation *</label><input type="text" id="designation" class="form-control" placeholder="e.g. Torque Wrench" required></div>
+                    <div class="form-group"><label>Part Number (P/N) *</label><input type="text" id="partNumber" class="form-control" placeholder="Enter P/N" required></div>
+                    <div class="form-group"><label>Serial Number (S/N)</label><input type="text" id="serialNumber" class="form-control" placeholder="Enter S/N"></div>
+                    <div class="form-group"><label>Inspection Date</label><input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspection()"></div>
+                    <div class="form-group"><label>Next Inspection (12M)</label><input type="date" id="nextInspection" class="form-control" style="background: #f8f9fa;"></div>
+                    <div class="form-group">
+                        <label>Localisation</label>
+                        <select id="localisation" class="form-control">
+                            <option value="">-- Select --</option>
+                            <option value="G37 Tire Bay">G37 Tire Bay</option>
+                            <option value="G43 Component Bay">G43 Component Bay</option>
+                            <option value="G44 Engine Bay">G44 Engine Bay</option>
+                            <option value="G46 EFS Bay">G46 EFS Bay</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <select id="serviceability" class="form-control"><option value="Serviceable">Serviceable</option><option value="Unserviceable">Unserviceable</option></select>
+                    </div>
+                    <div class="form-group"><label>Order</label><input type="text" id="orderRef" class="form-control" placeholder="Order reference"></div>
+                    <div class="form-group"><label>Work In Progress</label><input type="checkbox" id="workInProgress"></div>
+                    <div class="form-group" style="grid-column: 1 / -1;"><label>Comments</label><textarea id="comments" class="form-control" rows="2"></textarea></div>
+                </div>
+                <div class="mt-20">
+                    <button type="submit" class="btn btn-success">💾 Save</button>
+                    <button type="button" onclick="cancelForm()" class="btn" style="margin-left: 10px;">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="viewAllSection" class="card hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center;"><h2>📋 ALL TOOLS</h2><span class="badge" id="tableCount">0</span></div>
+            <div id="allItemsTable"></div>
+        </div>
+
+        <div id="detailModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header"><h3 class="modal-title" id="modalTitle">Tool Details</h3><button onclick="closeModal()" class="modal-close">✕</button></div>
+                <div id="modalBody"></div>
+                <div class="modal-actions">
+                    <button onclick="editCurrent()" class="btn btn-add">✏️ Edit</button>
+                    <button onclick="deleteCurrent()" class="btn btn-danger">🗑️ Delete</button>
+                    <button onclick="closeModal()" class="btn">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = localStorage.getItem('componentsBayCurrentUser') || 'Unknown';
+        let userRole = localStorage.getItem('componentsBayUserRole') || 'user';
+        let toolsData = [];
+        let editingItem = null;
+        let currentItemId = null;
+
+        function waitForDB(maxWait = 3000) {
+            return new Promise((resolve) => {
+                if (window.ComponentsBayDB) return resolve(true);
+                const start = Date.now();
+                const check = setInterval(() => { if (window.ComponentsBayDB || Date.now() - start > maxWait) { clearInterval(check); resolve(!!window.ComponentsBayDB); } }, 50);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            checkAuthentication();
+            await waitForDB();
+            await loadData();
+            updateSummary();
+            updateUnserviceableSection();
+        });
+
+        function checkAuthentication() {
+            if (!currentUser || currentUser === 'null') { window.location.href = 'index.html'; return; }
+            document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+        }
+
+        async function loadData() {
+            if (window.ComponentsBayDB) {
+                try { toolsData = await window.ComponentsBayDB.load('tools'); } catch(e) { const s = localStorage.getItem('componentsBayTools'); if (s) toolsData = JSON.parse(s); }
+            } else { const s = localStorage.getItem('componentsBayTools'); if (s) toolsData = JSON.parse(s); }
+        }
+
+        async function saveData() {
+            localStorage.setItem('componentsBayTools', JSON.stringify(toolsData));
+            if (window.ComponentsBayDB) { for (const item of toolsData) { try { await window.ComponentsBayDB.save('tools', {...item}); } catch(e) {} } }
+        }
+
+        function calculateNextInspection() {
+            const inspDate = document.getElementById('inspectionDate').value;
+            if (!inspDate) return;
+            const d = new Date(inspDate);
+            d.setMonth(d.getMonth() + 12);
+            document.getElementById('nextInspection').value = d.toISOString().split('T')[0];
+        }
+
+        function checkOverdueItems() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            let hasChanges = false;
+            toolsData.forEach(item => {
+                let isOverdue = false, reason = '';
+                if (item.nextInspection && new Date(item.nextInspection) < today) { isOverdue = true; reason = '12M inspection overdue'; }
+                if (isOverdue && item.serviceability !== 'Unserviceable') { item.serviceability = 'Unserviceable'; item.reason = reason; hasChanges = true; }
+                else if (isOverdue && !item.reason) { item.reason = reason; hasChanges = true; }
+            });
+            if (hasChanges) saveData();
+        }
+
+        function updateSummary() {
+            checkOverdueItems();
+            document.getElementById('serviceableCount').textContent = toolsData.filter(i => i.serviceability === 'Serviceable').length;
+            document.getElementById('unserviceableCount').textContent = toolsData.filter(i => i.serviceability === 'Unserviceable').length;
+            document.getElementById('totalCount').textContent = toolsData.length;
+            updateUnserviceableSection();
+        }
+
+        function updateUnserviceableSection() {
+            const items = toolsData.filter(i => i.serviceability === 'Unserviceable');
+            const container = document.getElementById('unserviceableTable');
+            document.getElementById('unserviceableBadge').textContent = items.length;
+            if (items.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color:#00695c;font-weight:600;">Excellent! No unserviceable tools</p></div>'; return; }
+            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Next Inspection</th><th>Reason</th><th>Actions</th></tr></thead><tbody>';
+            items.forEach(item => { html += `<tr><td>${item.designation}</td><td>${item.partNumber}</td><td><a href="#" onclick="showDetail('${item.id}')" class="clickable">${item.serialNumber||'-'}</a></td><td>${item.nextInspection||'-'}</td><td><span class="status-badge status-overdue">${item.reason||'Unserviceable'}</span></td><td><button onclick="showDetail('${item.id}')" class="btn" style="padding:4px 10px;font-size:12px;">👁️</button></td></tr>`; });
+            html += '</tbody></table>'; container.innerHTML = html;
+        }
+
+        function handleSubmit(event) {
+            event.preventDefault();
+            const pn = document.getElementById('partNumber').value.trim();
+            if (!pn) { alert('P/N is required'); return; }
+
+            const formData = {
+                id: editingItem ? editingItem.id : Date.now().toString() + '-' + Math.random().toString(36).substr(2, 6),
+                designation: document.getElementById('designation').value.trim(),
+                partNumber: pn,
+                serialNumber: document.getElementById('serialNumber').value.trim(),
+                inspectionDate: document.getElementById('inspectionDate').value,
+                nextInspection: document.getElementById('nextInspection').value,
+                localisation: document.getElementById('localisation').value,
+                orderRef: document.getElementById('orderRef').value.trim(),
+                serviceability: document.getElementById('serviceability').value || 'Serviceable',
+                workInProgress: document.getElementById('workInProgress').checked,
+                comments: document.getElementById('comments').value.trim(),
+                lastModified: new Date().toISOString(), modifiedBy: currentUser
+            };
+
+            if (editingItem) { const idx = toolsData.findIndex(i => i.id === editingItem.id); if (idx !== -1) toolsData[idx] = formData; editingItem = null; }
+            else toolsData.push(formData);
+            saveData(); updateSummary(); resetForm();
+            if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
+        }
+
+        function showAddForm() { document.getElementById('addFormSection').classList.remove('hidden'); document.getElementById('viewAllSection').classList.add('hidden'); document.getElementById('formTitle').textContent = '➕ Add Tool'; editingItem = null; }
+        function showViewAll() { document.getElementById('viewAllSection').classList.remove('hidden'); document.getElementById('addFormSection').classList.add('hidden'); refreshTable(); }
+
+        function refreshTable() {
+            const container = document.getElementById('allItemsTable');
+            document.getElementById('tableCount').textContent = toolsData.length;
+            if (toolsData.length === 0) { container.innerHTML = '<div class="empty-state"><p>No tools yet</p></div>'; return; }
+            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Localisation</th><th>Inspection Date</th><th>Next Inspection</th><th>Status</th><th>Order</th><th>WIP</th><th>Actions</th></tr></thead><tbody>';
+            toolsData.forEach(item => {
+                const sc = item.serviceability === 'Serviceable' ? 'status-serviceable' : 'status-unserviceable';
+                html += `<tr><td>${item.designation}</td><td>${item.partNumber}</td><td><a href="#" onclick="showDetail('${item.id}')" class="clickable">${item.serialNumber||'-'}</a></td><td>${item.localisation||'-'}</td><td>${item.inspectionDate||'-'}</td><td>${item.nextInspection||'-'}</td><td><span class="status-badge ${sc}">${item.serviceability}</span></td><td>${item.orderRef||'-'}</td><td>${item.workInProgress?'Yes':'No'}</td><td><button onclick="editItem('${item.id}')" class="btn btn-add" style="padding:4px 10px;font-size:12px;">✏️</button> <button onclick="deleteItem('${item.id}')" class="btn btn-danger" style="padding:4px 10px;font-size:12px;">🗑️</button></td></tr>`;
+            });
+            html += '</tbody></table>'; container.innerHTML = html;
+        }
+
+        function showDetail(id) {
+            const item = toolsData.find(i => i.id === id); if (!item) return; currentItemId = id;
+            document.getElementById('modalTitle').textContent = `${item.designation} - ${item.partNumber}`;
+            document.getElementById('modalBody').innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><strong>Designation:</strong> ${item.designation}</div><div><strong>P/N:</strong> ${item.partNumber}</div><div><strong>S/N:</strong> ${item.serialNumber||'-'}</div><div><strong>Localisation:</strong> ${item.localisation||'-'}</div><div><strong>Status:</strong> <span class="status-badge ${item.serviceability==='Serviceable'?'status-serviceable':'status-unserviceable'}">${item.serviceability}</span></div><div><strong>Inspection Date:</strong> ${item.inspectionDate||'-'}</div><div><strong>Next Inspection:</strong> ${item.nextInspection||'-'}</div><div><strong>Order:</strong> ${item.orderRef||'-'}</div><div><strong>WIP:</strong> ${item.workInProgress?'Yes':'No'}</div>${item.reason?`<div><strong>Reason:</strong> <span class="status-badge status-overdue">${item.reason}</span></div>`:''}${item.comments?`<div style="grid-column:1/-1;"><strong>Comments:</strong> ${item.comments}</div>`:''}</div>`;
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
+
+        function editItem(id) {
+            editingItem = toolsData.find(i => i.id === id); if (!editingItem) return;
+            document.getElementById('designation').value = editingItem.designation || '';
+            document.getElementById('partNumber').value = editingItem.partNumber || '';
+            document.getElementById('serialNumber').value = editingItem.serialNumber || '';
+            document.getElementById('inspectionDate').value = editingItem.inspectionDate || '';
+            document.getElementById('nextInspection').value = editingItem.nextInspection || '';
+            document.getElementById('localisation').value = editingItem.localisation || '';
+            document.getElementById('orderRef').value = editingItem.orderRef || '';
+            document.getElementById('serviceability').value = editingItem.serviceability || 'Serviceable';
+            document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
+            document.getElementById('comments').value = editingItem.comments || '';
+            document.getElementById('formTitle').textContent = '✏️ Edit Tool';
+            document.getElementById('addFormSection').classList.remove('hidden');
+            document.getElementById('viewAllSection').classList.add('hidden');
+            closeModal();
+        }
+
+        function editCurrent() { if (currentItemId) editItem(currentItemId); }
+        async function deleteItem(id) { if (!confirm('Delete this tool?')) return; toolsData = toolsData.filter(i => i.id !== id); if (window.ComponentsBayDB) { try { await window.ComponentsBayDB.delete('tools', id); } catch(e) {} } saveData(); updateSummary(); refreshTable(); closeModal(); }
+        function deleteCurrent() { if (currentItemId) deleteItem(currentItemId); }
+        function cancelForm() { document.getElementById('addFormSection').classList.add('hidden'); resetForm(); }
+
+        function resetForm() {
+            editingItem = null;
+            ['designation','partNumber','serialNumber','inspectionDate','nextInspection','orderRef','comments'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('localisation').value = '';
+            document.getElementById('serviceability').value = 'Serviceable';
+            document.getElementById('workInProgress').checked = false;
+            document.getElementById('formTitle').textContent = '➕ Add Tool';
+        }
+
+        function exportData() {
+            if (toolsData.length === 0) { alert('No data'); return; }
+            let csv = 'Designation,P/N,S/N,Localisation,Inspection Date,Next Inspection,Serviceability,Order,WIP,Comments\n';
+            toolsData.forEach(item => { csv += [item.designation,item.partNumber,item.serialNumber,item.localisation||'',item.inspectionDate,item.nextInspection,item.serviceability,item.orderRef||'',item.workInProgress?'Yes':'No',`"${(item.comments||'').replace(/"/g,'""')}"`].join(',') + '\n'; });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'Tools_Export.csv'; a.click();
+        }
+    </script>
+</body>
+</html>

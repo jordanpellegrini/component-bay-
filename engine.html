@@ -355,6 +355,7 @@
                 next24M: document.getElementById('next24M').value,
                 next48M: document.getElementById('next48M').value,
                 serviceability: document.getElementById('serviceability').value || 'Serviceable',
+                orderRef: document.getElementById('orderRef').value.trim(),
                 workInProgress: document.getElementById('workInProgress').checked,
                 comments: document.getElementById('comments').value.trim(),
                 reason: '',
@@ -442,6 +443,7 @@
                     <div class="form-group"><label>Next 24M</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.next24M||'-'}</div></div>
                     <div class="form-group"><label>Next 48M</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.next48M||'-'}</div></div>
                     <div class="form-group"><label>Serviceability</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;"><span class="status-badge ${item.serviceability==='Unserviceable'?'status-unserviceable':'status-serviceable'}">${item.serviceability||'N/A'}</span></div></div>
+                    <div class="form-group"><label>Order</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.orderRef||'-'}</div></div>
                     <div class="form-group"><label>Work in Progress</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;">${item.workInProgress?'Yes':'No'}</div></div>
                     ${item.reason?`<div class="form-group" style="grid-column:1/-1;"><label>Reason</label><div style="padding:10px;background:#fadbd8;border-radius:4px;color:#c62828;font-weight:600;">${item.reason}</div></div>`:''}
                     <div class="form-group" style="grid-column:1/-1;"><label>Comments</label><div style="padding:10px;background:#f8f9fa;border-radius:4px;min-height:50px;">${item.comments||'-'}</div></div>
@@ -461,6 +463,7 @@
             document.getElementById('next24M').value = editingItem.next24M || '';
             document.getElementById('next48M').value = editingItem.next48M || '';
             document.getElementById('serviceability').value = editingItem.serviceability || '';
+            document.getElementById('orderRef').value = editingItem.orderRef || '';
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('comments').value = editingItem.comments || '';
             showAddForm();
@@ -485,7 +488,7 @@
 
         function exportData() {
             if (engineData.length === 0) { alert('No data to export'); return; }
-            const data = engineData.map(i => ({ 'Designation': i.designation||'', 'P/N': i.partNumber||'', 'S/N': i.serialNumber||'', 'Inspection Type': i.inspectionType||'', 'Inspection Date': i.inspectionDate||'', 'Next 24M': i.next24M||'', 'Next 48M': i.next48M||'', 'Serviceability': i.serviceability||'', 'Work in Progress': i.workInProgress?'Yes':'No', 'Comments': i.comments||'', 'Reason': i.reason||'', 'Last Modified': new Date(i.lastModified).toLocaleString(), 'Modified By': i.modifiedBy||'' }));
+            const data = engineData.map(i => ({ 'Designation': i.designation||'', 'P/N': i.partNumber||'', 'S/N': i.serialNumber||'', 'Inspection Type': i.inspectionType||'', 'Inspection Date': i.inspectionDate||'', 'Next 24M': i.next24M||'', 'Next 48M': i.next48M||'', 'Serviceability': i.serviceability||'', 'Order': i.orderRef||'', 'Work in Progress': i.workInProgress?'Yes':'No', 'Comments': i.comments||'', 'Reason': i.reason||'', 'Last Modified': new Date(i.lastModified).toLocaleString(), 'Modified By': i.modifiedBy||'' }));
             const headers = Object.keys(data[0]);
             let csv = headers.join(',') + '\n';
             data.forEach(row => { csv += headers.map(h => `"${(row[h]||'').toString().replace(/"/g,'""')}"`).join(',') + '\n'; });

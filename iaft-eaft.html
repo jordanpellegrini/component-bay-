@@ -78,6 +78,7 @@
                     <div class="form-group"><label>Next 60M Inspection</label><input type="date" id="next60M" class="form-control" style="background: #f8f9fa;"></div>
                     <div class="form-group" id="next24MGroup"><label>Next 24M Inspection</label><input type="date" id="next24M" class="form-control" style="background: #f8f9fa;"></div>
                     <div class="form-group"><label>Next 360M Inspection</label><input type="date" id="next360M" class="form-control" style="background: #f8f9fa;"></div>
+                    <div class="form-group"><label>Order</label><input type="text" id="orderRef" class="form-control" placeholder="Enter order number"></div>
                     <div class="form-group"><label>Work In Progress</label><input type="checkbox" id="workInProgress"></div>
                     <div class="form-group" style="grid-column: 1 / -1;"><label>Comments</label><textarea id="comments" class="form-control" rows="2"></textarea></div>
                 </div>
@@ -253,6 +254,7 @@
                 is24MActive: is24MActive,
                 next24M: is24MActive ? document.getElementById('next24M').value : '',
                 next60M: document.getElementById('next60M').value, next360M: document.getElementById('next360M').value,
+                orderRef: document.getElementById('orderRef').value.trim(),
                 workInProgress: document.getElementById('workInProgress').checked,
                 comments: document.getElementById('comments').value.trim(),
                 lastModified: new Date().toISOString(), modifiedBy: currentUser
@@ -281,7 +283,7 @@
                 else if (item.has60MBeenDone) n24 = '<span style="color:#f39c12;font-size:0.85em;">⏳ Activates on ' + (item.next60M || '?') + '</span>';
                 else n24 = '<span style="color:#e67e22;font-size:0.85em;">🔒 After 60M</span>';
                 const d60 = item.has60MBeenDone ? '<span style="color:#28a745;">✅</span>' : '<span style="color:#999;">❌</span>';
-                html += `<tr><td>${item.designation}</td><td>${item.partNumber}</td><td><a href="#" onclick="showDetail('${item.id}')" class="clickable">${item.serialNumber||'-'}</a></td><td>${item.next60M||'-'}</td><td>${n24}</td><td>${item.next360M||'-'}</td><td>${d60}</td><td><span class="status-badge ${sc}">${item.serviceability}</span></td><td>${item.workInProgress?'Yes':'No'}</td><td><button onclick="editItem('${item.id}')" class="btn btn-add" style="padding:4px 10px;font-size:12px;">✏️</button> <button onclick="deleteItem('${item.id}')" class="btn btn-danger" style="padding:4px 10px;font-size:12px;">🗑️</button></td></tr>`;
+                html += `<tr><td>${item.designation}</td><td>${item.partNumber}</td><td><a href="#" onclick="showDetail('${item.id}')" class="clickable">${item.serialNumber||'-'}</a></td><td>${item.next60M||'-'}</td><td>${n24}</td><td>${item.next360M||'-'}</td><td>${d60}</td><td><span class="status-badge ${sc}">${item.serviceability}</span></td><td>${item.orderRef||'',item.workInProgress?'Yes':'No'}</td><td><button onclick="editItem('${item.id}')" class="btn btn-add" style="padding:4px 10px;font-size:12px;">✏️</button> <button onclick="deleteItem('${item.id}')" class="btn btn-danger" style="padding:4px 10px;font-size:12px;">🗑️</button></td></tr>`;
             });
             html += '</tbody></table>'; container.innerHTML = html;
         }
@@ -308,6 +310,7 @@
             document.getElementById('next24M').value = editingItem.next24M || '';
             document.getElementById('next60M').value = editingItem.next60M || '';
             document.getElementById('next360M').value = editingItem.next360M || '';
+            document.getElementById('orderRef').value = editingItem.orderRef || '';
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('comments').value = editingItem.comments || '';
             document.getElementById('formTitle').textContent = '✏️ Edit IAFT/EAFT Item';
@@ -326,7 +329,7 @@
 
         function resetForm() {
             editingItem = null;
-            ['partNumber','designation','serialNumber','inspectionPerformed','inspectionDate','next24M','next60M','next360M','comments'].forEach(id => document.getElementById(id).value = '');
+            ['partNumber','designation','serialNumber','inspectionPerformed','inspectionDate','next24M','next60M','next360M','orderRef','comments'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('serviceability').value = 'Serviceable';
             document.getElementById('workInProgress').checked = false;
             document.getElementById('formTitle').textContent = '➕ Add IAFT/EAFT Item';
@@ -335,7 +338,7 @@
 
         function exportData() {
             if (itemsData.length === 0) { alert('No data'); return; }
-            let csv = 'Designation,P/N,S/N,Inspection Performed,Inspection Date,60M Done,Next 24M,Next 60M,Next 360M,Serviceability,WIP,Comments\n';
+            let csv = 'Designation,P/N,S/N,Inspection Performed,Inspection Date,60M Done,Next 24M,Next 60M,Next 360M,Serviceability,Order,WIP,Comments\n';
             itemsData.forEach(item => { csv += [item.designation,item.partNumber,item.serialNumber,item.inspectionPerformed,item.inspectionDate,item.has60MBeenDone?'Yes':'No',item.is24MActive?(item.next24M||''):'N/A',item.next60M,item.next360M,item.serviceability,item.workInProgress?'Yes':'No',`"${(item.comments||'').replace(/"/g,'""')}"`].join(',') + '\n'; });
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'IAFT_EAFT_Export.csv'; a.click();
         }

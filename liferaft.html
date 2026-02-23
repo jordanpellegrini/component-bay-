@@ -157,6 +157,11 @@
                             <label>Next Inspection</label>
                             <input type="date" id="nextInspection" class="form-control" style="background: #f8f9fa;">
                         </div>
+
+                        <div class="form-group">
+                            <label>Order</label>
+                            <input type="text" id="orderRef" class="form-control" placeholder="Enter order number">
+                        </div>
                         
                         <div class="form-group" style="grid-column: 1 / -1;">
                             <label>Comments</label>
@@ -555,6 +560,7 @@
                 inspectionInterval: '12', // Always 12 months
                 nextInspection: document.getElementById('nextInspection').value,
                 comments: document.getElementById('liferaftComments').value.trim(),
+                orderRef: document.getElementById('orderRef').value.trim(),
                 subItems: subItemsData,
                 serviceability: expiryCheck.hasExpired ? 'Unserviceable' : 'Serviceable',
                 reason: expiryCheck.hasExpired ? `Expired items: ${expiryCheck.expiredItems.join(', ')}` : '',
@@ -592,6 +598,7 @@
             document.getElementById('inspectionDate').value = '';
             document.getElementById('nextInspection').value = '';
             document.getElementById('liferaftComments').value = '';
+            document.getElementById('orderRef').value = '';
             document.getElementById('editLifeRaftId').value = '';
             // Don't reset editingLifeRaft here - it should only be reset after successful save
             
@@ -766,6 +773,7 @@
             document.getElementById('inspectionInterval').value = editingLifeRaft.inspectionInterval || '';
             document.getElementById('nextInspection').value = editingLifeRaft.nextInspection || '';
             document.getElementById('liferaftComments').value = editingLifeRaft.comments || '';
+            document.getElementById('orderRef').value = editingLifeRaft.orderRef || '';
 
             // Fill sub-items
             editingLifeRaft.subItems.forEach((sub, index) => {

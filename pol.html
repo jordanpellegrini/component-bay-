@@ -291,6 +291,7 @@
                 batchNumber: document.getElementById('batchNumber').value.trim(),
                 expiryDate: document.getElementById('expiryDate').value,
                 brand: document.getElementById('brand').value.trim(),
+                orderRef: document.getElementById('orderRef').value.trim(),
                 comments: document.getElementById('comments').value.trim(),
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser
@@ -334,7 +335,7 @@
             const today = new Date(); today.setHours(0, 0, 0, 0);
             const sevenDays = new Date(today); sevenDays.setDate(sevenDays.getDate() + 7);
 
-            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>Batch</th><th>Expiry Date</th><th>Brand</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>Batch</th><th>Expiry Date</th><th>Brand</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
             polData.forEach(item => {
                 let statusBadge = '<span class="status-badge status-serviceable">Valid</span>';
                 if (item.expiryDate) {
@@ -352,6 +353,7 @@
                     <td>${item.batchNumber || '-'}</td>
                     <td>${item.expiryDate || '-'}</td>
                     <td>${item.brand || '-'}</td>
+                    <td>${item.orderRef || '-'}</td>
                     <td>${statusBadge}</td>
                     <td>
                         <button onclick="editItem('${item.id}')" class="btn btn-add" style="padding:4px 10px;font-size:12px;">✏️</button>
@@ -374,6 +376,7 @@
                     <div><strong>P/N:</strong> ${item.partNumber}</div>
                     <div><strong>Batch:</strong> ${item.batchNumber || '-'}</div>
                     <div><strong>Brand:</strong> ${item.brand || '-'}</div>
+                    <div><strong>Order:</strong> ${item.orderRef || '-'}</div>
                     <div><strong>Expiry Date:</strong> ${item.expiryDate || '-'}</div>
                     ${item.comments ? `<div style="grid-column:1/-1;"><strong>Comments:</strong> ${item.comments}</div>` : ''}
                 </div>`;
@@ -390,6 +393,7 @@
             document.getElementById('batchNumber').value = editingItem.batchNumber || '';
             document.getElementById('expiryDate').value = editingItem.expiryDate || '';
             document.getElementById('brand').value = editingItem.brand || '';
+            document.getElementById('orderRef').value = editingItem.orderRef || '';
             document.getElementById('comments').value = editingItem.comments || '';
             document.getElementById('formTitle').textContent = '✏️ Edit POL Item';
             showAddForm();
@@ -424,16 +428,17 @@
             document.getElementById('batchNumber').value = '';
             document.getElementById('expiryDate').value = '';
             document.getElementById('brand').value = '';
+            document.getElementById('orderRef').value = '';
             document.getElementById('comments').value = '';
             document.getElementById('formTitle').textContent = '➕ Add POL Item';
         }
 
         function exportData() {
             if (polData.length === 0) { alert('No data to export'); return; }
-            const headers = ['Designation', 'P/N', 'Batch Number', 'Expiry Date', 'Brand', 'Comments'];
+            const headers = ['Designation', 'P/N', 'Batch Number', 'Expiry Date', 'Brand', 'Order', 'Comments'];
             let csv = headers.join(',') + '\n';
             polData.forEach(item => {
-                csv += [item.designation, item.partNumber, item.batchNumber, item.expiryDate, item.brand, `"${(item.comments || '').replace(/"/g, '""')}"`].join(',') + '\n';
+                csv += [item.designation, item.partNumber, item.batchNumber, item.expiryDate, item.brand, item.orderRef||'', `"${(item.comments || '').replace(/"/g, '""')}"`].join(',') + '\n';
             });
             const blob = new Blob([csv], { type: 'text/csv' });
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'POL_Export.csv'; a.click();
