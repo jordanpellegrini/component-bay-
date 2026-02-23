@@ -61,6 +61,17 @@
             </div>
         </div>
 
+        <!-- Upcoming 90 Days Panel -->
+        <div id="upcoming90Section" class="panel">
+            <div class="panel-header" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);">
+                <span>📅 Serviceable EFS — Inspection Due Within 90 Days</span>
+                <span class="badge" id="upcoming90Badge">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="upcoming90Table"></div>
+            </div>
+        </div>
+
         <!-- Add EFS Form -->
         <div id="addEFSForm" class="card hidden">
             <h2 style="margin-bottom: 25px;">Add EFS Float</h2>
@@ -260,7 +271,6 @@
         }
 
         function updateSummary() {
-            // Check for overdue items first
             checkOverdueItems();
             
             const serviceable = efsData.filter(item => item.serviceability === 'Serviceable').length;
@@ -269,6 +279,39 @@
             document.getElementById('serviceableCount').textContent = serviceable;
             document.getElementById('unserviceableCount').textContent = unserviceable;
             document.getElementById('totalCount').textContent = efsData.length;
+            updateUpcoming90();
+        }
+
+        function updateUpcoming90() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const in90 = new Date(today); in90.setDate(in90.getDate() + 90);
+            
+            const upcoming = efsData.filter(item => {
+                if (item.serviceability !== 'Serviceable') return false;
+                const dates = [item.next18M, item.next36M].filter(Boolean);
+                return dates.some(d => {
+                    const dt = new Date(d);
+                    return dt >= today && dt <= in90;
+                });
+            });
+
+            const container = document.getElementById('upcoming90Table');
+            document.getElementById('upcoming90Badge').textContent = upcoming.length;
+
+            if (upcoming.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color:#00695c;font-weight:600;">No inspections due in the next 90 days</p></div>';
+                return;
+            }
+
+            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 18M</th><th>Next 36M</th><th>Days Left</th></tr></thead><tbody>';
+            upcoming.forEach(item => {
+                const soonestDate = [item.next18M, item.next36M].filter(Boolean).map(d => new Date(d)).filter(d => d >= today && d <= in90).sort((a,b) => a-b)[0];
+                const daysLeft = Math.ceil((soonestDate - today) / 86400000);
+                const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
+                html += `<tr><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td>${item.serialNumber||'-'}</td><td>${item.next18M||'-'}</td><td>${item.next36M||'-'}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
         }
 
         function checkOverdueItems() {

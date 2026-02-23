@@ -303,6 +303,18 @@
         .card-composite { --card-color: linear-gradient(135deg, #8e44ad 0%, #7d3c98 100%); }
         .card-avionic { --card-color: linear-gradient(135deg, #17a2b8 0%, #138496 100%); }
         .card-synthesis { --card-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .login-alert-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 99999; display: flex; align-items: center; justify-content: center; }
+        .login-alert-box { background: white; border-radius: 16px; padding: 30px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 25px 80px rgba(0,0,0,0.3); animation: alertPopIn 0.3s ease; }
+        .login-alert-box h2 { margin: 0 0 20px 0; text-align: center; }
+        .alert-section { margin-bottom: 16px; padding: 12px 16px; border-radius: 10px; }
+        .alert-section.alert-danger { background: #ffeaea; border-left: 4px solid #e74c3c; }
+        .alert-section.alert-warning { background: #fff8e1; border-left: 4px solid #f39c12; }
+        .alert-section h4 { margin: 0 0 6px 0; font-size: 0.95em; }
+        .alert-section p { margin: 0; font-size: 0.88em; color: #555; }
+        .alert-ok-btn { display: block; margin: 20px auto 0; padding: 12px 40px; border: none; border-radius: 10px; background: #2ecc71; color: white; font-size: 15px; font-weight: 700; cursor: pointer; }
+        .alert-ok-btn:hover { background: #27ae60; }
+        .alert-nothing { text-align: center; color: #27ae60; font-weight: 600; font-size: 1.1em; padding: 20px 0; }
+        @keyframes alertPopIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -818,6 +830,83 @@
                 document.getElementById('uploadSection').style.display = 'none';
                 document.getElementById('importExcelModule').style.display = 'none';
             }
+
+            // Run login alerts after a short delay for data to load
+            setTimeout(() => runLoginAlerts(), 1500);
+        }
+
+        async function runLoginAlerts() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const in7 = new Date(today); in7.setDate(in7.getDate() + 7);
+            const alerts = [];
+
+            // Helper to load module data
+            function loadLocal(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; } }
+
+            // Check all modules for unserviceable
+            const modules = [
+                { name: 'EFS', key: 'componentsBayEFS', icon: '🎈' },
+                { name: 'Life Raft', key: 'componentsBayLifeRafts', icon: '🛟' },
+                { name: 'Wheel', key: 'componentsBayWheel', icon: '🎡' },
+                { name: 'Maintenance', key: 'componentsBayMaintenance', icon: '🔩' },
+                { name: 'Composite', key: 'componentsBayComposite', icon: '🧱' },
+                { name: 'Avionic', key: 'componentsBayAvionic', icon: '📊' },
+                { name: 'Troop Seat', key: 'componentsBayTroopSeats', icon: '🪑' },
+                { name: 'Engine', key: 'componentsBayEngine', icon: '🔥' },
+                { name: 'Rotor Bay', key: 'componentsBayRotorBay', icon: '⚙️' },
+                { name: 'IAFT/EAFT', key: 'componentsBayIaftEaft', icon: '🛡️' }
+            ];
+
+            modules.forEach(mod => {
+                const data = loadLocal(mod.key);
+                const unsCount = data.filter(i => i.serviceability === 'Unserviceable').length;
+                if (unsCount > 0) {
+                    alerts.push({ type: 'danger', icon: mod.icon, title: `Check ${mod.name}`, msg: `${unsCount} unserviceable item(s)` });
+                }
+            });
+
+            // Check Tools expiring in 7 days
+            const toolsData = loadLocal('componentsBayTools');
+            toolsData.forEach(tool => {
+                if (!tool.nextInspection) return;
+                const exp = new Date(tool.nextInspection);
+                if (exp < today) {
+                    alerts.push({ type: 'danger', icon: '🔧', title: `Tool expired: ${tool.designation || tool.partNumber}`, msg: `P/N: ${tool.partNumber} — expired on ${tool.nextInspection}` });
+                } else if (exp <= in7) {
+                    const days = Math.ceil((exp - today) / 86400000);
+                    alerts.push({ type: 'warning', icon: '🔧', title: `Tool expiring soon: ${tool.designation || tool.partNumber}`, msg: `P/N: ${tool.partNumber} — expires in ${days} day(s) (${tool.nextInspection})` });
+                }
+            });
+
+            // Check POL expiring in 7 days
+            const polData = loadLocal('componentsBayPOL');
+            polData.forEach(pol => {
+                if (!pol.expiryDate) return;
+                const exp = new Date(pol.expiryDate);
+                if (exp < today) {
+                    alerts.push({ type: 'danger', icon: '🛢️', title: `POL expired: ${pol.partNumber}`, msg: `${pol.designation} — expired on ${pol.expiryDate}` });
+                } else if (exp <= in7) {
+                    const days = Math.ceil((exp - today) / 86400000);
+                    alerts.push({ type: 'warning', icon: '🛢️', title: `POL expiring soon: ${pol.partNumber}`, msg: `${pol.designation} — expires in ${days} day(s)` });
+                }
+            });
+
+            // Show alert popup
+            const container = document.getElementById('loginAlertContainer');
+            if (alerts.length === 0) {
+                container.innerHTML = `<div class="login-alert-overlay" onclick="dismissLoginAlert()"><div class="login-alert-box" onclick="event.stopPropagation()"><h2>✅ System Status</h2><div class="alert-nothing">All clear! No issues found.</div><button class="alert-ok-btn" onclick="dismissLoginAlert()">OK</button></div></div>`;
+            } else {
+                let html = `<div class="login-alert-overlay"><div class="login-alert-box" onclick="event.stopPropagation()"><h2>⚠️ Alerts — ${alerts.length} issue(s) found</h2>`;
+                alerts.forEach(a => {
+                    html += `<div class="alert-section alert-${a.type}"><h4>${a.icon} ${a.title}</h4><p>${a.msg}</p></div>`;
+                });
+                html += `<button class="alert-ok-btn" onclick="dismissLoginAlert()">OK — Acknowledged</button></div></div>`;
+                container.innerHTML = html;
+            }
+        }
+
+        function dismissLoginAlert() {
+            document.getElementById('loginAlertContainer').innerHTML = '';
         }
 
         function logout() {
@@ -1159,5 +1248,6 @@
             });
         });
     </script>
+    <div id="loginAlertContainer"></div>
 </body>
 </html>

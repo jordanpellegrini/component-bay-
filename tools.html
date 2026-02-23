@@ -6,6 +6,18 @@
     <title>Tools - Components Bay</title>
     <link rel="stylesheet" href="modern-style.css">
     <script type="module" src="supabase-config.js"></script>
+    <style>
+        .tool-notification-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; }
+        .tool-notification { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 12px; padding: 30px 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 10000; text-align: center; max-width: 500px; width: 90%; animation: toolPopIn 0.3s ease; }
+        .tool-notification.expired { border-top: 5px solid #e74c3c; }
+        .tool-notification.expiring-soon { border-top: 5px solid #f39c12; }
+        .tool-notification .notif-icon { font-size: 3em; margin-bottom: 10px; }
+        .tool-notification .notif-pn { font-weight: 700; color: #2c3e50; font-size: 1.1em; margin: 10px 0; }
+        .tool-notification .notif-btn { margin-top: 20px; padding: 10px 30px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; color: white; }
+        .tool-notification .btn-close-notif { background: #e74c3c; }
+        .tool-notification .btn-warn-notif { background: #f39c12; }
+        @keyframes toolPopIn { from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -112,6 +124,7 @@
             await loadData();
             updateSummary();
             updateUnserviceableSection();
+            checkToolsExpiryNotifications();
         });
 
         function checkAuthentication() {
@@ -248,6 +261,56 @@
             document.getElementById('serviceability').value = 'Serviceable';
             document.getElementById('workInProgress').checked = false;
             document.getElementById('formTitle').textContent = '➕ Add Tool';
+        }
+
+        function checkToolsExpiryNotifications() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const in7 = new Date(today); in7.setDate(in7.getDate() + 7);
+            const notifications = [];
+
+            toolsData.forEach(item => {
+                if (!item.nextInspection) return;
+                const exp = new Date(item.nextInspection);
+                if (exp < today) {
+                    notifications.push({ type: 'expired', designation: item.designation, pn: item.partNumber, date: item.nextInspection });
+                } else if (exp <= in7) {
+                    const days = Math.ceil((exp - today) / 86400000);
+                    notifications.push({ type: 'expiring-soon', designation: item.designation, pn: item.partNumber, date: item.nextInspection, days: days });
+                }
+            });
+
+            if (notifications.length === 0) return;
+
+            // Create container if not exists
+            let container = document.getElementById('toolNotifContainer');
+            if (!container) { container = document.createElement('div'); container.id = 'toolNotifContainer'; document.body.appendChild(container); }
+
+            let idx = 0;
+            function showNext() {
+                if (idx >= notifications.length) { container.innerHTML = ''; return; }
+                const n = notifications[idx];
+                const isExpired = n.type === 'expired';
+                container.innerHTML = `
+                    <div class="tool-notification-overlay" onclick="window._dismissToolNotif()"></div>
+                    <div class="tool-notification ${n.type}">
+                        <div class="notif-icon">${isExpired ? '🚨' : '⚠️'}</div>
+                        <h3 style="margin:0 0 10px;">${isExpired ? 'TOOL EXPIRED' : 'TOOL EXPIRING SOON'}</h3>
+                        <div class="notif-pn">🔧 ${n.designation || 'Tool'}</div>
+                        <div style="color:#64748b;">P/N: ${n.pn}</div>
+                        <div style="margin-top:8px;font-size:0.95em;">
+                            ${isExpired 
+                                ? '<span style="color:#e74c3c;font-weight:700;">Expired on ' + n.date + '</span>'
+                                : '<span style="color:#f39c12;font-weight:700;">Expires in ' + n.days + ' day(s) (' + n.date + ')</span>'
+                            }
+                        </div>
+                        <button class="notif-btn ${isExpired ? 'btn-close-notif' : 'btn-warn-notif'}" onclick="window._dismissToolNotif()">
+                            ${idx < notifications.length - 1 ? 'Next (' + (notifications.length - idx - 1) + ' more)' : 'OK'}
+                        </button>
+                    </div>`;
+                idx++;
+            }
+            window._dismissToolNotif = showNext;
+            showNext();
         }
 
         function exportData() {

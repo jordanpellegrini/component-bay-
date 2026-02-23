@@ -104,6 +104,17 @@
             </div>
         </div>
 
+        <!-- Upcoming 90 Days Panel -->
+        <div id="upcoming90Section" class="panel">
+            <div class="panel-header" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);">
+                <span>📅 Serviceable Life Rafts — Inspection Due Within 90 Days</span>
+                <span class="badge" id="upcoming90Badge">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="upcoming90Table"></div>
+            </div>
+        </div>
+
         <!-- Add Life Raft Form -->
         <div id="addLifeRaftForm" class="card hidden">
             <h2 style="margin-bottom: 25px;">Add Life Raft System</h2>
@@ -322,7 +333,6 @@
         }
 
         function updateSummary() {
-            // Check for overdue items first
             checkOverdueItems();
             
             const serviceable = liferaftData.filter(item => item.serviceability === 'Serviceable').length;
@@ -331,6 +341,36 @@
             document.getElementById('serviceableCount').textContent = serviceable;
             document.getElementById('unserviceableCount').textContent = unserviceable;
             document.getElementById('totalCount').textContent = liferaftData.length;
+            updateUpcoming90();
+        }
+
+        function updateUpcoming90() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const in90 = new Date(today); in90.setDate(in90.getDate() + 90);
+            
+            const upcoming = liferaftData.filter(item => {
+                if (item.serviceability !== 'Serviceable') return false;
+                if (!item.nextInspection) return false;
+                const dt = new Date(item.nextInspection);
+                return dt >= today && dt <= in90;
+            });
+
+            const container = document.getElementById('upcoming90Table');
+            document.getElementById('upcoming90Badge').textContent = upcoming.length;
+
+            if (upcoming.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color:#00695c;font-weight:600;">No inspections due in the next 90 days</p></div>';
+                return;
+            }
+
+            let html = '<table class="data-table"><thead><tr><th>P/N</th><th>S/N</th><th>Next Inspection</th><th>Days Left</th></tr></thead><tbody>';
+            upcoming.sort((a,b) => new Date(a.nextInspection) - new Date(b.nextInspection)).forEach(item => {
+                const daysLeft = Math.ceil((new Date(item.nextInspection) - today) / 86400000);
+                const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
+                html += `<tr><td>${item.partNumber||'-'}</td><td>${item.serialNumber||'-'}</td><td>${item.nextInspection}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
         }
 
         function checkOverdueItems() {
