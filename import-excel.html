@@ -200,63 +200,63 @@
         const templates = {
             liferaft: {
                 name: 'Life_Raft_Import_Template',
-                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Order', 'Serviceability', 'Work_In_Progress', 'Inspection_Date', 'Next_Inspection', 'Comments'],
-                example: ['Life Raft Alpha', 'LR-001', 'SN123456', 'ORD-001', 'Serviceable', 'No', '2024-01-15', '2025-01-15', 'Ready for deployment']
+                headers: ['_Module', 'Designation', 'Part_Number', 'Serial_Number', 'Order', 'Serviceability', 'Work_In_Progress', 'Inspection_Date', 'Next_Inspection', 'Comments'],
+                example: ['Life Raft', 'LR-001', 'SN123456', 'ORD-001', 'Serviceable', 'No', '2024-01-15', '2025-01-15', 'Ready for deployment']
             },
             efs: {
                 name: 'EFS_Import_Template',
-                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Order', 'Serviceability', 'Work_In_Progress', 'Inspection_Date', 'Next_18M', 'Next_36M', 'Comments'],
-                example: ['EFS Float A1', 'EFS-001', 'EF123456', 'ORD-EFS-001', 'Serviceable', 'No', '2024-01-15', '2025-07-15', '2027-01-15', 'Operational']
+                headers: ['_Module', 'Designation', 'Part_Number', 'Serial_Number', 'Order', 'Serviceability', 'Work_In_Progress', 'Inspection_Date', 'Next_18M', 'Next_36M', 'Comments'],
+                example: ['EFS', 'EFS-001', 'EF123456', 'ORD-EFS-001', 'Serviceable', 'No', '2024-01-15', '2025-07-15', '2027-01-15', 'Operational']
             },
             wheel: {
                 name: 'Wheel_Import_Template',
-                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Position', 'Flight_Hours', 'Order', 'SR_Number', 'Log_Card', 'Serviceability', 'Work_In_Progress', 'Comments'],
-                example: ['Main Wheel Left', 'WHL-MLG-L', 'WL123456', 'MLG-L', '1500', 'ORD-WHL-001', 'SR-001', 'LC-001', 'Serviceable', 'No', 'Good condition']
+                headers: ['_Module', 'Designation', 'Part_Number', 'Serial_Number', 'Position', 'Flight_Hours', 'Order', 'SR_Number', 'Log_Card', 'Serviceability', 'Work_In_Progress', 'Comments'],
+                example: ['Wheel', 'WHL-MLG-L', 'WL123456', 'MLG-L', '1500', 'ORD-WHL-001', 'SR-001', 'LC-001', 'Serviceable', 'No', 'Good condition']
             },
             maintenance: {
                 name: 'Maintenance_Import_Template',
-                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Flight_Hours', 'Order', 'SR_Number', 'Log_Card', 'Serviceability', 'Work_In_Progress', 'Comments'],
-                example: ['Main Rotor Blade', 'MRB-001', 'MR123456', '2000', 'ORD-MNT-001', 'SR-MNT-001', 'LC-MNT-001', 'Serviceable', 'No', 'Routine maintenance']
+                headers: ['_Module', 'Designation', 'Part_Number', 'Serial_Number', 'Flight_Hours', 'Order', 'SR_Number', 'Log_Card', 'Serviceability', 'Work_In_Progress', 'Comments'],
+                example: ['Maintenance', 'MRB-001', 'MR123456', '2000', 'ORD-MNT-001', 'SR-MNT-001', 'LC-MNT-001', 'Serviceable', 'No', 'Routine maintenance']
             },
             composite: {
                 name: 'Composite_Import_Template',
-                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Flight_Hours', 'Order', 'SR_Number', 'Log_Card', 'Serviceability', 'Work_In_Progress', 'Comments'],
-                example: ['Fuselage Panel', 'CMP-FUS-001', 'CP123456', '1800', 'ORD-CMP-001', 'SR-CMP-001', 'LC-CMP-001', 'Serviceable', 'No', 'Composite repair completed']
+                headers: ['_Module', 'Designation', 'Part_Number', 'Serial_Number', 'Flight_Hours', 'Order', 'SR_Number', 'Log_Card', 'Serviceability', 'Work_In_Progress', 'Comments'],
+                example: ['Composite', 'CMP-FUS-001', 'CP123456', '1800', 'ORD-CMP-001', 'SR-CMP-001', 'LC-CMP-001', 'Serviceable', 'No', 'Composite repair completed']
             },
             avionic: {
                 name: 'Avionic_Import_Template',
-                headers: ['Type', 'Designation', 'Part_Number', 'Serial_Number', 'Order', 'Work_In_Progress', 'Comments'],
-                example: ['console', 'Main Console', 'CON-001', 'AC123456', 'ORD-AVI-001', 'No', 'Console system operational']
+                headers: ['_Module', 'Type', 'Designation', 'Part_Number', 'Serial_Number', 'Order', 'Work_In_Progress', 'Comments'],
+                example: ['Avionic', 'Main Console', 'CON-001', 'AC123456', 'ORD-AVI-001', 'No', 'Console system operational']
             },
             troopseat: {
                 name: 'Troop_Seat_Import_Template',
-                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Inspection_Date', 'Next_Inspection', 'Work_In_Progress', 'Order', 'Comments'],
-                example: ['Troop Seat 1', 'TS-001', 'TS123456', '2024-01-15', '2027-01-15', 'No', 'ORD-TS-001', 'Seat in good condition']
+                headers: ['_Module', 'Designation', 'Part_Number', 'Serial_Number', 'Inspection_Date', 'Next_Inspection', 'Work_In_Progress', 'Order', 'Comments'],
+                example: ['Troop Seat', 'TS-001', 'TS123456', '2024-01-15', '2027-01-15', 'No', 'ORD-TS-001', 'Seat in good condition']
             },
             engine: {
                 name: 'Engine_Import_Template',
-                headers: ['Part_Number', 'Designation', 'Serial_Number', 'Inspection_Type', 'Inspection_Date', 'Next_24M', 'Next_48M', 'Serviceability', 'Work_In_Progress', 'Comments'],
-                example: ['S720A10A2000', 'RTM322, Engine', 'ENG123456', '48M', '2024-01-15', '2026-01-15', '2028-01-15', 'Serviceable', 'No', 'Engine operational']
+                headers: ['_Module', 'Part_Number', 'Designation', 'Serial_Number', 'Inspection_Type', 'Inspection_Date', 'Next_24M', 'Next_48M', 'Serviceability', 'Work_In_Progress', 'Comments'],
+                example: ['Engine', 'RTM322, Engine', 'ENG123456', '48M', '2024-01-15', '2026-01-15', '2028-01-15', 'Serviceable', 'No', 'Engine operational']
             },
             rotorbay: {
                 name: 'Rotor_Bay_Import_Template',
-                headers: ['Part_Number', 'Designation', 'Serial_Number', 'Inspection_Date', 'Next_Short', 'Next_Long', 'Short_Label', 'Long_Label', 'Serviceability', 'Work_In_Progress', 'Comments'],
-                example: ['N632G0040051', 'MAIN GEARBOX ASSEMBLY', 'GB123456', '2024-01-15', '2024-07-15', '2026-01-15', '6M', '24M', 'Serviceable', 'No', 'Gearbox in good condition']
+                headers: ['_Module', 'Part_Number', 'Designation', 'Serial_Number', 'Inspection_Date', 'Next_Short', 'Next_Long', 'Short_Label', 'Long_Label', 'Serviceability', 'Work_In_Progress', 'Comments'],
+                example: ['Rotor Bay', 'MAIN GEARBOX ASSEMBLY', 'GB123456', '2024-01-15', '2024-07-15', '2026-01-15', '6M', '24M', 'Serviceable', 'No', 'Gearbox in good condition']
             },
             iafteaft: {
                 name: 'IAFT_EAFT_Import_Template',
-                headers: ['Part_Number', 'Designation', 'Serial_Number', 'Inspection_Performed', 'Inspection_Date', 'Next_24M', 'Next_60M', 'Next_360M', 'Serviceability', 'Work_In_Progress', 'Comments'],
-                example: ['S281M80A1003', 'EAFT', 'AF123456', '24M', '2024-01-15', '2026-01-15', '', '', 'Serviceable', 'No', 'EAFT item']
+                headers: ['_Module', 'Part_Number', 'Designation', 'Serial_Number', 'Inspection_Performed', 'Inspection_Date', 'Next_24M', 'Next_60M', 'Next_360M', 'Serviceability', 'Work_In_Progress', 'Comments'],
+                example: ['IAFT/EAFT', 'EAFT', 'AF123456', '24M', '2024-01-15', '2026-01-15', '', '', 'Serviceable', 'No', 'EAFT item']
             },
             pol: {
                 name: 'POL_Import_Template',
-                headers: ['Designation', 'Part_Number', 'Batch_Number', 'Expiry_Date', 'Brand', 'Comments'],
-                example: ['Hydraulic Fluid', 'HF-5606', 'BATCH-2024-001', '2025-06-15', 'Aeroshell', 'MIL-PRF-5606']
+                headers: ['_Module', 'Designation', 'Part_Number', 'Batch_Number', 'Expiry_Date', 'Brand', 'Comments'],
+                example: ['POL', 'HF-5606', 'BATCH-2024-001', '2025-06-15', 'Aeroshell', 'MIL-PRF-5606']
             },
             tools: {
                 name: 'Tools_Import_Template',
-                headers: ['Designation', 'Part_Number', 'Serial_Number', 'Localisation', 'Inspection_Date', 'Next_Inspection', 'Serviceability', 'Order', 'Work_In_Progress', 'Comments'],
-                example: ['Torque Wrench', 'TW-12345', 'SN-001', 'G43 Component Bay', '2024-06-15', '2025-06-15', 'Serviceable', 'ORD-2024-001', 'No', 'Calibrated']
+                headers: ['_Module', 'Designation', 'Part_Number', 'Serial_Number', 'Localisation', 'Inspection_Date', 'Next_Inspection', 'Serviceability', 'Order', 'Work_In_Progress', 'Comments'],
+                example: ['Tools', 'TW-12345', 'SN-001', 'G43 Component Bay', '2024-06-15', '2025-06-15', 'Serviceable', 'ORD-2024-001', 'No', 'Calibrated']
             }
         };
 
@@ -386,6 +386,11 @@
                     const headers = Object.keys(jsonData[0]).map(h => h.toLowerCase());
                     selectedModule = detectModuleType(headers);
                     
+                    // If _Module column exists, read module from data
+                    if (selectedModule === '_module_from_data') {
+                        selectedModule = resolveModuleFromData(jsonData);
+                    }
+                    
                     if (!selectedModule) {
                         showMessage('Could not detect data type. Please use the provided templates.', 'error');
                         return;
@@ -404,20 +409,39 @@
         }
 
         function detectModuleType(headers) {
-            // Detect based on unique header combinations
+            // Check _module column first (from templates)
+            if (headers.includes('_module')) return '_module_from_data';
+            
+            // Fallback: detect based on unique header combinations
             if (headers.includes('next_18m') || headers.includes('next_36m')) return 'efs';
-            if (headers.includes('next_24m') || headers.includes('next_48m')) return 'engine';
             if (headers.includes('next_60m') || headers.includes('next_360m') || headers.includes('inspection_performed')) return 'iafteaft';
+            if (headers.includes('next_24m') || headers.includes('next_48m')) return 'engine';
             if (headers.includes('batch_number') && headers.includes('expiry_date')) return 'pol';
-            if (headers.includes('next_inspection') && !headers.includes('sr_number') && !headers.includes('position')) return 'tools';
+            if (headers.includes('localisation') || (headers.includes('next_inspection') && !headers.includes('sr_number') && !headers.includes('position') && !headers.includes('inspection_date'))) return 'tools';
             if (headers.includes('next_short') && headers.includes('next_long')) return 'rotorbay';
             if (headers.includes('position') && headers.includes('flight_hours')) return 'wheel';
-            if (headers.includes('type') && (headers.includes('designation'))) return 'avionic';
+            if (headers.includes('type') && headers.includes('designation')) return 'avionic';
             if (headers.includes('next_inspection') && headers.includes('inspection_date')) return 'troopseat';
             if (headers.includes('sr_number')) return headers.includes('flight_hours') ? 'maintenance' : 'composite';
             if (headers.includes('designation') && headers.includes('part_number')) return 'liferaft';
             
             return null;
+        }
+        
+        function resolveModuleFromData(jsonData) {
+            // Read _Module column from first data row
+            const first = jsonData[0];
+            if (!first) return null;
+            const mod = (first._Module || first['_Module'] || first._module || '').toLowerCase().trim();
+            const map = {
+                'efs': 'efs', 'life raft': 'liferaft', 'liferaft': 'liferaft',
+                'wheel': 'wheel', 'maintenance': 'maintenance', 'composite': 'composite',
+                'avionic': 'avionic', 'troop seat': 'troopseat', 'troopseat': 'troopseat',
+                'engine': 'engine', 'rotor bay': 'rotorbay', 'rotorbay': 'rotorbay',
+                'iaft/eaft': 'iafteaft', 'iafteaft': 'iafteaft', 'iaft': 'iafteaft', 'eaft': 'iafteaft',
+                'pol': 'pol', 'tools': 'tools', 'tool': 'tools'
+            };
+            return map[mod] || null;
         }
 
         function showPreview(data, moduleType) {
