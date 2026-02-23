@@ -219,7 +219,7 @@
                 lastModified: new Date().toISOString(), modifiedBy: currentUser
             };
 
-            if (editingItem) { const idx = toolsData.findIndex(i => i.id === editingItem.id); if (idx !== -1) toolsData[idx] = formData; editingItem = null; }
+            if (editingItem) { const idx = toolsData.findIndex(i => String(i.id) === String(editingItem.id)); if (idx !== -1) toolsData[idx] = formData; editingItem = null; }
             else toolsData.push(formData);
             saveData(); updateSummary(); resetForm();
             if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
@@ -250,7 +250,7 @@
         }
 
         function showDetail(id) {
-            const item = toolsData.find(i => i.id === id); if (!item) return; currentItemId = id;
+            const item = toolsData.find(i => String(i.id) === String(id)); if (!item) return; currentItemId = id;
             document.getElementById('modalTitle').textContent = `${item.designation} - ${item.partNumber}`;
             document.getElementById('modalBody').innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><strong>Designation:</strong> ${item.designation}</div><div><strong>P/N:</strong> ${item.partNumber}</div><div><strong>S/N:</strong> ${item.serialNumber||'-'}</div><div><strong>Localisation:</strong> ${item.localisation||'-'}</div><div><strong>Status:</strong> <span class="status-badge ${item.serviceability==='Serviceable'?'status-serviceable':'status-unserviceable'}">${item.serviceability}</span></div><div><strong>Inspection Date:</strong> ${item.inspectionDate||'-'}</div><div><strong>Next Inspection:</strong> ${item.nextInspection||'-'}</div><div><strong>Order:</strong> ${item.orderRef||'-'}</div><div><strong>WIP:</strong> ${item.workInProgress?'Yes':'No'}</div>${item.reason?`<div><strong>Reason:</strong> <span class="status-badge status-overdue">${item.reason}</span></div>`:''}${item.comments?`<div style="grid-column:1/-1;"><strong>Comments:</strong> ${item.comments}</div>`:''}</div>`;
             document.getElementById('detailModal').classList.remove('hidden');
@@ -259,7 +259,10 @@
         function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
 
         function editItem(id) {
-            editingItem = toolsData.find(i => i.id === id); if (!editingItem) return;
+            console.log('Edit requested for ID:', id, typeof id);
+            console.log('Available IDs:', toolsData.map(i => i.id));
+            editingItem = toolsData.find(i => String(i.id) === String(id));
+            if (!editingItem) { alert('Item not found! ID: ' + id); return; }
             document.getElementById('designation').value = editingItem.designation || '';
             document.getElementById('partNumber').value = editingItem.partNumber || '';
             document.getElementById('serialNumber').value = editingItem.serialNumber || '';
@@ -270,6 +273,7 @@
             document.getElementById('serviceability').value = editingItem.serviceability || 'Serviceable';
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('comments').value = editingItem.comments || '';
+            showAddForm();
             document.getElementById('formTitle').textContent = '✏️ Edit Tool';
             document.getElementById('addFormSection').classList.remove('hidden');
             document.getElementById('viewAllSection').classList.add('hidden');
@@ -277,7 +281,7 @@
         }
 
         function editCurrent() { if (currentItemId) editItem(currentItemId); }
-        async function deleteItem(id) { if (!confirm('Delete this tool?')) return; toolsData = toolsData.filter(i => i.id !== id); if (window.ComponentsBayDB) { try { await window.ComponentsBayDB.delete('tools', id); } catch(e) {} } saveData(); updateSummary(); refreshTable(); closeModal(); }
+        async function deleteItem(id) { if (!confirm('Delete this tool?')) return; toolsData = toolsData.filter(i => String(i.id) !== String(id)); if (window.ComponentsBayDB) { try { await window.ComponentsBayDB.delete('tools', id); } catch(e) {} } saveData(); updateSummary(); refreshTable(); closeModal(); }
         function deleteCurrent() { if (currentItemId) deleteItem(currentItemId); }
         function cancelForm() { document.getElementById('addFormSection').classList.add('hidden'); resetForm(); }
 

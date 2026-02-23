@@ -303,7 +303,7 @@
             };
 
             if (editingItem) {
-                const idx = polData.findIndex(i => i.id === editingItem.id);
+                const idx = polData.findIndex(i => String(i.id) === String(editingItem.id));
                 if (idx !== -1) polData[idx] = formData;
                 editingItem = null;
             } else {
@@ -378,7 +378,7 @@
         }
 
         function showDetail(id) {
-            const item = polData.find(i => i.id === id);
+            const item = polData.find(i => String(i.id) === String(id));
             if (!item) return;
             currentItemId = id;
             document.getElementById('modalTitle').textContent = `${item.designation} - ${item.partNumber}`;
@@ -398,8 +398,10 @@
         function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
 
         function editItem(id) {
-            editingItem = polData.find(i => i.id === id);
-            if (!editingItem) return;
+            console.log('Edit requested for ID:', id, typeof id);
+            console.log('Available IDs:', polData.map(i => i.id));
+            editingItem = polData.find(i => String(i.id) === String(id));
+            if (!editingItem) { alert('Item not found! ID: ' + id); return; }
             document.getElementById('designation').value = editingItem.designation || '';
             document.getElementById('partNumber').value = editingItem.partNumber || '';
             document.getElementById('batchNumber').value = editingItem.batchNumber || '';
@@ -407,8 +409,8 @@
             document.getElementById('brand').value = editingItem.brand || '';
             document.getElementById('orderRef').value = editingItem.orderRef || '';
             document.getElementById('comments').value = editingItem.comments || '';
-            document.getElementById('formTitle').textContent = '✏️ Edit POL Item';
             showAddForm();
+            document.getElementById('formTitle').textContent = '✏️ Edit POL Item';
             closeModal();
         }
 
@@ -416,7 +418,7 @@
 
         async function deleteItem(id) {
             if (!confirm('Delete this POL item?')) return;
-            polData = polData.filter(i => i.id !== id);
+            polData = polData.filter(i => String(i.id) !== String(id));
             if (window.ComponentsBayDB) {
                 try { await window.ComponentsBayDB.delete('pol', id); } catch(e) {}
             }
