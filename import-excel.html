@@ -786,41 +786,30 @@
 
                 case 'iafteaft':
                     const iaftInspDate = parseDate(row.Inspection_Date || row.inspection_date);
-                    const iaftPerformed = row.Inspection_Performed || row.inspection_performed || '24M';
+                    const iaftPerformed = row.Inspection_Performed || row.inspection_performed || '60M';
                     let iaftNext24M = parseDate(row.Next_24M || row.next_24m);
                     let iaftNext60M = parseDate(row.Next_60M || row.next_60m);
                     let iaftNext360M = parseDate(row.Next_360M || row.next_360m);
                     const iaftPN = row.Part_Number || row.part_number || '';
-                    // Auto-designation from P/N
                     let iaftDesig = row.Designation || row.designation || '';
                     if (!iaftDesig && iaftPN === 'S281M80A1003') iaftDesig = 'EAFT';
                     if (!iaftDesig && iaftPN === 'S281M80A1005') iaftDesig = 'IAFT';
-                    // Auto-calculate based on inspection performed
+                    const iaftPerf = parseInt(iaftPerformed) || 60;
+                    const iaft60MDone = (iaftPerf >= 60) || (row['60M_Done'] || '').toLowerCase() === 'yes';
                     if (iaftInspDate) {
-                        const performed = parseInt(iaftPerformed) || 24;
-                        if (performed >= 24 && !iaftNext24M) {
-                            const d = new Date(iaftInspDate); d.setMonth(d.getMonth() + 24);
-                            iaftNext24M = d.toISOString().split('T')[0];
-                        }
-                        if (performed >= 60 && !iaftNext60M) {
-                            const d = new Date(iaftInspDate); d.setMonth(d.getMonth() + 60);
-                            iaftNext60M = d.toISOString().split('T')[0];
-                        }
-                        if (performed >= 360 && !iaftNext360M) {
-                            const d = new Date(iaftInspDate); d.setMonth(d.getMonth() + 360);
-                            iaftNext360M = d.toISOString().split('T')[0];
-                        }
+                        if (iaftPerf >= 60 && !iaftNext24M) { const d = new Date(iaftInspDate); d.setMonth(d.getMonth() + 24); iaftNext24M = d.toISOString().split('T')[0]; }
+                        if (iaftPerf >= 60 && !iaftNext60M) { const d = new Date(iaftInspDate); d.setMonth(d.getMonth() + 60); iaftNext60M = d.toISOString().split('T')[0]; }
+                        if (iaftPerf === 24 && iaft60MDone && !iaftNext24M) { const d = new Date(iaftInspDate); d.setMonth(d.getMonth() + 24); iaftNext24M = d.toISOString().split('T')[0]; }
+                        if (iaftPerf >= 360 && !iaftNext360M) { const d = new Date(iaftInspDate); d.setMonth(d.getMonth() + 360); iaftNext360M = d.toISOString().split('T')[0]; }
                     }
                     return {
                         ...baseData,
-                        partNumber: iaftPN,
-                        designation: iaftDesig,
+                        partNumber: iaftPN, designation: iaftDesig,
                         serialNumber: row.Serial_Number || row.serial_number || '',
-                        inspectionPerformed: iaftPerformed,
-                        inspectionDate: iaftInspDate,
-                        next24M: iaftNext24M,
-                        next60M: iaftNext60M,
-                        next360M: iaftNext360M,
+                        inspectionPerformed: iaftPerformed, inspectionDate: iaftInspDate,
+                        is60MDone: iaft60MDone,
+                        next24M: iaft60MDone ? iaftNext24M : '',
+                        next60M: iaftNext60M, next360M: iaftNext360M,
                         workInProgress: (row.Work_In_Progress || row.work_in_progress || 'No').toLowerCase() === 'yes',
                         comments: row.Comments || row.comments || ''
                     };
