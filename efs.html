@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EFS Float - Components Bay V3.3</title>
     <link rel="stylesheet" href="modern-style.css">
-    <script type="module" src="supabase-config.js"></script>
+    <script type="module" src="supabase-config.js">
+            generateTag(type, item);
+        }
+            generateTag(type, item);
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -160,6 +165,10 @@
                 <div class="mt-20">
                     <button type="submit" class="btn btn-success">💾 Save EFS Float</button>
                     <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
+                    <span id="tagButtonsGroup" style="margin-left:15px;">
+                        <button type="button" onclick="generateTagForCurrent('serviceable')" class="btn" style="background:#27ae60;color:white;">📄 Serviceable Tag</button>
+                        <button type="button" onclick="generateTagForCurrent('unserviceable')" class="btn" style="background:#e74c3c;color:white;margin-left:5px;">📄 Unserviceable Tag</button>
+                    </span>
                 </div>
             </form>
         </div>
@@ -785,6 +794,22 @@
                 closeModal();
             }
         });
+    
+        function generateTagForCurrent(type) {
+            const item = {};
+            const fields = ['efsDesignation','efsPartNumber','efsSerialNumber','efsOrder',
+                'efsServiceability','inspectionDate','next18M','next36M','efsComments'];
+            const map = {efsDesignation:'designation',efsPartNumber:'partNumber',
+                efsSerialNumber:'serialNumber',efsOrder:'orderRef',
+                efsServiceability:'serviceability',efsComments:'comments'};
+            fields.forEach(f => {
+                const el = document.getElementById(f);
+                if (el) item[map[f] || f] = el.value;
+            });
+            if (!item.partNumber) { alert('No item data'); return; }
+            generateTag(type, item);
+        }
     </script>
+<script src="generate-tag.js"></script>
 </body>
 </html>

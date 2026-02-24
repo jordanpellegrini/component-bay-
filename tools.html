@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tools - Components Bay</title>
     <link rel="stylesheet" href="modern-style.css">
-    <script type="module" src="supabase-config.js"></script>
+    <script type="module" src="supabase-config.js">
+            generateTag(type, item);
+        }
+            generateTag(type, item);
+        }
+    </script>
     <style>
         .tool-notification-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; }
         .tool-notification { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 12px; padding: 30px 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 10000; text-align: center; max-width: 500px; width: 90%; animation: toolPopIn 0.3s ease; }
@@ -81,6 +86,10 @@
                 <div class="mt-20">
                     <button type="submit" class="btn btn-success">💾 Save</button>
                     <button type="button" onclick="cancelForm()" class="btn" style="margin-left: 10px;">❌ Cancel</button>
+                    <span id="tagButtonsGroup" style="margin-left:15px;">
+                        <button type="button" onclick="generateTagForCurrent('serviceable')" class="btn" style="background:#27ae60;color:white;">📄 Serviceable Tag</button>
+                        <button type="button" onclick="generateTagForCurrent('unserviceable')" class="btn" style="background:#e74c3c;color:white;margin-left:5px;">📄 Unserviceable Tag</button>
+                    </span>
                 </div>
             </form>
         </div>
@@ -90,7 +99,7 @@
             <div id="allItemsTable"></div>
         </div>
 
-        <div id="detailModal" class="modal hidden">
+        <div id="detailModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header"><h3 class="modal-title" id="modalTitle">Tool Details</h3><button onclick="closeModal()" class="modal-close">✕</button></div>
                 <div id="modalBody"></div>
@@ -219,7 +228,7 @@
             if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
         }
 
-        function showAddForm() { document.getElementById('addFormSection').classList.remove('hidden'); document.getElementById('viewAllSection').classList.add('hidden'); document.getElementById('formTitle').textContent = '➕ Add Tool'; }
+        function showAddForm() {
         function showViewAll() { document.getElementById('viewAllSection').classList.remove('hidden'); document.getElementById('addFormSection').classList.add('hidden'); refreshTable(); }
 
         function refreshTable() {
@@ -238,10 +247,10 @@
             const item = toolsData.find(i => String(i.id) === String(id)); if (!item) return; currentItemId = id;
             document.getElementById('modalTitle').textContent = `${item.designation} - ${item.partNumber}`;
             document.getElementById('modalBody').innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><strong>Designation:</strong> ${item.designation}</div><div><strong>P/N:</strong> ${item.partNumber}</div><div><strong>S/N:</strong> ${item.serialNumber||'-'}</div><div><strong>Localisation:</strong> ${item.localisation||'-'}</div><div><strong>Status:</strong> <span class="status-badge ${item.serviceability==='Serviceable'?'status-serviceable':'status-unserviceable'}">${item.serviceability}</span></div><div><strong>Inspection Date:</strong> ${item.inspectionDate||'-'}</div><div><strong>Next Inspection:</strong> ${item.nextInspection||'-'}</div><div><strong>Order:</strong> ${item.orderRef||'-'}</div><div><strong>WIP:</strong> ${item.workInProgress?'Yes':'No'}</div>${item.reason?`<div><strong>Reason:</strong> <span class="status-badge status-overdue">${item.reason}</span></div>`:''}${item.comments?`<div style="grid-column:1/-1;"><strong>Comments:</strong> ${item.comments}</div>`:''}</div>`;
-            document.getElementById('detailModal').classList.remove('hidden');
+            document.getElementById('detailModal').classList.add('active');
         }
 
-        function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
+        function closeModal() { document.getElementById('detailModal').classList.remove('active'); }
 
         function editItem(id) {
             editingItem = toolsData.find(i => String(i.id) === String(id));
@@ -266,7 +275,7 @@
         function editCurrent() { if (currentItemId) editItem(currentItemId); }
         async function deleteItem(id) { if (!confirm('Delete this tool?')) return; toolsData = toolsData.filter(i => String(i.id) !== String(id)); if (window.ComponentsBayDB) { try { await window.ComponentsBayDB.delete('tools', id); } catch(e) {} } saveData(); updateSummary(); refreshTable(); closeModal(); }
         function deleteCurrent() { if (currentItemId) deleteItem(currentItemId); }
-        function cancelForm() { document.getElementById('addFormSection').classList.add('hidden'); resetForm(); }
+        function cancelForm() {
 
         function resetForm() {
             editingItem = null;
@@ -333,6 +342,22 @@
             toolsData.forEach(item => { csv += [item.designation,item.partNumber,item.serialNumber,item.localisation||'',item.inspectionDate,item.nextInspection,item.serviceability,item.orderRef||'',item.workInProgress?'Yes':'No',`"${(item.comments||'').replace(/"/g,'""')}"`].join(',') + '\n'; });
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'Tools_Export.csv'; a.click();
         }
+    
+        function generateTagForCurrent(type) {
+            const item = {};
+            // Read all form fields
+            const fields = ['designation','partNumber','serialNumber','serviceability',
+                'inspectionDate','nextInspection','next18M','next36M','next24M','next60M',
+                'orderRef','order','comments','reason','flightHours','logCard',
+                'batchNumber','expiryDate','brand','localisation'];
+            fields.forEach(f => {
+                const el = document.getElementById(f);
+                if (el) item[f] = el.type === 'checkbox' ? el.checked : el.value;
+            });
+            if (!item.partNumber && !item.designation) { alert('No item data'); return; }
+            generateTag(type, item);
+        }
     </script>
+<script src="generate-tag.js"></script>
 </body>
 </html>

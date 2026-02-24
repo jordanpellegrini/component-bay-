@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IAFT/EAFT - Components Bay</title>
     <link rel="stylesheet" href="modern-style.css">
-    <script type="module" src="supabase-config.js"></script>
+    <script type="module" src="supabase-config.js">
+            generateTag(type, item);
+        }
+            generateTag(type, item);
+        }
+    </script>
     <style>
         .locked-field { position: relative; opacity: 0.5; pointer-events: none; }
         .locked-field::after { content: '🔒 Activates when 60M date is reached'; position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); text-align: center; font-size: 0.8em; color: #e67e22; font-weight: 600; background: rgba(255,255,255,0.9); padding: 4px; border-radius: 4px; }
@@ -85,6 +90,10 @@
                 <div class="mt-20">
                     <button type="submit" class="btn btn-success">💾 Save</button>
                     <button type="button" onclick="cancelForm()" class="btn" style="margin-left: 10px;">❌ Cancel</button>
+                    <span id="tagButtonsGroup" style="margin-left:15px;">
+                        <button type="button" onclick="generateTagForCurrent('serviceable')" class="btn" style="background:#27ae60;color:white;">📄 Serviceable Tag</button>
+                        <button type="button" onclick="generateTagForCurrent('unserviceable')" class="btn" style="background:#e74c3c;color:white;margin-left:5px;">📄 Unserviceable Tag</button>
+                    </span>
                 </div>
             </form>
         </div>
@@ -94,7 +103,7 @@
             <div id="allItemsTable"></div>
         </div>
 
-        <div id="detailModal" class="modal hidden">
+        <div id="detailModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header"><h3 class="modal-title" id="modalTitle">Item Details</h3><button onclick="closeModal()" class="modal-close">✕</button></div>
                 <div id="modalBody"></div>
@@ -266,7 +275,7 @@
             if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
         }
 
-        function showAddForm() { document.getElementById('addFormSection').classList.remove('hidden'); document.getElementById('viewAllSection').classList.add('hidden'); document.getElementById('formTitle').textContent = '➕ Add IAFT/EAFT Item'; editingItem = null; update24MFormState(false); }
+        function showAddForm() {
         function showViewAll() { document.getElementById('viewAllSection').classList.remove('hidden'); document.getElementById('addFormSection').classList.add('hidden'); refreshTable(); }
 
         function refreshTable() {
@@ -295,10 +304,10 @@
             const n24 = active24D ? (item.next24M || 'Pending') : item.has60MBeenDone ? '⏳ Activates on ' + (item.next60M || '?') : '🔒 Not yet (60M required first)';
             document.getElementById('modalTitle').textContent = `${item.designation} - ${item.partNumber}`;
             document.getElementById('modalBody').innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><strong>P/N:</strong> ${item.partNumber}</div><div><strong>S/N:</strong> ${item.serialNumber||'-'}</div><div><strong>Designation:</strong> ${item.designation}</div><div><strong>Status:</strong> <span class="status-badge ${item.serviceability==='Serviceable'?'status-serviceable':'status-unserviceable'}">${item.serviceability}</span></div><div><strong>Inspection Date:</strong> ${item.inspectionDate||'-'}</div><div><strong>Last Inspection:</strong> ${item.inspectionPerformed||'-'}</div><div><strong>60M Done:</strong> ${item.has60MBeenDone?'✅ Yes':'❌ No'}</div><div><strong>Next 60M:</strong> ${item.next60M||'-'}</div><div><strong>Next 24M:</strong> ${n24}</div><div><strong>Next 360M:</strong> ${item.next360M||'-'}</div><div><strong>WIP:</strong> ${item.workInProgress?'Yes':'No'}</div>${item.reason?`<div style="grid-column:1/-1;"><strong>Reason:</strong> <span class="status-badge status-overdue">${item.reason}</span></div>`:''}${item.comments?`<div style="grid-column:1/-1;"><strong>Comments:</strong> ${item.comments}</div>`:''}</div>${!item.has60MBeenDone?'<div class="inspection-note mt-20">⚠️ <strong>Reminder:</strong> First action is 60M preservation (SCS §D — internal wall oiling). 24M interface checks begin only after this is completed.</div>':''}`;
-            document.getElementById('detailModal').classList.remove('hidden');
+            document.getElementById('detailModal').classList.add('active');
         }
 
-        function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
+        function closeModal() { document.getElementById('detailModal').classList.remove('active'); }
 
         function editItem(id) {
             editingItem = itemsData.find(i => i.id === id); if (!editingItem) return;
@@ -325,7 +334,7 @@
         function editCurrent() { if (currentItemId) editItem(currentItemId); }
         async function deleteItem(id) { if (!confirm('Delete?')) return; itemsData = itemsData.filter(i => i.id !== id); if (window.ComponentsBayDB) { try { await window.ComponentsBayDB.delete('iafteaft', id); } catch(e) {} } saveData(); updateSummary(); refreshTable(); closeModal(); }
         function deleteCurrent() { if (currentItemId) deleteItem(currentItemId); }
-        function cancelForm() { document.getElementById('addFormSection').classList.add('hidden'); resetForm(); }
+        function cancelForm() {
 
         function resetForm() {
             editingItem = null;
@@ -342,6 +351,22 @@
             itemsData.forEach(item => { csv += [item.designation,item.partNumber,item.serialNumber,item.inspectionPerformed,item.inspectionDate,item.has60MBeenDone?'Yes':'No',item.is24MActive?(item.next24M||''):'N/A',item.next60M,item.next360M,item.serviceability,item.workInProgress?'Yes':'No',`"${(item.comments||'').replace(/"/g,'""')}"`].join(',') + '\n'; });
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'IAFT_EAFT_Export.csv'; a.click();
         }
+    
+        function generateTagForCurrent(type) {
+            const item = {};
+            // Read all form fields
+            const fields = ['designation','partNumber','serialNumber','serviceability',
+                'inspectionDate','nextInspection','next18M','next36M','next24M','next60M',
+                'orderRef','order','comments','reason','flightHours','logCard',
+                'batchNumber','expiryDate','brand','localisation'];
+            fields.forEach(f => {
+                const el = document.getElementById(f);
+                if (el) item[f] = el.type === 'checkbox' ? el.checked : el.value;
+            });
+            if (!item.partNumber && !item.designation) { alert('No item data'); return; }
+            generateTag(type, item);
+        }
     </script>
+<script src="generate-tag.js"></script>
 </body>
 </html>

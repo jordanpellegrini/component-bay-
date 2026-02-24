@@ -107,6 +107,10 @@
                 <div class="mt-20">
                     <button type="submit" class="btn btn-success">💾 Save Item</button>
                     <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
+                    <span id="tagButtonsGroup" style="margin-left:15px;">
+                        <button type="button" onclick="generateTagForCurrent('serviceable')" class="btn" style="background:#27ae60;color:white;">📄 Serviceable Tag</button>
+                        <button type="button" onclick="generateTagForCurrent('unserviceable')" class="btn" style="background:#e74c3c;color:white;margin-left:5px;">📄 Unserviceable Tag</button>
+                    </span>
                 </div>
             </form>
         </div>
@@ -1496,6 +1500,22 @@
                 closeModal();
             }
         });
+            generateTag(type, item);
+        }
+    
+        function generateTagForCurrent(type) {
+            // Get current form data to generate tag
+            const item = {
+                partNumber: document.getElementById('partNumber') ? document.getElementById('partNumber').value : '',
+                serialNumber: document.getElementById('serialNumber') ? document.getElementById('serialNumber').value : '',
+                designation: document.getElementById('designation') ? document.getElementById('designation').value : '',
+                comments: document.getElementById('comments') ? document.getElementById('comments').value : '',
+                orderRef: document.getElementById('orderRef') ? document.getElementById('orderRef').value : ''
+            };
+            if (!item.partNumber) { alert('No item data available'); return; }
+            generateTag(type, item);
+        }
     </script>
+<script src="generate-tag.js"></script>
 </body>
 </html>

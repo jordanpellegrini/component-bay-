@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POL - Components Bay</title>
     <link rel="stylesheet" href="modern-style.css">
-    <script type="module" src="supabase-config.js"></script>
+    <script type="module" src="supabase-config.js">
+            generateTag(type, item);
+        }
+            generateTag(type, item);
+        }
+    </script>
     <style>
         .pol-notification {
             position: fixed;
@@ -120,6 +125,10 @@
                 <div class="mt-20">
                     <button type="submit" class="btn btn-success">💾 Save</button>
                     <button type="button" onclick="cancelForm()" class="btn" style="margin-left: 10px;">❌ Cancel</button>
+                    <span id="tagButtonsGroup" style="margin-left:15px;">
+                        <button type="button" onclick="generateTagForCurrent('serviceable')" class="btn" style="background:#27ae60;color:white;">📄 Serviceable Tag</button>
+                        <button type="button" onclick="generateTagForCurrent('unserviceable')" class="btn" style="background:#e74c3c;color:white;margin-left:5px;">📄 Unserviceable Tag</button>
+                    </span>
                 </div>
             </form>
         </div>
@@ -134,7 +143,7 @@
         </div>
 
         <!-- Detail Modal -->
-        <div id="detailModal" class="modal hidden">
+        <div id="detailModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
                     <h3 class="modal-title" id="modalTitle">POL Details</h3>
@@ -365,6 +374,7 @@
                     <td>${item.orderRef || '-'}</td>
                     <td>${statusBadge}</td>
                     <td>
+                        <button class="btn" onclick="showDetail('${item.id}')" style="padding:4px 10px;font-size:12px;">👁️</button>
                         <button class="btn btn-add" onclick="editItem('${item.id}')" style="padding:4px 10px;font-size:12px;">✏️</button>
                         <button class="btn btn-danger" onclick="deleteItem('${item.id}')" style="padding:4px 10px;font-size:12px;">🗑️</button>
                     </td>
@@ -389,10 +399,10 @@
                     <div><strong>Expiry Date:</strong> ${item.expiryDate || '-'}</div>
                     ${item.comments ? `<div style="grid-column:1/-1;"><strong>Comments:</strong> ${item.comments}</div>` : ''}
                 </div>`;
-            document.getElementById('detailModal').classList.remove('hidden');
+            document.getElementById('detailModal').classList.add('active');
         }
 
-        function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
+        function closeModal() { document.getElementById('detailModal').classList.remove('active'); }
 
         function editItem(id) {
             editingItem = polData.find(i => String(i.id) === String(id));
@@ -452,6 +462,22 @@
             const blob = new Blob([csv], { type: 'text/csv' });
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'POL_Export.csv'; a.click();
         }
+    
+        function generateTagForCurrent(type) {
+            const item = {};
+            // Read all form fields
+            const fields = ['designation','partNumber','serialNumber','serviceability',
+                'inspectionDate','nextInspection','next18M','next36M','next24M','next60M',
+                'orderRef','order','comments','reason','flightHours','logCard',
+                'batchNumber','expiryDate','brand','localisation'];
+            fields.forEach(f => {
+                const el = document.getElementById(f);
+                if (el) item[f] = el.type === 'checkbox' ? el.checked : el.value;
+            });
+            if (!item.partNumber && !item.designation) { alert('No item data'); return; }
+            generateTag(type, item);
+        }
     </script>
+<script src="generate-tag.js"></script>
 </body>
 </html>
