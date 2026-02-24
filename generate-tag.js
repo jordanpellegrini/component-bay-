@@ -93,7 +93,7 @@ async function generateTag(type, itemData) {
             inspector:      '',
             workOrder:      itemData.orderRef || itemData.order || '',
             inspectorName:  userLastName + ' - ' + todayStr,
-            logCard:        itemData.logCard || '',
+            logCard:        'YES',
             itemFH:         itemData.flightHours || '',
             dateOfRemoval:  itemData.dateOfRemoval || itemData.inspectionDate || new Date().toISOString().split('T')[0],
             removeFrom:     itemData.removeFromHC || itemData.removeFrom || '',
