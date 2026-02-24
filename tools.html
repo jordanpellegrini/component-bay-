@@ -34,7 +34,7 @@
         <div class="main-header">
             <div class="header-content"><h1>🔧 Tools Management</h1></div>
             <div class="header-actions">
-                <button onclick="showAddForm()" class="btn btn-add">➕ Add Tool</button>
+                <button onclick="editingItem=null; showAddForm()" class="btn btn-add">➕ Add Tool</button>
                 <button onclick="showViewAll()" class="btn">📋 View All</button>
             </div>
         </div>
@@ -219,7 +219,7 @@
             if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
         }
 
-        function showAddForm() { document.getElementById('addFormSection').classList.remove('hidden'); document.getElementById('viewAllSection').classList.add('hidden'); document.getElementById('formTitle').textContent = '➕ Add Tool'; editingItem = null; }
+        function showAddForm() { document.getElementById('addFormSection').classList.remove('hidden'); document.getElementById('viewAllSection').classList.add('hidden'); document.getElementById('formTitle').textContent = '➕ Add Tool'; }
         function showViewAll() { document.getElementById('viewAllSection').classList.remove('hidden'); document.getElementById('addFormSection').classList.add('hidden'); refreshTable(); }
 
         function refreshTable() {
