@@ -146,7 +146,20 @@
                         <input type="date" id="next36M" class="form-control" style="background: #f8f9fa;">
                     </div>
                     
-                    <div class="form-group" style="grid-column: 1 / -1;">
+                    
+                    <div class="form-group">
+                        <label>Flight Hours</label>
+                        <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Removal</label>
+                        <input type="date" id="dateOfRemoval" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Remove from A/C</label>
+                        <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
+                    </div>
+<div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="efsComments" class="form-control" placeholder="Enter detailed comments..."></textarea>
                     </div>
@@ -492,6 +505,9 @@
                 next18M: document.getElementById('next18M').value,
                 next36M: document.getElementById('next36M').value,
                 comments: document.getElementById('efsComments').value.trim(),
+                flightHours: document.getElementById('flightHours').value.trim(),
+                dateOfRemoval: document.getElementById('dateOfRemoval').value,
+                removeFromHC: document.getElementById('removeFromHC').value.trim(),
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser
             };
@@ -529,6 +545,9 @@
             document.getElementById('next18M').value = '';
             document.getElementById('next36M').value = '';
             document.getElementById('efsComments').value = '';
+            document.getElementById('flightHours').value = '';
+            document.getElementById('dateOfRemoval').value = '';
+            document.getElementById('removeFromHC').value = '';
             document.getElementById('editEFSId').value = '';
             // Don't reset editingEFS here - it should only be reset after successful save
             hideMessage();
@@ -664,6 +683,9 @@
             document.getElementById('next36M').value = editingEFS.next36M || '';
             
             document.getElementById('efsComments').value = editingEFS.comments || '';
+            document.getElementById('flightHours').value = editingEFS.flightHours || '';
+            document.getElementById('dateOfRemoval').value = editingEFS.dateOfRemoval || '';
+            document.getElementById('removeFromHC').value = editingEFS.removeFromHC || '';
 
             showAddEFS();
             closeModal();
@@ -798,7 +820,8 @@
         function generateTagForCurrent(type) {
             const item = {};
             const fields = ['efsDesignation','efsPartNumber','efsSerialNumber','efsOrder',
-                'efsServiceability','inspectionDate','next18M','next36M','efsComments'];
+                'efsServiceability','inspectionDate','next18M','next36M','efsComments',
+                'flightHours','dateOfRemoval','removeFromHC'];
             const map = {efsDesignation:'designation',efsPartNumber:'partNumber',
                 efsSerialNumber:'serialNumber',efsOrder:'orderRef',
                 efsServiceability:'serviceability',efsComments:'comments'};
@@ -806,6 +829,11 @@
                 const el = document.getElementById(f);
                 if (el) item[map[f] || f] = el.value;
             });
+            // Combine 18M and 36M for next inspection
+            let nextParts = [];
+            if (item.next18M) nextParts.push('18M: ' + item.next18M);
+            if (item.next36M) nextParts.push('36M: ' + item.next36M);
+            item.nextInspection = nextParts.join(' / ');
             if (!item.partNumber) { alert('No item data'); return; }
             generateTag(type, item);
         }

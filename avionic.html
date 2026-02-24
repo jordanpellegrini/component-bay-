@@ -98,7 +98,20 @@
                         <input type="text" id="itemsOrder" class="form-control" placeholder="Enter order number">
                     </div>
                     
-                    <div class="form-group" style="grid-column: 1 / -1;">
+                    
+                    <div class="form-group">
+                        <label>Flight Hours</label>
+                        <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Removal</label>
+                        <input type="date" id="dateOfRemoval" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Remove from A/C</label>
+                        <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
+                    </div>
+<div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="itemsComments" class="form-control" placeholder="Enter detailed comments..."></textarea>
                     </div>
@@ -1022,6 +1035,9 @@
         }
 
         function resetForm() {
+            try { document.getElementById('flightHours').value = ''; } catch(e) {}
+            try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
+            try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
             document.getElementById('consoleDesignation').value = '';
             document.getElementById('consolePartNumber').value = '';
             document.getElementById('consoleSerialNumber').value = '';
@@ -1510,7 +1526,10 @@
                 serialNumber: document.getElementById('serialNumber') ? document.getElementById('serialNumber').value : '',
                 designation: document.getElementById('designation') ? document.getElementById('designation').value : '',
                 comments: document.getElementById('comments') ? document.getElementById('comments').value : '',
-                orderRef: document.getElementById('orderRef') ? document.getElementById('orderRef').value : ''
+                orderRef: document.getElementById('orderRef') ? document.getElementById('orderRef').value : '',
+                flightHours: document.getElementById('flightHours') ? document.getElementById('flightHours').value : '',
+                dateOfRemoval: document.getElementById('dateOfRemoval') ? document.getElementById('dateOfRemoval').value : '',
+                removeFromHC: document.getElementById('removeFromHC') ? document.getElementById('removeFromHC').value : ''
             };
             if (!item.partNumber) { alert('No item data available'); return; }
             generateTag(type, item);

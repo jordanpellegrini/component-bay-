@@ -81,7 +81,20 @@
                     </div>
                     <div class="form-group"><label>Order</label><input type="text" id="orderRef" class="form-control" placeholder="Order reference"></div>
                     <div class="form-group"><label>Work In Progress</label><input type="checkbox" id="workInProgress"></div>
-                    <div class="form-group" style="grid-column: 1 / -1;"><label>Comments</label><textarea id="comments" class="form-control" rows="2"></textarea></div>
+                    
+                    <div class="form-group">
+                        <label>Flight Hours</label>
+                        <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Removal</label>
+                        <input type="date" id="dateOfRemoval" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Remove from A/C</label>
+                        <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
+                    </div>
+<div class="form-group" style="grid-column: 1 / -1;"><label>Comments</label><textarea id="comments" class="form-control" rows="2"></textarea></div>
                 </div>
                 <div class="mt-20">
                     <button type="submit" class="btn btn-success">💾 Save</button>
@@ -219,6 +232,9 @@
                 serviceability: document.getElementById('serviceability').value || 'Serviceable',
                 workInProgress: document.getElementById('workInProgress').checked,
                 comments: document.getElementById('comments').value.trim(),
+                flightHours: document.getElementById('flightHours').value.trim(),
+                dateOfRemoval: document.getElementById('dateOfRemoval').value,
+                removeFromHC: document.getElementById('removeFromHC').value.trim(),
                 lastModified: new Date().toISOString(), modifiedBy: currentUser
             };
 
@@ -265,6 +281,9 @@
             document.getElementById('serviceability').value = editingItem.serviceability || 'Serviceable';
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('comments').value = editingItem.comments || '';
+            document.getElementById('flightHours').value = item.flightHours || '';
+            document.getElementById('dateOfRemoval').value = item.dateOfRemoval || '';
+            document.getElementById('removeFromHC').value = item.removeFromHC || '';
             showAddForm();
             document.getElementById('formTitle').textContent = '✏️ Edit Tool';
             document.getElementById('addFormSection').classList.remove('hidden');
@@ -276,8 +295,14 @@
         async function deleteItem(id) { if (!confirm('Delete this tool?')) return; toolsData = toolsData.filter(i => String(i.id) !== String(id)); if (window.ComponentsBayDB) { try { await window.ComponentsBayDB.delete('tools', id); } catch(e) {} } saveData(); updateSummary(); refreshTable(); closeModal(); }
         function deleteCurrent() { if (currentItemId) deleteItem(currentItemId); }
         function cancelForm() {
+            try { document.getElementById('flightHours').value = ''; } catch(e) {}
+            try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
+            try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
 
         function resetForm() {
+            try { document.getElementById('flightHours').value = ''; } catch(e) {}
+            try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
+            try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
             editingItem = null;
             ['designation','partNumber','serialNumber','inspectionDate','nextInspection','orderRef','comments'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('localisation').value = '';
@@ -349,7 +374,7 @@
             const fields = ['designation','partNumber','serialNumber','serviceability',
                 'inspectionDate','nextInspection','next18M','next36M','next24M','next60M',
                 'orderRef','order','comments','reason','flightHours','logCard',
-                'batchNumber','expiryDate','brand','localisation'];
+                'batchNumber','expiryDate','brand','localisation','flightHours','dateOfRemoval','removeFromHC'];
             fields.forEach(f => {
                 const el = document.getElementById(f);
                 if (el) item[f] = el.type === 'checkbox' ? el.checked : el.value;

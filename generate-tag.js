@@ -68,6 +68,21 @@ async function generateTag(type, itemData) {
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const form = pdfDoc.getForm();
 
+    // Get current user lastname
+    let userLastName = '';
+    try {
+        const usersStr = localStorage.getItem('componentsBayUsers');
+        const currentUser = localStorage.getItem('componentsBayCurrentUser');
+        if (usersStr && currentUser) {
+            const users = JSON.parse(usersStr);
+            const user = users.find(u => u.username === currentUser);
+            if (user) userLastName = user.lastName || user.firstname || currentUser;
+        }
+        if (!userLastName) userLastName = currentUser || '';
+    } catch(e) { userLastName = localStorage.getItem('componentsBayCurrentUser') || ''; }
+
+    const todayStr = new Date().toLocaleDateString('en-GB');
+
     if (type === 'serviceable') {
         // Build data object from item
         const data = {
@@ -77,11 +92,11 @@ async function generateTag(type, itemData) {
             description:    itemData.designation || itemData.description || '',
             inspector:      '',
             workOrder:      itemData.orderRef || itemData.order || '',
-            inspectorName:  '',
+            inspectorName:  userLastName + ' - ' + todayStr,
             logCard:        itemData.logCard || '',
             itemFH:         itemData.flightHours || '',
-            dateOfRemoval:  itemData.inspectionDate || new Date().toISOString().split('T')[0],
-            removeFrom:     itemData.removeFrom || '',
+            dateOfRemoval:  itemData.dateOfRemoval || itemData.inspectionDate || new Date().toISOString().split('T')[0],
+            removeFrom:     itemData.removeFromHC || itemData.removeFrom || '',
             remarks:        itemData.comments || ''
         };
 
@@ -103,13 +118,13 @@ async function generateTag(type, itemData) {
             serialNumber:      itemData.serialNumber || '',
             manufacturer:      '',
             quantity:          '1',
-            removeFrom:        itemData.removeFrom || '',
+            removeFrom:        itemData.removeFromHC || itemData.removeFrom || '',
             logCard:           itemData.logCard || '',
             removedAtFH:       itemData.flightHours || '',
             tsoTsi:            '',
             removedAtCycle:    '',
-            dateOfRemoval:     itemData.inspectionDate || today,
-            nameTechnician:    '',
+            dateOfRemoval:     itemData.dateOfRemoval || itemData.inspectionDate || today,
+            nameTechnician:    userLastName,
             reasonForRemoval:  itemData.reason || itemData.comments || ''
         };
 
@@ -149,7 +164,7 @@ async function generateTag(type, itemData) {
         filename: a.download,
         module: document.title || window.location.pathname.split('/').pop().replace('.html',''),
         generatedAt: new Date().toISOString(),
-        generatedBy: localStorage.getItem('currentUser') || 'unknown'
+        generatedBy: localStorage.getItem('componentsBayCurrentUser') || 'unknown'
     };
 
     // Save to Supabase if available

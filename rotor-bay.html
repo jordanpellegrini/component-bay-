@@ -157,7 +157,20 @@
                         </label>
                     </div>
 
-                    <div class="form-group" style="grid-column: 1 / -1;">
+                    
+                    <div class="form-group">
+                        <label>Flight Hours</label>
+                        <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Removal</label>
+                        <input type="date" id="dateOfRemoval" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Remove from A/C</label>
+                        <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
+                    </div>
+<div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="comments" class="form-control" placeholder="Enter comments..."></textarea>
                     </div>
@@ -421,6 +434,9 @@
                 orderRef: document.getElementById('orderRef').value.trim(),
                 workInProgress: document.getElementById('workInProgress').checked,
                 comments: document.getElementById('comments').value.trim(),
+                flightHours: document.getElementById('flightHours').value.trim(),
+                dateOfRemoval: document.getElementById('dateOfRemoval').value,
+                removeFromHC: document.getElementById('removeFromHC').value.trim(),
                 reason: '',
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser
@@ -453,6 +469,9 @@
         }
 
         function resetForm() {
+            try { document.getElementById('flightHours').value = ''; } catch(e) {}
+            try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
+            try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
             document.getElementById('rotorForm').reset();
             editingItem = null;
             document.getElementById('nextShort').value = '';
@@ -529,6 +548,9 @@
             document.getElementById('orderRef').value = editingItem.orderRef || '';
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('comments').value = editingItem.comments || '';
+            document.getElementById('flightHours').value = item.flightHours || '';
+            document.getElementById('dateOfRemoval').value = item.dateOfRemoval || '';
+            document.getElementById('removeFromHC').value = item.removeFromHC || '';
             showAddForm(); closeModal();
         }
 
@@ -580,7 +602,7 @@
             const fields = ['designation','partNumber','serialNumber','serviceability',
                 'inspectionDate','nextInspection','next18M','next36M','next24M','next60M',
                 'orderRef','order','comments','reason','flightHours','logCard',
-                'batchNumber','expiryDate','brand','localisation'];
+                'batchNumber','expiryDate','brand','localisation','flightHours','dateOfRemoval','removeFromHC'];
             fields.forEach(f => {
                 const el = document.getElementById(f);
                 if (el) item[f] = el.type === 'checkbox' ? el.checked : el.value;

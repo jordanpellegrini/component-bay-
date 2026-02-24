@@ -135,7 +135,16 @@
                     </div>
                     
                     <!-- Row 4: Comments (full width) -->
-                    <div class="form-group" style="grid-column: 1 / -1;">
+                    
+                    <div class="form-group">
+                        <label>Date of Removal</label>
+                        <input type="date" id="dateOfRemoval" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Remove from A/C</label>
+                        <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
+                    </div>
+<div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="comments" class="form-control" placeholder="Enter detailed comments..." onchange="checkMissingLogcard()"></textarea>
                     </div>
@@ -381,6 +390,9 @@
                 serviceability: document.getElementById('serviceability').value || 'Serviceable',
                 workInProgress: document.getElementById('workInProgress').value.trim(),
                 comments: document.getElementById('comments').value.trim(),
+                flightHours: document.getElementById('flightHours').value.trim(),
+                dateOfRemoval: document.getElementById('dateOfRemoval').value,
+                removeFromHC: document.getElementById('removeFromHC').value.trim(),
                 reason: '',
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser
@@ -415,6 +427,9 @@
         }
 
         function resetForm() {
+            try { document.getElementById('flightHours').value = ''; } catch(e) {}
+            try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
+            try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
             document.getElementById('maintenanceForm').reset();
             // Don't reset editingItem here - it should only be reset after successful save
             document.getElementById('editId').value = '';
@@ -571,6 +586,9 @@
             document.getElementById('serviceability').value = editingItem.serviceability || '';
             document.getElementById('workInProgress').value = editingItem.workInProgress || '';
             document.getElementById('comments').value = editingItem.comments || '';
+            document.getElementById('flightHours').value = item.flightHours || '';
+            document.getElementById('dateOfRemoval').value = item.dateOfRemoval || '';
+            document.getElementById('removeFromHC').value = item.removeFromHC || '';
 
             showAddForm();
             closeModal();
@@ -700,7 +718,7 @@
             const fields = ['designation','partNumber','serialNumber','serviceability',
                 'inspectionDate','nextInspection','next18M','next36M','next24M','next60M',
                 'orderRef','order','comments','reason','flightHours','logCard',
-                'batchNumber','expiryDate','brand','localisation'];
+                'batchNumber','expiryDate','brand','localisation','flightHours','dateOfRemoval','removeFromHC'];
             fields.forEach(f => {
                 const el = document.getElementById(f);
                 if (el) item[f] = el.type === 'checkbox' ? el.checked : el.value;
