@@ -834,6 +834,8 @@
             if (item.next18M) nextParts.push('18M: ' + item.next18M);
             if (item.next36M) nextParts.push('36M: ' + item.next36M);
             item.nextInspection = nextParts.join(' / ');
+            // Get reason from stored data
+            if (typeof editingEFS !== 'undefined' && editingEFS) item.reason = editingEFS.reason || '';
             if (!item.partNumber) { alert('No item data'); return; }
             generateTag(type, item);
         }

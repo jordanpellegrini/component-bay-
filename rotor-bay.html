@@ -611,6 +611,8 @@
                 const el = document.getElementById(f);
                 if (el) item[f] = el.type === 'checkbox' ? el.checked : el.value;
             });
+            // Get reason from stored data (not a form field)
+            if (editingItem) item.reason = editingItem.reason || '';
             if (!item.partNumber && !item.designation) { alert('No item data'); return; }
             generateTag(type, item);
         }
