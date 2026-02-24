@@ -533,6 +533,16 @@
                     </div>
                 </a>
 
+                <!-- Tags History - Admin Only -->
+                <a href="tags-history.html" class="ultra-module-card card-import" id="tagsHistoryModule" style="display: none;">
+                    <div class="module-icon-ultra">🏷️</div>
+                    <div class="module-title-ultra">Serviceable & Unserviceable Tags</div>
+                    <div class="module-description-ultra">View, search and re-download all generated Serviceable and Unserviceable tags</div>
+                    <div class="module-status-ultra status-new-ultra">
+                        ⚡ Admin Tool
+                    </div>
+                </a>
+
                 <!-- Synthesis -->
                 <a href="synthesis.html" class="ultra-module-card card-synthesis">
                     <div class="module-icon-ultra">📋</div>
@@ -826,9 +836,11 @@
             if (userRole === 'admin') {
                 document.getElementById('uploadSection').style.display = 'block';
                 document.getElementById('importExcelModule').style.display = 'block';
+                document.getElementById('tagsHistoryModule').style.display = 'block';
             } else {
                 document.getElementById('uploadSection').style.display = 'none';
                 document.getElementById('importExcelModule').style.display = 'none';
+                document.getElementById('tagsHistoryModule').style.display = 'none';
             }
 
             // Run login alerts after a short delay for data to load

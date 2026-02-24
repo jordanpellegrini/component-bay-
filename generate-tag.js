@@ -161,7 +161,16 @@ async function generateTag(type, itemData) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    // Save tag record to database
+    // Save tag record to database (with PDF base64 for re-download)
+    // Convert filled PDF to base64
+    let pdfBase64 = '';
+    const bytes = new Uint8Array(filledBytes);
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        pdfBase64 += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+    pdfBase64 = btoa(pdfBase64);
+
     const tagRecord = {
         id: Date.now().toString(),
         type: tagType,
@@ -171,7 +180,8 @@ async function generateTag(type, itemData) {
         filename: a.download,
         module: document.title || window.location.pathname.split('/').pop().replace('.html',''),
         generatedAt: new Date().toISOString(),
-        generatedBy: localStorage.getItem('componentsBayCurrentUser') || 'unknown'
+        generatedBy: localStorage.getItem('componentsBayCurrentUser') || 'unknown',
+        pdfBase64: pdfBase64
     };
 
     // Save to Supabase if available

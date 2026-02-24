@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Components Bay - Generated Tags</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <script type="module" src="supabase-config.js"></script>
+    <style>
+        .tabs { display: flex; gap: 0; margin-bottom: 0; }
+        .tab-btn { padding: 12px 30px; border: 2px solid var(--border); border-bottom: none; background: var(--bg-card); cursor: pointer; font-weight: 600; font-size: 14px; border-radius: 8px 8px 0 0; color: var(--text-secondary); transition: all 0.2s; }
+        .tab-btn.active { background: #27ae60; color: white; border-color: #27ae60; }
+        .tab-btn.tab-unserv.active { background: #e74c3c; border-color: #e74c3c; }
+        .tab-content { display: none; border: 2px solid var(--border); border-radius: 0 8px 8px 8px; padding: 20px; background: var(--bg-card); }
+        .tab-content.active { display: block; }
+        .tag-card { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: center; padding: 14px 18px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; transition: all 0.2s; }
+        .tag-card:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .tag-card .tag-designation { font-weight: 700; color: var(--text-primary); }
+        .tag-card .tag-pn { color: var(--text-secondary); font-size: 13px; }
+        .tag-card .tag-meta { font-size: 12px; color: var(--text-tertiary); }
+        .tag-card .tag-actions { display: flex; gap: 6px; }
+        .btn-download { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; color: white; transition: all 0.2s; }
+        .btn-download.serv { background: #27ae60; }
+        .btn-download.serv:hover { background: #219a52; }
+        .btn-download.unserv { background: #e74c3c; }
+        .btn-download.unserv:hover { background: #c0392b; }
+        .btn-delete-tag { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 12px; background: white; transition: all 0.2s; }
+        .btn-delete-tag:hover { background: #fee; border-color: #e74c3c; }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-tertiary); }
+        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+        .count-badge { display: inline-block; background: var(--accent); color: white; border-radius: 12px; padding: 2px 10px; font-size: 12px; font-weight: 700; margin-left: 8px; }
+        .search-bar { width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; margin-bottom: 16px; background: var(--bg-card); }
+        .search-bar:focus { border-color: var(--accent); outline: none; }
+        .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); text-decoration: none; font-weight: 600; margin-bottom: 20px; }
+        .back-link:hover { color: var(--accent); }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 1100px; margin: 30px auto; padding: 0 20px;">
+        
+        <a href="index.html" class="back-link">← Back to Dashboard</a>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h1 style="margin:0;">🏷️ Generated Tags History</h1>
+            <span id="userInfo" style="font-size: 13px; color: var(--text-tertiary);"></span>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+            <input type="text" class="search-bar" id="searchInput" placeholder="🔍 Search by designation, P/N, S/N, or module..." oninput="filterTags()" style="margin-bottom:0; flex:1;">
+            <button onclick="refreshTags()" class="btn" style="padding: 10px 20px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; white-space: nowrap;">🔄 Refresh</button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('serviceable')">
+                📗 Serviceable Tags <span class="count-badge" id="servCount">0</span>
+            </button>
+            <button class="tab-btn tab-unserv" onclick="switchTab('unserviceable')">
+                📕 Unserviceable Tags <span class="count-badge" id="unservCount">0</span>
+            </button>
+        </div>
+
+        <div class="tab-content active" id="serviceableTab">
+            <div id="serviceableList"></div>
+        </div>
+        <div class="tab-content" id="unserviceableTab">
+            <div id="unserviceableList"></div>
+        </div>
+
+    </div>
+
+    <script>
+        let allTags = [];
+        let currentTab = 'serviceable';
+
+        // Auth check - Admin only
+        const currentUser = localStorage.getItem('componentsBayCurrentUser');
+        const userRole = localStorage.getItem('componentsBayUserRole');
+        
+        if (!currentUser) {
+            window.location.href = 'index.html';
+        } else if (userRole !== 'admin') {
+            document.body.innerHTML = '<div style="text-align:center;padding:100px 20px;"><h2>⛔ Access Denied</h2><p>This page is restricted to administrators only.</p><a href="index.html" style="color:#2980b9;">← Back to Dashboard</a></div>';
+        } else {
+            document.getElementById('userInfo').textContent = `👤 ${currentUser} (Admin)`;
+            loadTags();
+        }
+
+        async function refreshTags() {
+            allTags = [];
+            document.getElementById('searchInput').value = '';
+            await loadTags();
+        }
+
+        async function loadTags() {
+            // Load from Supabase first, fallback to localStorage
+            try {
+                if (window.ComponentsBayDB) {
+                    const dbTags = await ComponentsBayDB.load('generated_tags');
+                    if (dbTags && dbTags.length > 0) {
+                        allTags = dbTags;
+                        console.log(`📥 Loaded ${allTags.length} tags from Supabase`);
+                    }
+                }
+            } catch(e) {
+                console.warn('Supabase load failed:', e);
+            }
+
+            // Merge with localStorage tags (may have extras not yet synced)
+            const localTags = JSON.parse(localStorage.getItem('componentsBayGeneratedTags') || '[]');
+            if (localTags.length > 0) {
+                const existingIds = new Set(allTags.map(t => t.id));
+                for (const lt of localTags) {
+                    if (!existingIds.has(lt.id)) {
+                        allTags.push(lt);
+                    }
+                }
+            }
+
+            // Sort by date descending
+            allTags.sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt));
+            renderTags();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (tab === 'serviceable') {
+                document.querySelector('.tab-btn:first-child').classList.add('active');
+                document.getElementById('serviceableTab').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn.tab-unserv').classList.add('active');
+                document.getElementById('unserviceableTab').classList.add('active');
+            }
+        }
+
+        function filterTags() {
+            renderTags();
+        }
+
+        function renderTags() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            
+            const servTags = allTags.filter(t => t.type === 'Serviceable' && matchSearch(t, search));
+            const unservTags = allTags.filter(t => t.type === 'Unserviceable' && matchSearch(t, search));
+
+            document.getElementById('servCount').textContent = servTags.length;
+            document.getElementById('unservCount').textContent = unservTags.length;
+
+            document.getElementById('serviceableList').innerHTML = servTags.length 
+                ? servTags.map(t => renderTagCard(t, 'serv')).join('')
+                : '<div class="empty-state"><div class="icon">📗</div><p>No serviceable tags generated yet</p></div>';
+
+            document.getElementById('unserviceableList').innerHTML = unservTags.length 
+                ? unservTags.map(t => renderTagCard(t, 'unserv')).join('')
+                : '<div class="empty-state"><div class="icon">📕</div><p>No unserviceable tags generated yet</p></div>';
+        }
+
+        function matchSearch(tag, search) {
+            if (!search) return true;
+            const haystack = `${tag.designation} ${tag.partNumber} ${tag.serialNumber} ${tag.module} ${tag.filename} ${tag.generatedBy}`.toLowerCase();
+            return haystack.includes(search);
+        }
+
+        function renderTagCard(tag, typeClass) {
+            const date = new Date(tag.generatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const hasPdf = tag.pdfBase64 ? true : false;
+            
+            return `
+                <div class="tag-card">
+                    <div>
+                        <div class="tag-designation">${tag.designation || 'N/A'}</div>
+                        <div class="tag-pn">P/N: ${tag.partNumber || '-'} | S/N: ${tag.serialNumber || '-'}</div>
+                    </div>
+                    <div>
+                        <div class="tag-pn">${tag.module || '-'}</div>
+                    </div>
+                    <div class="tag-meta">
+                        ${date}<br>by ${tag.generatedBy || 'unknown'}
+                    </div>
+                    <div class="tag-actions">
+                        <button class="btn-download ${typeClass}" onclick="downloadTag('${tag.id}')" ${!hasPdf ? 'disabled title="PDF not available"' : ''}>
+                            📥 ${hasPdf ? 'Download' : 'No PDF'}
+                        </button>
+                        <button class="btn-delete-tag" onclick="deleteTag('${tag.id}')">🗑️</button>
+                    </div>
+                </div>`;
+        }
+
+        function downloadTag(id) {
+            const tag = allTags.find(t => t.id === id);
+            if (!tag || !tag.pdfBase64) {
+                alert('PDF data not available for this tag.');
+                return;
+            }
+
+            const bytes = Uint8Array.from(atob(tag.pdfBase64), c => c.charCodeAt(0));
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = tag.filename || `Tag_${tag.id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function deleteTag(id) {
+            if (!confirm('Delete this tag record?')) return;
+            
+            allTags = allTags.filter(t => t.id !== id);
+            
+            // Update localStorage
+            const localTags = JSON.parse(localStorage.getItem('componentsBayGeneratedTags') || '[]');
+            localStorage.setItem('componentsBayGeneratedTags', JSON.stringify(localTags.filter(t => t.id !== id)));
+            
+            // Delete from Supabase
+            if (window.ComponentsBayDB) {
+                try {
+                    await ComponentsBayDB.delete('generated_tags', id);
+                } catch(e) { console.warn('DB delete failed:', e); }
+            }
+            
+            renderTags();
+        }
+    </script>
+</body>
+</html>
