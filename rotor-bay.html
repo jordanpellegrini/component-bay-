@@ -378,6 +378,10 @@
         function setupDefaultView() { document.getElementById('addForm').classList.add('hidden'); document.getElementById('viewAllSection').classList.add('hidden'); }
         function hideAllForms() { setupDefaultView(); }
         function showAddForm() {
+            document.getElementById('addForm').classList.remove('hidden');
+            document.getElementById('viewAllSection').classList.add('hidden');
+        }
+
         function showAllItems() { hideAllForms(); document.getElementById('viewAllSection').classList.remove('hidden'); refreshTable(); }
 
         function updateSummary() {

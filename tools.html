@@ -245,7 +245,13 @@
         }
 
         function showAddForm() {
+            document.getElementById('addFormSection').classList.remove('hidden');
+            document.getElementById('viewAllSection').classList.add('hidden');
+            document.getElementById('formTitle').textContent = '➕ Add Tool';
+        }
+
         function showViewAll() { document.getElementById('viewAllSection').classList.remove('hidden'); document.getElementById('addFormSection').classList.add('hidden'); refreshTable(); }
+
 
         function refreshTable() {
             const container = document.getElementById('allItemsTable');
@@ -298,6 +304,8 @@
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
+        }
+
 
         function resetForm() {
             try { document.getElementById('flightHours').value = ''; } catch(e) {}

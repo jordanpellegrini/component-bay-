@@ -60,13 +60,16 @@ async function generateTag(type, itemData) {
         return;
     }
 
-    const { PDFDocument } = PDFLib;
+    const { PDFDocument, StandardFonts } = PDFLib;
     
     // Load template PDF
     const templateB64 = TAG_TEMPLATES[type];
     const pdfBytes = Uint8Array.from(atob(templateB64), c => c.charCodeAt(0));
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const form = pdfDoc.getForm();
+
+    // Embed Helvetica font (closest to Arial in PDF standard fonts)
+    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
     // Get current user lastname
     let userLastName = '';
@@ -100,10 +103,12 @@ async function generateTag(type, itemData) {
             remarks:        itemData.comments || ''
         };
 
-        // Fill form fields
+        // Fill form fields with Helvetica 12pt
         for (const [dataKey, fieldName] of Object.entries(SERV_FIELD_MAP)) {
             try {
                 const field = form.getTextField(fieldName);
+                field.defaultUpdateAppearances(helvetica);
+                field.setFontSize(12);
                 if (data[dataKey]) field.setText(String(data[dataKey]));
             } catch(e) { console.warn(`Field not found: ${fieldName}`); }
         }
@@ -131,6 +136,8 @@ async function generateTag(type, itemData) {
         for (const [dataKey, fieldName] of Object.entries(UNSERV_FIELD_MAP)) {
             try {
                 const field = form.getTextField(fieldName);
+                field.defaultUpdateAppearances(helvetica);
+                field.setFontSize(12);
                 if (data[dataKey]) field.setText(String(data[dataKey]));
             } catch(e) { console.warn(`Field not found: ${fieldName}`); }
         }
