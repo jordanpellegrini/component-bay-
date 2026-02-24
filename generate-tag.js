@@ -81,7 +81,7 @@ async function generateTag(type, itemData) {
             logCard:        itemData.logCard || '',
             itemFH:         itemData.flightHours || '',
             dateOfRemoval:  itemData.inspectionDate || new Date().toISOString().split('T')[0],
-            removeFrom:     '',
+            removeFrom:     itemData.removeFrom || '',
             remarks:        itemData.comments || ''
         };
 
@@ -103,7 +103,7 @@ async function generateTag(type, itemData) {
             serialNumber:      itemData.serialNumber || '',
             manufacturer:      '',
             quantity:          '1',
-            removeFrom:        '',
+            removeFrom:        itemData.removeFrom || '',
             logCard:           itemData.logCard || '',
             removedAtFH:       itemData.flightHours || '',
             tsoTsi:            '',
@@ -127,12 +127,44 @@ async function generateTag(type, itemData) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const pn = (itemData.partNumber || 'tag').replace(/[^a-zA-Z0-9-_]/g, '_');
-    a.download = type === 'serviceable' 
-        ? `NH90_Form_C_Serviceable_${pn}.pdf`
-        : `NH90_Form_B_Unserviceable_${pn}.pdf`;
+
+    // Filename: Designation_SN_Serviceable.pdf or Designation_SN_Unserviceable.pdf
+    const designation = (itemData.designation || itemData.description || 'Item').replace(/[^a-zA-Z0-9-_ ]/g, '').trim().replace(/\s+/g, '_');
+    const sn = (itemData.serialNumber || 'NoSN').replace(/[^a-zA-Z0-9-_]/g, '_');
+    const tagType = type === 'serviceable' ? 'Serviceable' : 'Unserviceable';
+    a.download = `${designation}_${sn}_${tagType}.pdf`;
+
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    // Save tag record to database
+    const tagRecord = {
+        id: Date.now().toString(),
+        type: tagType,
+        designation: itemData.designation || itemData.description || '',
+        partNumber: itemData.partNumber || '',
+        serialNumber: itemData.serialNumber || '',
+        filename: a.download,
+        module: document.title || window.location.pathname.split('/').pop().replace('.html',''),
+        generatedAt: new Date().toISOString(),
+        generatedBy: localStorage.getItem('currentUser') || 'unknown'
+    };
+
+    // Save to Supabase if available
+    if (window.ComponentsBayDB) {
+        try {
+            await ComponentsBayDB.save('generated_tags', tagRecord);
+            console.log('📄 Tag saved to DB:', tagRecord.filename);
+        } catch(e) {
+            console.warn('Tag DB save failed:', e);
+        }
+    }
+
+    // Always save to localStorage
+    let tags = JSON.parse(localStorage.getItem('componentsBayGeneratedTags') || '[]');
+    tags.push(tagRecord);
+    localStorage.setItem('componentsBayGeneratedTags', JSON.stringify(tags));
+    console.log('📄 Tag saved locally:', tagRecord.filename);
 }

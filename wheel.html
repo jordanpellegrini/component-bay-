@@ -902,17 +902,39 @@
         });
     
         function generateTagForCurrent(type) {
-            const item = {};
-            // Read all form fields
-            const fields = ['designation','partNumber','serialNumber','serviceability',
-                'inspectionDate','nextInspection','next18M','next36M','next24M','next60M',
-                'orderRef','order','comments','reason','flightHours','logCard',
-                'batchNumber','expiryDate','brand','localisation'];
-            fields.forEach(f => {
-                const el = document.getElementById(f);
-                if (el) item[f] = el.type === 'checkbox' ? el.checked : el.value;
-            });
-            if (!item.partNumber && !item.designation) { alert('No item data'); return; }
+            const pnWheel = document.getElementById('pnWheel')?.value || '';
+            const pnTire = document.getElementById('pnTire')?.value || '';
+            const numberTire = document.getElementById('numberTireChange')?.value || '';
+            const eddyCurrent = document.getElementById('eddyCurrentCout')?.value || '';
+            const removeFrom = document.getElementById('removeFromHC')?.value || '';
+            const sn = document.getElementById('serialNumber')?.value || '';
+            const designation = document.getElementById('designation')?.value || '';
+            const serviceability = document.getElementById('serviceability')?.value || '';
+            const order = document.getElementById('order')?.value || '';
+            const comments = document.getElementById('comments')?.value || '';
+            const flightHours = document.getElementById('flightHours')?.value || '';
+            const position = document.getElementById('position')?.value || '';
+
+            // Build comments: P/N Tire + Number Tire + Eddy Currents + original comments
+            let tagComments = [];
+            if (pnTire) tagComments.push('P/N Tire: ' + pnTire);
+            if (numberTire) tagComments.push('Number Tire: ' + numberTire);
+            if (eddyCurrent) tagComments.push('Eddy Currents: ' + eddyCurrent);
+            if (comments) tagComments.push(comments);
+
+            const item = {
+                partNumber: pnWheel,
+                serialNumber: sn,
+                designation: designation || position,
+                serviceability: serviceability,
+                orderRef: order,
+                comments: tagComments.join(' | '),
+                flightHours: flightHours,
+                removeFrom: removeFrom,
+                logCard: 'YES'
+            };
+
+            if (!item.partNumber) { alert('No P/N Wheel data'); return; }
             generateTag(type, item);
         }
     </script>
