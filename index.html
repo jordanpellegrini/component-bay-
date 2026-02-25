@@ -271,6 +271,26 @@
             transform: scale(1.1);
         }
 
+        .backup-ultra {
+            position: fixed;
+            top: 30px;
+            right: 170px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border: none;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .backup-ultra:hover {
+            transform: scale(1.1);
+        }
+
         .floating-info {
             position: fixed;
             bottom: 30px;
@@ -357,6 +377,9 @@
         
         <!-- Documentation Icon -->
         <button id="documentationIcon" class="documentation-ultra" title="Documentation">📚</button>
+
+        <!-- Backup Icon (Admin Only) -->
+        <button id="backupIcon" class="backup-ultra hidden" onclick="backupAll(event)" title="Backup All Data">📦</button>
 
         <div class="main-container">
             <!-- Ultra Navigation -->
@@ -549,15 +572,6 @@
                     <div class="module-icon-ultra">🏭</div>
                     <div class="module-title-ultra">P/N → Manufacturer</div>
                     <div class="module-description-ultra">Manage Part Number to Manufacturer mappings for auto-fill in Serviceable & Unserviceable tags</div>
-                    <div class="module-status-ultra status-new-ultra">
-                        ⚡ Admin Tool
-                    </div>
-                </a>
-
-                <a href="#" onclick="backupAll(event)" class="ultra-module-card card-import" id="backupModule" style="display: none;">
-                    <div class="module-icon-ultra">📦</div>
-                    <div class="module-title-ultra">Backup All Data</div>
-                    <div class="module-description-ultra">Download a full backup of all Components Bay data (components, tags, P/N mappings, PDFs)</div>
                     <div class="module-status-ultra status-new-ultra">
                         ⚡ Admin Tool
                     </div>
@@ -858,13 +872,13 @@
                 document.getElementById('importExcelModule').style.display = 'block';
                 document.getElementById('tagsHistoryModule').style.display = 'block';
                 document.getElementById('pnManufacturerModule').style.display = 'block';
-                document.getElementById('backupModule').style.display = 'block';
+                document.getElementById('backupIcon').classList.remove('hidden');
             } else {
                 document.getElementById('uploadSection').style.display = 'none';
                 document.getElementById('importExcelModule').style.display = 'none';
                 document.getElementById('tagsHistoryModule').style.display = 'none';
                 document.getElementById('pnManufacturerModule').style.display = 'none';
-                document.getElementById('backupModule').style.display = 'none';
+                document.getElementById('backupIcon').classList.add('hidden');
             }
 
             // Run login alerts after a short delay for data to load
@@ -1292,9 +1306,11 @@
         const userRole = localStorage.getItem('componentsBayUserRole');
         if (userRole !== 'admin') { alert('Admin only'); return; }
 
-        const card = document.getElementById('backupModule');
-        const origText = card.querySelector('.module-title-ultra').textContent;
-        card.querySelector('.module-title-ultra').textContent = '⏳ Backup in progress...';
+        const btn = document.getElementById('backupIcon');
+        const origText = btn.textContent;
+        btn.textContent = '⏳';
+        btn.title = 'Backup in progress...';
+        btn.style.pointerEvents = 'none';
         
         try {
             const zip = new JSZip();
@@ -1315,13 +1331,12 @@
             // Export each table as JSON
             for (const table of tables) {
                 try {
-                    card.querySelector('.module-description-ultra').textContent = `Loading ${table}...`;
+                    btn.title = `Loading ${table}...`;
                     let data = [];
                     if (window.ComponentsBayDB) {
                         data = await ComponentsBayDB.load(table);
                     }
                     if (!data || data.length === 0) {
-                        // Try localStorage fallback
                         const localKeys = Object.keys(localStorage).filter(k => k.toLowerCase().includes(table.replace('_', '')));
                         for (const key of localKeys) {
                             try {
@@ -1340,7 +1355,7 @@
             }
 
             // Export generated tags PDFs (from base64 in generated_tags)
-            card.querySelector('.module-description-ultra').textContent = 'Exporting PDF tags...';
+            btn.title = 'Exporting PDF tags...';
             try {
                 let tags = [];
                 if (window.ComponentsBayDB) {
@@ -1362,7 +1377,7 @@
                         } catch(e) {}
                     }
                 }
-                console.log(`📄 Exported ${pdfCount} PDF tags`);
+                console.log(`Exported ${pdfCount} PDF tags`);
             } catch(e) { console.warn('PDF export error:', e); }
 
             // Add backup metadata
@@ -1376,14 +1391,11 @@
             folder.file('backup-info.json', JSON.stringify(meta, null, 2));
 
             // Generate ZIP
-            card.querySelector('.module-description-ultra').textContent = 'Generating ZIP file...';
+            btn.title = 'Generating ZIP...';
             const blob = await zip.generateAsync({ 
                 type: 'blob',
                 compression: 'DEFLATE',
                 compressionOptions: { level: 6 }
-            }, function(metadata) {
-                card.querySelector('.module-description-ultra').textContent = 
-                    `Compressing... ${Math.round(metadata.percent)}%`;
             });
 
             // Download
@@ -1395,19 +1407,24 @@
             URL.revokeObjectURL(url);
 
             const sizeMB = (blob.size / 1024 / 1024).toFixed(1);
-            card.querySelector('.module-title-ultra').textContent = origText;
-            card.querySelector('.module-description-ultra').textContent = 
-                `✅ Backup complete! ${totalItems} items, ${sizeMB} MB`;
+            btn.textContent = '✅';
+            btn.title = `Backup complete! ${totalItems} items, ${sizeMB} MB`;
             
             setTimeout(() => {
-                card.querySelector('.module-description-ultra').textContent = 
-                    'Download a full backup of all Components Bay data (components, tags, P/N mappings, PDFs)';
-            }, 5000);
+                btn.textContent = '📦';
+                btn.title = 'Backup All Data';
+                btn.style.pointerEvents = '';
+            }, 3000);
 
         } catch(err) {
             console.error('Backup error:', err);
-            card.querySelector('.module-title-ultra').textContent = origText;
-            card.querySelector('.module-description-ultra').textContent = '❌ Backup failed: ' + err.message;
+            btn.textContent = '❌';
+            btn.title = 'Backup failed: ' + err.message;
+            setTimeout(() => {
+                btn.textContent = '📦';
+                btn.title = 'Backup All Data';
+                btn.style.pointerEvents = '';
+            }, 3000);
         }
     }
     </script>
