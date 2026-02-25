@@ -69,6 +69,53 @@
             </div>
         </div>
 
+        <!-- Module Filters -->
+        <div class="panel" style="margin-bottom: 0;">
+            <div style="padding: 14px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border);">
+                <span style="font-weight: 700; font-size: 13px; color: var(--text-secondary); margin-right: 4px;">🔽 FILTER:</span>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#eef2ff;border:1px solid #d0d7f7;">
+                    <input type="checkbox" class="module-filter" value="EFS" checked onchange="applyFilters()"> EFS
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#fef5e7;border:1px solid #f5deb3;">
+                    <input type="checkbox" class="module-filter" value="Life Raft" checked onchange="applyFilters()"> Life Raft
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#fdf0e6;border:1px solid #f5cba7;">
+                    <input type="checkbox" class="module-filter" value="Wheel" checked onchange="applyFilters()"> Wheel
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#e8f8f5;border:1px solid #a3e4d7;">
+                    <input type="checkbox" class="module-filter" value="Maintenance" checked onchange="applyFilters()"> Maintenance
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#f4ecf7;border:1px solid #d2b4de;">
+                    <input type="checkbox" class="module-filter" value="Composite" checked onchange="applyFilters()"> Composite
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#e8f6f3;border:1px solid #a2d9ce;">
+                    <input type="checkbox" class="module-filter" value="Avionic" checked onchange="applyFilters()"> Avionic
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#f5eef8;border:1px solid #c39bd3;">
+                    <input type="checkbox" class="module-filter" value="Troop Seat" checked onchange="applyFilters()"> Troop Seat
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#eaf2e8;border:1px solid #b5d6a7;">
+                    <input type="checkbox" class="module-filter" value="Engine" checked onchange="applyFilters()"> Engine
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#fbe9e7;border:1px solid #f5b7b1;">
+                    <input type="checkbox" class="module-filter" value="Rotor Bay" checked onchange="applyFilters()"> Rotor Bay
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#f0e6f6;border:1px solid #bb8fce;">
+                    <input type="checkbox" class="module-filter" value="IAFT/EAFT" checked onchange="applyFilters()"> IAFT/EAFT
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#eee;border:1px solid #ccc;">
+                    <input type="checkbox" class="module-filter" value="POL" checked onchange="applyFilters()"> POL
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#eee;border:1px solid #ccc;">
+                    <input type="checkbox" class="module-filter" value="Tools" checked onchange="applyFilters()"> Tools
+                </label>
+                <span style="margin-left:auto;">
+                    <button onclick="toggleAllFilters(true)" style="padding:4px 10px;border:1px solid #27ae60;border-radius:5px;background:#e8f8f5;cursor:pointer;font-size:11px;font-weight:600;color:#27ae60;">✅ All</button>
+                    <button onclick="toggleAllFilters(false)" style="padding:4px 10px;border:1px solid #e74c3c;border-radius:5px;background:#fde8e8;cursor:pointer;font-size:11px;font-weight:600;color:#e74c3c;margin-left:4px;">❌ None</button>
+                </span>
+            </div>
+        </div>
+
         <!-- Unserviceable Items Table -->
         <div class="panel">
             <div class="panel-header" style="background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);">
@@ -98,6 +145,23 @@
         let currentUser = localStorage.getItem('componentsBayCurrentUser') || 'Unknown User';
         let userRole = localStorage.getItem('componentsBayUserRole') || 'user';
         let allUnserviceableItems = [];
+        let filteredItems = [];
+
+        function getActiveModules() {
+            const checkboxes = document.querySelectorAll('.module-filter');
+            return Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+        }
+
+        function applyFilters() {
+            const active = getActiveModules();
+            filteredItems = allUnserviceableItems.filter(item => active.includes(item.module));
+            refreshTable();
+        }
+
+        function toggleAllFilters(state) {
+            document.querySelectorAll('.module-filter').forEach(cb => cb.checked = state);
+            applyFilters();
+        }
 
         // Wait for ComponentsBayDB to be available (loaded as module)
         function waitForDB(maxWait = 3000) {
@@ -117,7 +181,7 @@
             checkAuthentication();
             await waitForDB();
             await loadAllData();
-            refreshTable();
+            applyFilters();
         });
 
         function checkAuthentication() {
@@ -355,9 +419,9 @@
 
         function refreshTable() {
             const tableContainer = document.getElementById('synthesisTable');
-            document.getElementById('tableCount').textContent = allUnserviceableItems.length;
+            document.getElementById('tableCount').textContent = filteredItems.length;
 
-            if (allUnserviceableItems.length === 0) {
+            if (filteredItems.length === 0) {
                 tableContainer.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">✅</div>
@@ -384,7 +448,7 @@
                         <tbody>
             `;
 
-            allUnserviceableItems.forEach(item => {
+            filteredItems.forEach(item => {
                 const moduleColors = {
                     'EFS': '#3498db',
                     'Life Raft': '#f39c12',
@@ -536,7 +600,7 @@
 
         async function refreshData() {
             await loadAllData();
-            refreshTable();
+            applyFilters();
             showMessage('Data refreshed successfully', 'success');
         }
 
