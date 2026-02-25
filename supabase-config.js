@@ -23,7 +23,8 @@ const localStorageKeyMap = {
     'tools': 'componentsBayTools',
     'documents': 'componentsBayDocuments',
     'users': 'componentsBayUsers',
-    'generated_tags': 'componentsBayGeneratedTags'
+    'generated_tags': 'componentsBayGeneratedTags',
+    'pn_manufacturers': 'componentsBayPnManufacturers'
 };
 
 function getLocalKey(tableName) {

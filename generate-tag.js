@@ -86,6 +86,15 @@ async function generateTag(type, itemData) {
 
     const todayStr = new Date().toLocaleDateString('en-GB');
 
+    // Auto-lookup Manufacturer from P/N mapping
+    let manufacturer = '';
+    try {
+        const pnMappings = JSON.parse(localStorage.getItem('componentsBayPnManufacturers') || '[]');
+        const pn = (itemData.partNumber || '').toUpperCase();
+        const match = pnMappings.find(m => pn === m.partNumber || pn.startsWith(m.partNumber));
+        if (match) manufacturer = match.manufacturer;
+    } catch(e) {}
+
     if (type === 'serviceable') {
         // Build data object from item
         const data = {
@@ -121,7 +130,7 @@ async function generateTag(type, itemData) {
             partNumber:        itemData.partNumber || '',
             description:       itemData.designation || itemData.description || '',
             serialNumber:      itemData.serialNumber || '',
-            manufacturer:      '',
+            manufacturer:      manufacturer,
             quantity:          '1',
             removeFrom:        itemData.removeFromHC || itemData.removeFrom || '',
             logCard:           itemData.logCard || '',

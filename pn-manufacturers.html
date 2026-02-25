@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Components Bay - P/N Manufacturer Mapping</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <script type="module" src="supabase-config.js"></script>
+    <style>
+        .mapping-table { width: 100%; border-collapse: collapse; }
+        .mapping-table th { background: var(--bg-hover); padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); border-bottom: 2px solid var(--border); }
+        .mapping-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+        .mapping-table tr:hover { background: var(--bg-hover); }
+        .add-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 20px; }
+        .add-row input { padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; }
+        .add-row input:focus { border-color: var(--accent); outline: none; }
+        .btn-add-map { padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
+        .btn-add-map:hover { background: #219a52; }
+        .btn-del { padding: 4px 10px; background: none; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .btn-del:hover { background: #fee; border-color: #e74c3c; }
+        .btn-edit { padding: 4px 10px; background: none; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .btn-edit:hover { background: #eef; border-color: #2980b9; }
+        .stats { display: flex; gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 24px; flex: 1; text-align: center; }
+        .stat-card .num { font-size: 28px; font-weight: 700; color: var(--accent); }
+        .stat-card .label { font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; }
+        .search-bar { width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; margin-bottom: 16px; background: var(--bg-card); }
+        .search-bar:focus { border-color: var(--accent); outline: none; }
+        .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); text-decoration: none; font-weight: 600; margin-bottom: 20px; }
+        .back-link:hover { color: var(--accent); }
+        .msg { padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; font-weight: 600; display: none; }
+        .msg-success { background: #d5f5e3; color: #1e8449; display: block; }
+        .msg-error { background: #fadbd8; color: #c0392b; display: block; }
+        .import-section { margin-top: 20px; padding: 20px; border: 2px dashed var(--border); border-radius: 8px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 900px; margin: 30px auto; padding: 0 20px;">
+        
+        <a href="index.html" class="back-link">← Back to Dashboard</a>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h1 style="margin:0;">🏭 P/N → Manufacturer Mapping</h1>
+            <span id="userInfo" style="font-size: 13px; color: var(--text-tertiary);"></span>
+        </div>
+
+        <div id="msgBox" class="msg"></div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="num" id="totalMappings">0</div>
+                <div class="label">Total Mappings</div>
+            </div>
+            <div class="stat-card">
+                <div class="num" id="totalManufacturers">0</div>
+                <div class="label">Manufacturers</div>
+            </div>
+        </div>
+
+        <!-- Add new mapping -->
+        <h3 style="margin-bottom: 10px;">➕ Add New Mapping</h3>
+        <div class="add-row">
+            <input type="text" id="newPN" placeholder="Part Number (P/N)" onkeyup="if(event.key==='Enter')addMapping()">
+            <input type="text" id="newManufacturer" placeholder="Manufacturer">
+            <button class="btn-add-map" onclick="addMapping()">+ Add</button>
+        </div>
+
+        <!-- Search -->
+        <input type="text" class="search-bar" id="searchInput" placeholder="🔍 Search P/N or Manufacturer..." oninput="renderTable()">
+
+        <!-- Table -->
+        <div style="overflow-x: auto;">
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>Part Number (P/N)</th>
+                        <th>Manufacturer</th>
+                        <th style="width: 120px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="mappingBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Bulk Import -->
+        <div class="import-section">
+            <h3>📋 Bulk Import (Paste)</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">Paste lines in format: <code>P/N, Manufacturer</code> or <code>P/N → Manufacturer</code> (one per line)</p>
+            <textarea id="bulkInput" style="width:100%;height:100px;padding:10px;border:2px solid var(--border);border-radius:8px;font-family:monospace;font-size:13px;" placeholder="S956A20A1004, Zodiac Aerospace&#10;1234-5678 → Airbus Helicopters&#10;PN-001, Safran"></textarea>
+            <br><br>
+            <button onclick="bulkImport()" class="btn-add-map">📥 Import All</button>
+        </div>
+
+    </div>
+
+    <script>
+        let mappings = []; // [{id, partNumber, manufacturer}]
+
+        // Auth check - Admin only
+        const currentUser = localStorage.getItem('componentsBayCurrentUser');
+        const userRole = localStorage.getItem('componentsBayUserRole');
+        
+        if (!currentUser) {
+            window.location.href = 'index.html';
+        } else if (userRole !== 'admin') {
+            document.body.innerHTML = '<div style="text-align:center;padding:100px 20px;"><h2>⛔ Access Denied</h2><p>Administrators only.</p><a href="index.html">← Back</a></div>';
+        } else {
+            document.getElementById('userInfo').textContent = `👤 ${currentUser} (Admin)`;
+            loadMappings();
+        }
+
+        async function loadMappings() {
+            // Try Supabase
+            try {
+                if (window.ComponentsBayDB) {
+                    const db = await ComponentsBayDB.load('pn_manufacturers');
+                    if (db && db.length > 0) {
+                        mappings = db;
+                    }
+                }
+            } catch(e) { console.warn('DB load failed:', e); }
+
+            // Merge localStorage
+            const local = JSON.parse(localStorage.getItem('componentsBayPnManufacturers') || '[]');
+            const ids = new Set(mappings.map(m => m.id));
+            for (const lm of local) {
+                if (!ids.has(lm.id)) mappings.push(lm);
+            }
+
+            mappings.sort((a, b) => (a.partNumber || '').localeCompare(b.partNumber || ''));
+            renderTable();
+        }
+
+        function saveMappings() {
+            localStorage.setItem('componentsBayPnManufacturers', JSON.stringify(mappings));
+        }
+
+        async function saveToDb(item) {
+            saveMappings();
+            if (window.ComponentsBayDB) {
+                try { await ComponentsBayDB.save('pn_manufacturers', item); } catch(e) {}
+            }
+        }
+
+        function showMsg(text, type) {
+            const box = document.getElementById('msgBox');
+            box.textContent = text;
+            box.className = `msg msg-${type}`;
+            setTimeout(() => { box.className = 'msg'; }, 3000);
+        }
+
+        function addMapping() {
+            const pn = document.getElementById('newPN').value.trim().toUpperCase();
+            const mfr = document.getElementById('newManufacturer').value.trim();
+            if (!pn || !mfr) { showMsg('Both P/N and Manufacturer required', 'error'); return; }
+
+            // Check duplicate
+            const existing = mappings.find(m => m.partNumber === pn);
+            if (existing) {
+                existing.manufacturer = mfr;
+                saveToDb(existing);
+                showMsg(`Updated: ${pn} → ${mfr}`, 'success');
+            } else {
+                const item = { id: Date.now().toString(), partNumber: pn, manufacturer: mfr };
+                mappings.push(item);
+                saveToDb(item);
+                showMsg(`Added: ${pn} → ${mfr}`, 'success');
+            }
+
+            document.getElementById('newPN').value = '';
+            document.getElementById('newManufacturer').value = '';
+            document.getElementById('newPN').focus();
+            mappings.sort((a, b) => a.partNumber.localeCompare(b.partNumber));
+            renderTable();
+        }
+
+        function editMapping(id) {
+            const item = mappings.find(m => m.id === id);
+            if (!item) return;
+            const newMfr = prompt(`Manufacturer for ${item.partNumber}:`, item.manufacturer);
+            if (newMfr === null) return;
+            item.manufacturer = newMfr.trim();
+            saveToDb(item);
+            showMsg(`Updated: ${item.partNumber} → ${item.manufacturer}`, 'success');
+            renderTable();
+        }
+
+        async function deleteMapping(id) {
+            const item = mappings.find(m => m.id === id);
+            if (!item || !confirm(`Delete mapping for ${item.partNumber}?`)) return;
+            mappings = mappings.filter(m => m.id !== id);
+            saveMappings();
+            if (window.ComponentsBayDB) {
+                try { await ComponentsBayDB.delete('pn_manufacturers', id); } catch(e) {}
+            }
+            showMsg(`Deleted: ${item.partNumber}`, 'success');
+            renderTable();
+        }
+
+        function bulkImport() {
+            const text = document.getElementById('bulkInput').value.trim();
+            if (!text) { showMsg('Paste data first', 'error'); return; }
+
+            const lines = text.split('\n').filter(l => l.trim());
+            let added = 0, updated = 0;
+
+            for (const line of lines) {
+                // Support: "PN, Manufacturer" or "PN → Manufacturer" or "PN | Manufacturer" or "PN ; Manufacturer"
+                const parts = line.split(/[,→|;]\s*/);
+                if (parts.length < 2) continue;
+                const pn = parts[0].trim().toUpperCase();
+                const mfr = parts.slice(1).join(',').trim();
+                if (!pn || !mfr) continue;
+
+                const existing = mappings.find(m => m.partNumber === pn);
+                if (existing) {
+                    existing.manufacturer = mfr;
+                    saveToDb(existing);
+                    updated++;
+                } else {
+                    const item = { id: Date.now().toString() + Math.random().toString(36).substr(2, 4), partNumber: pn, manufacturer: mfr };
+                    mappings.push(item);
+                    saveToDb(item);
+                    added++;
+                }
+            }
+
+            mappings.sort((a, b) => a.partNumber.localeCompare(b.partNumber));
+            document.getElementById('bulkInput').value = '';
+            showMsg(`Imported: ${added} added, ${updated} updated`, 'success');
+            renderTable();
+        }
+
+        function renderTable() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = mappings.filter(m => {
+                if (!search) return true;
+                return m.partNumber.toLowerCase().includes(search) || m.manufacturer.toLowerCase().includes(search);
+            });
+
+            const uniqueMfrs = new Set(mappings.map(m => m.manufacturer));
+            document.getElementById('totalMappings').textContent = mappings.length;
+            document.getElementById('totalManufacturers').textContent = uniqueMfrs.size;
+
+            const body = document.getElementById('mappingBody');
+            if (filtered.length === 0) {
+                body.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:40px;color:var(--text-tertiary);">No mappings found</td></tr>';
+                return;
+            }
+
+            body.innerHTML = filtered.map(m => `
+                <tr>
+                    <td><strong>${m.partNumber}</strong></td>
+                    <td>${m.manufacturer}</td>
+                    <td>
+                        <button class="btn-edit" onclick="editMapping('${m.id}')">✏️</button>
+                        <button class="btn-del" onclick="deleteMapping('${m.id}')">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

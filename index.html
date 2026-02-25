@@ -543,6 +543,16 @@
                     </div>
                 </a>
 
+                <!-- P/N Manufacturer Mapping - Admin Only -->
+                <a href="pn-manufacturers.html" class="ultra-module-card card-import" id="pnManufacturerModule" style="display: none;">
+                    <div class="module-icon-ultra">🏭</div>
+                    <div class="module-title-ultra">P/N → Manufacturer</div>
+                    <div class="module-description-ultra">Manage Part Number to Manufacturer mappings for auto-fill in Serviceable & Unserviceable tags</div>
+                    <div class="module-status-ultra status-new-ultra">
+                        ⚡ Admin Tool
+                    </div>
+                </a>
+
                 <!-- Synthesis -->
                 <a href="synthesis.html" class="ultra-module-card card-synthesis">
                     <div class="module-icon-ultra">📋</div>
@@ -837,10 +847,12 @@
                 document.getElementById('uploadSection').style.display = 'block';
                 document.getElementById('importExcelModule').style.display = 'block';
                 document.getElementById('tagsHistoryModule').style.display = 'block';
+                document.getElementById('pnManufacturerModule').style.display = 'block';
             } else {
                 document.getElementById('uploadSection').style.display = 'none';
                 document.getElementById('importExcelModule').style.display = 'none';
                 document.getElementById('tagsHistoryModule').style.display = 'none';
+                document.getElementById('pnManufacturerModule').style.display = 'none';
             }
 
             // Run login alerts after a short delay for data to load
