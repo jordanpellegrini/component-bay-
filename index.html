@@ -316,6 +316,7 @@
         .alert-nothing { text-align: center; color: #27ae60; font-weight: 600; font-size: 1.1em; padding: 20px 0; }
         @keyframes alertPopIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <!-- Login Modal -->
@@ -548,6 +549,15 @@
                     <div class="module-icon-ultra">🏭</div>
                     <div class="module-title-ultra">P/N → Manufacturer</div>
                     <div class="module-description-ultra">Manage Part Number to Manufacturer mappings for auto-fill in Serviceable & Unserviceable tags</div>
+                    <div class="module-status-ultra status-new-ultra">
+                        ⚡ Admin Tool
+                    </div>
+                </a>
+
+                <a href="#" onclick="backupAll(event)" class="ultra-module-card card-import" id="backupModule" style="display: none;">
+                    <div class="module-icon-ultra">📦</div>
+                    <div class="module-title-ultra">Backup All Data</div>
+                    <div class="module-description-ultra">Download a full backup of all Components Bay data (components, tags, P/N mappings, PDFs)</div>
                     <div class="module-status-ultra status-new-ultra">
                         ⚡ Admin Tool
                     </div>
@@ -848,11 +858,13 @@
                 document.getElementById('importExcelModule').style.display = 'block';
                 document.getElementById('tagsHistoryModule').style.display = 'block';
                 document.getElementById('pnManufacturerModule').style.display = 'block';
+                document.getElementById('backupModule').style.display = 'block';
             } else {
                 document.getElementById('uploadSection').style.display = 'none';
                 document.getElementById('importExcelModule').style.display = 'none';
                 document.getElementById('tagsHistoryModule').style.display = 'none';
                 document.getElementById('pnManufacturerModule').style.display = 'none';
+                document.getElementById('backupModule').style.display = 'none';
             }
 
             // Run login alerts after a short delay for data to load
@@ -1273,5 +1285,131 @@
         });
     </script>
     <div id="loginAlertContainer"></div>
+    <script>
+    async function backupAll(e) {
+        if (e) e.preventDefault();
+        
+        const userRole = localStorage.getItem('componentsBayUserRole');
+        if (userRole !== 'admin') { alert('Admin only'); return; }
+
+        const card = document.getElementById('backupModule');
+        const origText = card.querySelector('.module-title-ultra').textContent;
+        card.querySelector('.module-title-ultra').textContent = '⏳ Backup in progress...';
+        
+        try {
+            const zip = new JSZip();
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const timeStr = new Date().toTimeString().slice(0, 5).replace(':', 'h');
+            const folderName = `ComponentsBay_Backup_${dateStr}_${timeStr}`;
+            const folder = zip.folder(folderName);
+
+            // All Supabase tables to backup
+            const tables = [
+                'efs', 'liferaft', 'wheel', 'maintenance', 'composite', 'avionic',
+                'troop_seat', 'engine', 'rotor_bay', 'iaft_eaft', 'pol', 'tools',
+                'users', 'documents', 'generated_tags', 'pn_manufacturers'
+            ];
+
+            let totalItems = 0;
+
+            // Export each table as JSON
+            for (const table of tables) {
+                try {
+                    card.querySelector('.module-description-ultra').textContent = `Loading ${table}...`;
+                    let data = [];
+                    if (window.ComponentsBayDB) {
+                        data = await ComponentsBayDB.load(table);
+                    }
+                    if (!data || data.length === 0) {
+                        // Try localStorage fallback
+                        const localKeys = Object.keys(localStorage).filter(k => k.toLowerCase().includes(table.replace('_', '')));
+                        for (const key of localKeys) {
+                            try {
+                                const parsed = JSON.parse(localStorage.getItem(key));
+                                if (Array.isArray(parsed) && parsed.length > 0) data = parsed;
+                            } catch(e) {}
+                        }
+                    }
+                    if (data && data.length > 0) {
+                        folder.file(`data/${table}.json`, JSON.stringify(data, null, 2));
+                        totalItems += data.length;
+                    }
+                } catch(e) {
+                    console.warn(`Backup skip ${table}:`, e);
+                }
+            }
+
+            // Export generated tags PDFs (from base64 in generated_tags)
+            card.querySelector('.module-description-ultra').textContent = 'Exporting PDF tags...';
+            try {
+                let tags = [];
+                if (window.ComponentsBayDB) {
+                    tags = await ComponentsBayDB.load('generated_tags');
+                }
+                if (!tags || tags.length === 0) {
+                    tags = JSON.parse(localStorage.getItem('componentsBayGeneratedTags') || '[]');
+                }
+                let pdfCount = 0;
+                for (const tag of tags) {
+                    if (tag.pdfBase64) {
+                        try {
+                            const binary = atob(tag.pdfBase64);
+                            const bytes = new Uint8Array(binary.length);
+                            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                            const filename = tag.filename || `tag_${tag.id}.pdf`;
+                            folder.file(`pdfs/${filename}`, bytes);
+                            pdfCount++;
+                        } catch(e) {}
+                    }
+                }
+                console.log(`📄 Exported ${pdfCount} PDF tags`);
+            } catch(e) { console.warn('PDF export error:', e); }
+
+            // Add backup metadata
+            const meta = {
+                backupDate: new Date().toISOString(),
+                backupBy: localStorage.getItem('componentsBayCurrentUser') || 'Unknown',
+                totalItems: totalItems,
+                tables: tables,
+                version: 'Components Bay V5.1'
+            };
+            folder.file('backup-info.json', JSON.stringify(meta, null, 2));
+
+            // Generate ZIP
+            card.querySelector('.module-description-ultra').textContent = 'Generating ZIP file...';
+            const blob = await zip.generateAsync({ 
+                type: 'blob',
+                compression: 'DEFLATE',
+                compressionOptions: { level: 6 }
+            }, function(metadata) {
+                card.querySelector('.module-description-ultra').textContent = 
+                    `Compressing... ${Math.round(metadata.percent)}%`;
+            });
+
+            // Download
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${folderName}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            const sizeMB = (blob.size / 1024 / 1024).toFixed(1);
+            card.querySelector('.module-title-ultra').textContent = origText;
+            card.querySelector('.module-description-ultra').textContent = 
+                `✅ Backup complete! ${totalItems} items, ${sizeMB} MB`;
+            
+            setTimeout(() => {
+                card.querySelector('.module-description-ultra').textContent = 
+                    'Download a full backup of all Components Bay data (components, tags, P/N mappings, PDFs)';
+            }, 5000);
+
+        } catch(err) {
+            console.error('Backup error:', err);
+            card.querySelector('.module-title-ultra').textContent = origText;
+            card.querySelector('.module-description-ultra').textContent = '❌ Backup failed: ' + err.message;
+        }
+    }
+    </script>
 </body>
 </html>
