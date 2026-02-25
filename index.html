@@ -291,6 +291,26 @@
             transform: scale(1.1);
         }
 
+        .restore-ultra {
+            position: fixed;
+            top: 30px;
+            right: 240px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border: none;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .restore-ultra:hover {
+            transform: scale(1.1);
+        }
+
         .floating-info {
             position: fixed;
             bottom: 30px;
@@ -380,6 +400,10 @@
 
         <!-- Backup Icon (Admin Only) -->
         <button id="backupIcon" class="backup-ultra hidden" onclick="backupAll(event)" title="Backup All Data">📦</button>
+
+        <!-- Restore Icon (Admin Only) -->
+        <button id="restoreIcon" class="restore-ultra hidden" onclick="document.getElementById('restoreFileInput').click()" title="Restore from Backup">🔄</button>
+        <input type="file" id="restoreFileInput" accept=".zip" style="display:none" onchange="restoreFromBackup(this.files[0])">
 
         <div class="main-container">
             <!-- Ultra Navigation -->
@@ -873,12 +897,14 @@
                 document.getElementById('tagsHistoryModule').style.display = 'block';
                 document.getElementById('pnManufacturerModule').style.display = 'block';
                 document.getElementById('backupIcon').classList.remove('hidden');
+                document.getElementById('restoreIcon').classList.remove('hidden');
             } else {
                 document.getElementById('uploadSection').style.display = 'none';
                 document.getElementById('importExcelModule').style.display = 'none';
                 document.getElementById('tagsHistoryModule').style.display = 'none';
                 document.getElementById('pnManufacturerModule').style.display = 'none';
                 document.getElementById('backupIcon').classList.add('hidden');
+                document.getElementById('restoreIcon').classList.add('hidden');
             }
 
             // Run login alerts after a short delay for data to load
@@ -1426,6 +1452,114 @@
                 btn.style.pointerEvents = '';
             }, 3000);
         }
+    }
+    
+    async function restoreFromBackup(file) {
+        if (!file) return;
+        
+        const userRole = localStorage.getItem('componentsBayUserRole');
+        if (userRole !== 'admin') { alert('Admin only'); return; }
+
+        if (!confirm('ATTENTION: La restauration va REMPLACER toutes les donnees actuelles par celles du backup.\n\nContinuer ?')) {
+            document.getElementById('restoreFileInput').value = '';
+            return;
+        }
+        if (!confirm('Etes-vous vraiment sur ? Toutes les donnees actuelles seront ecrasees.')) {
+            document.getElementById('restoreFileInput').value = '';
+            return;
+        }
+
+        const btn = document.getElementById('restoreIcon');
+        btn.textContent = '⏳';
+        btn.title = 'Restore in progress...';
+        btn.style.pointerEvents = 'none';
+
+        try {
+            const zip = await JSZip.loadAsync(file);
+            
+            // Find data JSON files (inside data/ folder, possibly nested in a backup folder)
+            const dataFiles = {};
+            let fileCount = 0;
+            
+            zip.forEach(function(path, entry) {
+                if (path.endsWith('.json') && path.includes('data/') && !entry.dir) {
+                    const tableName = path.split('/').pop().replace('.json', '');
+                    dataFiles[tableName] = entry;
+                    fileCount++;
+                }
+            });
+
+            if (fileCount === 0) {
+                alert('Aucun fichier de donnees trouve dans ce ZIP.\nAssurez-vous de charger un backup Components Bay.');
+                throw new Error('No data files');
+            }
+
+            let totalRestored = 0;
+            let tablesRestored = 0;
+            const errors = [];
+
+            for (const [tableName, entry] of Object.entries(dataFiles)) {
+                btn.title = 'Restoring ' + tableName + '...';
+                
+                try {
+                    const jsonStr = await entry.async('string');
+                    let items = JSON.parse(jsonStr);
+                    
+                    if (!Array.isArray(items)) {
+                        items = items ? [items] : [];
+                    }
+                    if (items.length === 0) continue;
+
+                    // Ensure each item has an id
+                    items = items.map((item, idx) => {
+                        if (!item.id) item.id = tableName + '_r_' + Date.now() + '_' + idx;
+                        return item;
+                    });
+
+                    // Bulk save to Supabase
+                    if (window.ComponentsBayDB && window.ComponentsBayDB.bulkSave) {
+                        for (let i = 0; i < items.length; i += 500) {
+                            const chunk = items.slice(i, i + 500);
+                            try { await ComponentsBayDB.bulkSave(tableName, chunk); } catch(e) {}
+                        }
+                    } else if (window.ComponentsBayDB) {
+                        for (const item of items) {
+                            try { await ComponentsBayDB.save(tableName, item); } catch(e) {}
+                        }
+                    }
+
+                    // Update localStorage (small tables only)
+                    try {
+                        const json = JSON.stringify(items);
+                        if (json.length < 1024 * 1024) {
+                            const localKey = 'componentsBay' + tableName.charAt(0).toUpperCase() + tableName.slice(1);
+                            localStorage.setItem(localKey, json);
+                        }
+                    } catch(e) {}
+
+                    totalRestored += items.length;
+                    tablesRestored++;
+                } catch(e) {
+                    errors.push(tableName + ': ' + e.message);
+                }
+            }
+
+            btn.textContent = '✅';
+            let msg = 'Restauration terminee !\n\n' + totalRestored + ' items dans ' + tablesRestored + ' tables.';
+            if (errors.length > 0) msg += '\n\nErreurs:\n' + errors.join('\n');
+            msg += '\n\nLa page va se recharger.';
+            alert(msg);
+            window.location.reload();
+
+        } catch(err) {
+            if (err.message !== 'No data files') {
+                alert('Erreur: ' + err.message);
+            }
+            btn.textContent = '🔄';
+            btn.title = 'Restore from Backup';
+            btn.style.pointerEvents = '';
+        }
+        document.getElementById('restoreFileInput').value = '';
     }
     </script>
 </body>
