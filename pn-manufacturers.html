@@ -360,34 +360,44 @@
             pnSel.innerHTML = opts;
             fbSel.innerHTML = opts;
             
-            // Auto-detect columns
+            // Auto-detect columns based on header names
+            let detectedMfr = -1, detectedFull = -1, detectedPN = -1, detectedFB = -1;
             excelHeaders.forEach((h, i) => {
-                const hl = h.toLowerCase();
-                if (hl.includes('manuf') && (hl.includes('abbr') || hl.includes('abr') || hl.includes('code') || hl.includes('short'))) mfrSel.value = i;
-                else if (hl.includes('manuf') && (hl.includes('full') || hl.includes('name') || hl.includes('complet') || hl.includes('long'))) mfrFullSel.value = i;
-                else if (hl.includes('manuf') || hl.includes('fabricant') || hl.includes('mfr')) {
-                    // Generic manufacturer column — assign to abbreviation if not yet set
-                    if (mfrSel.value === '0' && i > 0) mfrSel.value = i;
+                const hl = h.toLowerCase().trim();
+                // Manufacturer abbreviation: PC, code, abbr, short, manufacturer abbreviation
+                if (hl === 'pc' || hl === 'code' || hl.includes('abbr') || hl.includes('abr') || hl.includes('short') || hl === 'mfr' || hl === 'oem') {
+                    detectedMfr = i;
                 }
-                if (hl.includes('industry') || (hl.includes('part') && !hl.includes('vendor'))) pnSel.value = i;
-                if (hl.includes('vendor') || hl.includes('alternat') || hl.includes('fallback')) fbSel.value = i;
+                // Manufacturer full name: nom complet, full name, manufacturer name, manufacturer full
+                if (hl.includes('nom complet') || hl.includes('complet') || hl.includes('full') || (hl.includes('manuf') && (hl.includes('name') || hl.includes('long')))) {
+                    detectedFull = i;
+                }
+                // Industry Part Number
+                if (hl.includes('industry') || (hl.includes('part') && !hl.includes('vendor'))) {
+                    detectedPN = i;
+                }
+                // Vendor Part Number
+                if (hl.includes('vendor') || hl.includes('alternat') || hl.includes('fallback')) {
+                    detectedFB = i;
+                }
             });
 
-            // Default: A=0, B=1, C=2, D=3
+            // Apply detected or fall back to positional: A=0(abbr), B=1(fullname), C=2(PN), D=3(fallback)
             if (excelHeaders.length >= 4) {
-                const used = new Set();
-                // Set defaults if auto-detect didn't differentiate
-                if (mfrSel.value === mfrFullSel.value || mfrSel.value === pnSel.value) {
-                    mfrSel.value = 0;
-                    pnSel.value = 1;
-                    fbSel.value = 2;
-                    mfrFullSel.value = 3;
-                }
+                mfrSel.value = detectedMfr >= 0 ? detectedMfr : 0;
+                mfrFullSel.value = detectedFull >= 0 ? detectedFull : 1;
+                pnSel.value = detectedPN >= 0 ? detectedPN : 2;
+                fbSel.value = detectedFB >= 0 ? detectedFB : 3;
             } else if (excelHeaders.length === 3) {
+                mfrSel.value = detectedMfr >= 0 ? detectedMfr : 0;
+                pnSel.value = detectedPN >= 0 ? detectedPN : 1;
+                fbSel.value = detectedFB >= 0 ? detectedFB : 2;
+                mfrFullSel.value = mfrSel.value; // same as abbreviation if no 4th col
+            } else {
                 mfrSel.value = 0;
-                pnSel.value = 1;
-                fbSel.value = 2;
-                mfrFullSel.value = 0; // same as abbreviation if no 4th col
+                pnSel.value = Math.min(1, excelHeaders.length - 1);
+                fbSel.value = pnSel.value;
+                mfrFullSel.value = mfrSel.value;
             }
 
             document.getElementById('importInfo').textContent = `📄 ${excelData.length.toLocaleString()} rows × ${excelHeaders.length} columns`;
