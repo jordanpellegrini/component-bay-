@@ -57,7 +57,7 @@
                 <p style="color:#64748b;margin:0;">Petroleum, Oil & Lubricants</p>
             </div>
             <div class="header-actions">
-                <button onclick="editingItem=null; showAddForm()" class="btn btn-add">➕ Add POL</button>
+                <button onclick="showAddForm()" class="btn btn-add">➕ Add POL</button>
                 <button onclick="showViewAll()" class="btn">📋 View All</button>
             </div>
         </div>
@@ -359,9 +359,11 @@
         }
 
         function showAddForm() {
+            editingItem = null;
             document.getElementById('addFormSection').classList.remove('hidden');
             document.getElementById('viewAllSection').classList.add('hidden');
             document.getElementById('formTitle').textContent = '➕ Add POL Item';
+            resetForm();
         }
 
         function showViewAll() {
@@ -448,7 +450,8 @@
             document.getElementById('removeFromHC').value = item.removeFromHC || '';
             try { document.getElementById('jcnNumber').value = item.jcnNumber || ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = item.jcnBook || ''; } catch(e) {}
-            showAddForm();
+            document.getElementById('addFormSection').classList.remove('hidden');
+            document.getElementById('viewAllSection').classList.add('hidden');
             document.getElementById('formTitle').textContent = '✏️ Edit POL Item';
             closeModal();
         }
@@ -472,9 +475,9 @@
         function cancelForm() {
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
-            try { document.getElementById('removeFromHC').value = '';
+            try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
             try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
-            try { document.getElementById('jcnBook').value = ''; } catch(e) {} } catch(e) {}
+            try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             document.getElementById('addFormSection').classList.add('hidden');
             resetForm();
         }
@@ -483,6 +486,8 @@
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
+            try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
+            try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             editingItem = null;
             document.getElementById('designation').value = '';
             document.getElementById('partNumber').value = '';

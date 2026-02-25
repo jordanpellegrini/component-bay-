@@ -389,8 +389,10 @@
         function setupDefaultView() { document.getElementById('addForm').classList.add('hidden'); document.getElementById('viewAllSection').classList.add('hidden'); }
         function hideAllForms() { setupDefaultView(); }
         function showAddForm() {
+            editingItem = null;
             document.getElementById('addForm').classList.remove('hidden');
             document.getElementById('viewAllSection').classList.add('hidden');
+            resetForm();
         }
 
         function showAllItems() { hideAllForms(); document.getElementById('viewAllSection').classList.remove('hidden'); refreshTable(); }
@@ -488,9 +490,9 @@
         function resetForm() {
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
-            try { document.getElementById('removeFromHC').value = '';
+            try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
             try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
-            try { document.getElementById('jcnBook').value = ''; } catch(e) {} } catch(e) {}
+            try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             document.getElementById('rotorForm').reset();
             editingItem = null;
             document.getElementById('nextShort').value = '';
@@ -572,7 +574,8 @@
             document.getElementById('removeFromHC').value = item.removeFromHC || '';
             try { document.getElementById('jcnNumber').value = item.jcnNumber || ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = item.jcnBook || ''; } catch(e) {}
-            showAddForm(); closeModal();
+            document.getElementById('addForm').classList.remove('hidden');
+            document.getElementById('viewAllSection').classList.add('hidden');
         }
 
         function editCurrentItem() { if (currentItemId) editItem(currentItemId); }

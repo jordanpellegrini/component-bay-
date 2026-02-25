@@ -279,13 +279,10 @@
         }
 
         function showAddForm() {
+            editingItem = null;
             document.getElementById('addForm').style.display = 'block';
             document.getElementById('viewAllSection').classList.add('hidden');
-            // Only reset form and editing state if not editing
-            if (!editingItem) {
-                resetForm();
-                editingItem = null; // Make sure it's null for new items
-            }
+            resetForm();
         }
 
         function showAllItems() {
@@ -442,9 +439,9 @@
         function resetForm() {
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
-            try { document.getElementById('removeFromHC').value = '';
+            try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
             try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
-            try { document.getElementById('jcnBook').value = ''; } catch(e) {} } catch(e) {}
+            try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             document.getElementById('maintenanceForm').reset();
             // Don't reset editingItem here - it should only be reset after successful save
             document.getElementById('editId').value = '';
@@ -607,7 +604,8 @@
             try { document.getElementById('jcnNumber').value = item.jcnNumber || ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = item.jcnBook || ''; } catch(e) {}
 
-            showAddForm();
+            document.getElementById('addForm').style.display = 'block';
+            document.getElementById('viewAllSection').classList.add('hidden');
             closeModal();
         }
 

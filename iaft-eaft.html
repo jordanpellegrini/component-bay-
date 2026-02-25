@@ -317,9 +317,11 @@
         }
 
         function showAddForm() {
+            editingItem = null;
             document.getElementById('addFormSection').classList.remove('hidden');
             document.getElementById('viewAllSection').classList.add('hidden');
             document.getElementById('formTitle').textContent = '➕ Add Item';
+            resetForm();
         }
 
         function showViewAll() { document.getElementById('viewAllSection').classList.remove('hidden'); document.getElementById('addFormSection').classList.add('hidden'); refreshTable(); }
@@ -407,11 +409,11 @@
             document.getElementById('orderRef').value = editingItem.orderRef || '';
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('comments').value = editingItem.comments || '';
-            document.getElementById('flightHours').value = item.flightHours || '';
-            document.getElementById('dateOfRemoval').value = item.dateOfRemoval || '';
-            document.getElementById('removeFromHC').value = item.removeFromHC || '';
-            try { document.getElementById('jcnNumber').value = item.jcnNumber || ''; } catch(e) {}
-            try { document.getElementById('jcnBook').value = item.jcnBook || ''; } catch(e) {}
+            document.getElementById('flightHours').value = editingItem.flightHours || '';
+            document.getElementById('dateOfRemoval').value = editingItem.dateOfRemoval || '';
+            document.getElementById('removeFromHC').value = editingItem.removeFromHC || '';
+            try { document.getElementById('jcnNumber').value = editingItem.jcnNumber || ''; } catch(e) {}
+            try { document.getElementById('jcnBook').value = editingItem.jcnBook || ''; } catch(e) {}
             document.getElementById('formTitle').textContent = '✏️ Edit IAFT/EAFT Item';
             const nowE = new Date(); nowE.setHours(0,0,0,0);
             const edit24MActive = !!editingItem.has60MBeenDone && editingItem.next60M && new Date(editingItem.next60M) <= nowE;
@@ -427,9 +429,9 @@
         function cancelForm() {
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
-            try { document.getElementById('removeFromHC').value = '';
+            try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
             try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
-            try { document.getElementById('jcnBook').value = ''; } catch(e) {} } catch(e) {}
+            try { document.getElementById('jcnBook').value = ''; } catch(e) {}
         }
 
 
@@ -437,6 +439,8 @@
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
+            try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
+            try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             editingItem = null;
             ['partNumber','designation','serialNumber','inspectionPerformed','inspectionDate','next24M','next60M','next360M','orderRef','comments'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('serviceability').value = 'Serviceable';

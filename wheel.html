@@ -438,8 +438,10 @@
         }
 
         function showAddForm() {
+            editingItem = null;
             hideAllForms();
             document.getElementById('addForm').classList.remove('hidden');
+            resetForm();
         }
 
         function showAllItems() {
@@ -764,7 +766,8 @@
             document.getElementById('eddyCurrentCout').checked = editingItem.eddyCurrentCout || false;
             document.getElementById('comments').value = editingItem.comments || '';
 
-            showAddForm();
+            hideAllForms();
+            document.getElementById('addForm').classList.remove('hidden');
             closeModal();
         }
 
