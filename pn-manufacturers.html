@@ -6,36 +6,56 @@
     <title>Components Bay - P/N Manufacturer Mapping</title>
     <link rel="stylesheet" href="modern-style.css">
     <script type="module" src="supabase-config.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         .mapping-table { width: 100%; border-collapse: collapse; }
-        .mapping-table th { background: var(--bg-hover); padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); border-bottom: 2px solid var(--border); }
-        .mapping-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+        .mapping-table th { background: var(--bg-hover); padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 1; }
+        .mapping-table td { padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
         .mapping-table tr:hover { background: var(--bg-hover); }
         .add-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 20px; }
         .add-row input { padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; }
         .add-row input:focus { border-color: var(--accent); outline: none; }
         .btn-add-map { padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
         .btn-add-map:hover { background: #219a52; }
-        .btn-del { padding: 4px 10px; background: none; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 12px; }
-        .btn-del:hover { background: #fee; border-color: #e74c3c; }
-        .btn-edit { padding: 4px 10px; background: none; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 12px; }
-        .btn-edit:hover { background: #eef; border-color: #2980b9; }
+        .btn-small { padding: 4px 10px; background: none; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .btn-small:hover { background: #f5f5f5; }
+        .btn-small.del:hover { background: #fee; border-color: #e74c3c; }
         .stats { display: flex; gap: 20px; margin-bottom: 20px; }
         .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 24px; flex: 1; text-align: center; }
         .stat-card .num { font-size: 28px; font-weight: 700; color: var(--accent); }
         .stat-card .label { font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; }
-        .search-bar { width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; margin-bottom: 16px; background: var(--bg-card); }
+        .search-bar { width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
         .search-bar:focus { border-color: var(--accent); outline: none; }
         .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); text-decoration: none; font-weight: 600; margin-bottom: 20px; }
         .back-link:hover { color: var(--accent); }
         .msg { padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; font-weight: 600; display: none; }
         .msg-success { background: #d5f5e3; color: #1e8449; display: block; }
         .msg-error { background: #fadbd8; color: #c0392b; display: block; }
-        .import-section { margin-top: 20px; padding: 20px; border: 2px dashed var(--border); border-radius: 8px; text-align: center; }
+        .msg-info { background: #d6eaf8; color: #2471a3; display: block; }
+        .import-box { margin-top: 20px; padding: 30px; border: 2px dashed var(--border); border-radius: 12px; text-align: center; background: var(--bg-hover); transition: all 0.2s; }
+        .import-box.dragover { border-color: var(--accent); background: #eef6ff; }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap; }
+        .pagination button { padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); cursor: pointer; font-size: 13px; }
+        .pagination button:hover { background: var(--bg-hover); }
+        .pagination button.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .pagination button:disabled { opacity: 0.4; cursor: default; }
+        .progress-bar { width: 100%; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; margin: 10px 0; }
+        .progress-bar .fill { height: 100%; background: linear-gradient(90deg, var(--accent), #27ae60); border-radius: 4px; transition: width 0.2s; }
+        .column-select { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; text-align: left; }
+        .column-select select { width: 100%; padding: 8px 12px; border: 2px solid var(--border); border-radius: 6px; font-size: 14px; }
+        .preview-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+        .preview-table th, .preview-table td { padding: 6px 10px; border: 1px solid #ddd; text-align: left; }
+        .preview-table th { background: #f0f0f0; }
+        #importModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        #importModal.active { display: flex; }
+        #importModal .modal-box { background: white; border-radius: 12px; padding: 30px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .toolbar { display: flex; gap: 10px; margin: 20px 0 16px; flex-wrap: wrap; }
+        .toolbar input { flex: 1; margin: 0; min-width: 200px; }
+        .toolbar button { padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); cursor: pointer; font-weight: 600; font-size: 13px; white-space: nowrap; }
     </style>
 </head>
 <body>
-    <div class="container" style="max-width: 900px; margin: 30px auto; padding: 0 20px;">
+    <div class="container" style="max-width: 960px; margin: 30px auto; padding: 0 20px;">
         
         <a href="index.html" class="back-link">← Back to Dashboard</a>
         
@@ -53,11 +73,11 @@
             </div>
             <div class="stat-card">
                 <div class="num" id="totalManufacturers">0</div>
-                <div class="label">Manufacturers</div>
+                <div class="label">Unique Manufacturers</div>
             </div>
         </div>
 
-        <!-- Add new mapping -->
+        <!-- Add single mapping -->
         <h3 style="margin-bottom: 10px;">➕ Add New Mapping</h3>
         <div class="add-row">
             <input type="text" id="newPN" placeholder="Part Number (P/N)" onkeyup="if(event.key==='Enter')addMapping()">
@@ -65,52 +85,110 @@
             <button class="btn-add-map" onclick="addMapping()">+ Add</button>
         </div>
 
-        <!-- Search -->
-        <input type="text" class="search-bar" id="searchInput" placeholder="🔍 Search P/N or Manufacturer..." oninput="renderTable()">
+        <!-- Import Excel -->
+        <div class="import-box" id="dropZone">
+            <div style="font-size: 40px; margin-bottom: 8px;">📊</div>
+            <p style="font-weight: 600; margin-bottom: 6px;">Import from Excel (.xlsx)</p>
+            <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 14px;">Drag & drop your file here, or click to browse<br>Supports 40,000+ rows</p>
+            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this.files[0])">
+            <button onclick="document.getElementById('fileInput').click()" class="btn-add-map" style="background:#3498db;">📁 Choose File</button>
+            <div id="importProgress" style="display:none; margin-top: 14px;">
+                <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
+                <span id="progressText" style="font-size:12px;color:var(--text-secondary);">Importing...</span>
+            </div>
+        </div>
+
+        <!-- Search + Actions toolbar -->
+        <div class="toolbar">
+            <input type="text" class="search-bar" id="searchInput" placeholder="🔍 Search P/N or Manufacturer..." oninput="currentPage=0;renderTable()" style="margin:0;">
+            <button onclick="exportCSV()" title="Export all mappings to CSV">📤 Export CSV</button>
+            <button onclick="deleteAll()" style="border-color:#e74c3c;color:#e74c3c;" title="Delete all mappings">🗑️ Delete All</button>
+        </div>
 
         <!-- Table -->
-        <div style="overflow-x: auto;">
+        <div style="overflow-x:auto; max-height: 520px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;">
             <table class="mapping-table">
-                <thead>
-                    <tr>
-                        <th>Part Number (P/N)</th>
-                        <th>Manufacturer</th>
-                        <th style="width: 120px;">Actions</th>
-                    </tr>
-                </thead>
+                <thead><tr><th style="width:50px;">#</th><th>Part Number (P/N)</th><th>Abbrev.</th><th>Manufacturer (Full Name)</th><th style="width:100px;">Actions</th></tr></thead>
                 <tbody id="mappingBody"></tbody>
             </table>
         </div>
+        <div class="pagination" id="pagination"></div>
+    </div>
 
-        <!-- Bulk Import -->
-        <div class="import-section">
-            <h3>📋 Bulk Import (Paste)</h3>
-            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">Paste lines in format: <code>P/N, Manufacturer</code> or <code>P/N → Manufacturer</code> (one per line)</p>
-            <textarea id="bulkInput" style="width:100%;height:100px;padding:10px;border:2px solid var(--border);border-radius:8px;font-family:monospace;font-size:13px;" placeholder="S956A20A1004, Zodiac Aerospace&#10;1234-5678 → Airbus Helicopters&#10;PN-001, Safran"></textarea>
-            <br><br>
-            <button onclick="bulkImport()" class="btn-add-map">📥 Import All</button>
+    <!-- Import Column Mapping Modal -->
+    <div id="importModal">
+        <div class="modal-box">
+            <h2 style="margin-top:0;">📊 Map Excel Columns</h2>
+            <p id="importInfo" style="color:var(--text-secondary);font-size:13px;"></p>
+            
+            <div class="column-select">
+                <div>
+                    <label style="font-weight:600;font-size:13px;">🏭 Manufacturer Abbreviation</label>
+                    <select id="mfrColumn"></select>
+                </div>
+                <div>
+                    <label style="font-weight:600;font-size:13px;">🏭 Manufacturer Full Name</label>
+                    <select id="mfrFullColumn"></select>
+                </div>
+                <div>
+                    <label style="font-weight:600;font-size:13px;">🔧 P/N (Industry Part Number)</label>
+                    <select id="pnColumn"></select>
+                </div>
+                <div>
+                    <label style="font-weight:600;font-size:13px;">🔧 Fallback P/N (Vendor P/N)</label>
+                    <select id="fallbackPnColumn"></select>
+                </div>
+            </div>
+            <p style="font-size:12px;color:var(--text-tertiary);margin-top:-8px;">⚠️ Si P/N = "N/A" ou vide → Vendor P/N utilisé · Le nom complet Manufacturer sera affiché sur les tags PDF</p>
+
+            <p style="font-weight:600;font-size:13px;margin-bottom:4px;">Preview (first 5 rows):</p>
+            <div id="previewArea"></div>
+
+            <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+                <button onclick="closeImportModal()" style="padding:10px 20px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:white;font-size:14px;">Cancel</button>
+                <button onclick="confirmImport()" class="btn-add-map" id="confirmBtn">📥 Import <span id="importCount">0</span> rows</button>
+            </div>
         </div>
-
     </div>
 
     <script>
-        let mappings = []; // [{id, partNumber, manufacturer}]
+        let mappings = [];
+        let currentPage = 0;
+        const PAGE_SIZE = 50;
+        let excelData = null;
+        let excelHeaders = [];
 
-        // Auth check - Admin only
+        // === AUTH ===
         const currentUser = localStorage.getItem('componentsBayCurrentUser');
         const userRole = localStorage.getItem('componentsBayUserRole');
-        
         if (!currentUser) {
             window.location.href = 'index.html';
         } else if (userRole !== 'admin') {
             document.body.innerHTML = '<div style="text-align:center;padding:100px 20px;"><h2>⛔ Access Denied</h2><p>Administrators only.</p><a href="index.html">← Back</a></div>';
         } else {
             document.getElementById('userInfo').textContent = `👤 ${currentUser} (Admin)`;
+            initDragDrop();
             loadMappings();
         }
 
+        // === DRAG & DROP ===
+        function initDragDrop() {
+            const zone = document.getElementById('dropZone');
+            zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+            zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+            zone.addEventListener('drop', e => {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) handleFile(file);
+            });
+        }
+
+        // === LOAD MAPPINGS ===
         async function loadMappings() {
-            // Try Supabase
+            showMsg('Loading mappings...', 'info');
+            
+            // Try Supabase first
             try {
                 if (window.ComponentsBayDB) {
                     const db = await ComponentsBayDB.load('pn_manufacturers');
@@ -120,25 +198,34 @@
                 }
             } catch(e) { console.warn('DB load failed:', e); }
 
-            // Merge localStorage
-            const local = JSON.parse(localStorage.getItem('componentsBayPnManufacturers') || '[]');
-            const ids = new Set(mappings.map(m => m.id));
-            for (const lm of local) {
-                if (!ids.has(lm.id)) mappings.push(lm);
+            // Fallback: localStorage (for small datasets / offline)
+            if (mappings.length === 0) {
+                const local = JSON.parse(localStorage.getItem('componentsBayPnManufacturers') || '[]');
+                if (local.length > 0) mappings = local;
             }
 
             mappings.sort((a, b) => (a.partNumber || '').localeCompare(b.partNumber || ''));
+            showMsg(`✅ ${mappings.length.toLocaleString()} mappings loaded`, 'success');
             renderTable();
+            updateLookupCache();
         }
 
-        function saveMappings() {
-            localStorage.setItem('componentsBayPnManufacturers', JSON.stringify(mappings));
-        }
-
-        async function saveToDb(item) {
-            saveMappings();
-            if (window.ComponentsBayDB) {
-                try { await ComponentsBayDB.save('pn_manufacturers', item); } catch(e) {}
+        // === LIGHTWEIGHT CACHE for generate-tag.js ===
+        function updateLookupCache() {
+            try {
+                // Store compressed cache: P/N → abbreviation + full name for tag lookup
+                const cache = mappings.map(m => ({ p: m.partNumber, m: m.manufacturer, f: m.manufacturerFull || m.manufacturer }));
+                const json = JSON.stringify(cache);
+                // Only cache if < 4MB (leave room in localStorage)
+                if (json.length < 4 * 1024 * 1024) {
+                    localStorage.setItem('pnMfrCache', json);
+                } else {
+                    // Too large: store nothing, tag gen will do a search in the full array
+                    localStorage.removeItem('pnMfrCache');
+                    console.warn('P/N cache too large for localStorage, using in-memory only');
+                }
+            } catch(e) {
+                console.warn('Cache update failed:', e);
             }
         }
 
@@ -146,24 +233,24 @@
             const box = document.getElementById('msgBox');
             box.textContent = text;
             box.className = `msg msg-${type}`;
-            setTimeout(() => { box.className = 'msg'; }, 3000);
+            if (type !== 'info') setTimeout(() => { box.className = 'msg'; }, 5000);
         }
 
-        function addMapping() {
+        // === ADD SINGLE ===
+        async function addMapping() {
             const pn = document.getElementById('newPN').value.trim().toUpperCase();
             const mfr = document.getElementById('newManufacturer').value.trim();
-            if (!pn || !mfr) { showMsg('Both P/N and Manufacturer required', 'error'); return; }
+            if (!pn || !mfr) { showMsg('Both fields required', 'error'); return; }
 
-            // Check duplicate
             const existing = mappings.find(m => m.partNumber === pn);
             if (existing) {
                 existing.manufacturer = mfr;
-                saveToDb(existing);
+                await saveOne(existing);
                 showMsg(`Updated: ${pn} → ${mfr}`, 'success');
             } else {
-                const item = { id: Date.now().toString(), partNumber: pn, manufacturer: mfr };
+                const item = { id: 'pn_' + Date.now(), partNumber: pn, manufacturer: mfr };
                 mappings.push(item);
-                saveToDb(item);
+                await saveOne(item);
                 showMsg(`Added: ${pn} → ${mfr}`, 'success');
             }
 
@@ -172,92 +259,373 @@
             document.getElementById('newPN').focus();
             mappings.sort((a, b) => a.partNumber.localeCompare(b.partNumber));
             renderTable();
+            updateLookupCache();
+        }
+
+        async function saveOne(item) {
+            if (window.ComponentsBayDB) {
+                try { await ComponentsBayDB.save('pn_manufacturers', item); } catch(e) { console.warn('Save failed:', e); }
+            }
         }
 
         function editMapping(id) {
             const item = mappings.find(m => m.id === id);
             if (!item) return;
             const newMfr = prompt(`Manufacturer for ${item.partNumber}:`, item.manufacturer);
-            if (newMfr === null) return;
+            if (newMfr === null || !newMfr.trim()) return;
             item.manufacturer = newMfr.trim();
-            saveToDb(item);
+            saveOne(item);
             showMsg(`Updated: ${item.partNumber} → ${item.manufacturer}`, 'success');
             renderTable();
+            updateLookupCache();
         }
 
         async function deleteMapping(id) {
             const item = mappings.find(m => m.id === id);
-            if (!item || !confirm(`Delete mapping for ${item.partNumber}?`)) return;
+            if (!item || !confirm(`Delete ${item.partNumber}?`)) return;
             mappings = mappings.filter(m => m.id !== id);
-            saveMappings();
             if (window.ComponentsBayDB) {
                 try { await ComponentsBayDB.delete('pn_manufacturers', id); } catch(e) {}
             }
             showMsg(`Deleted: ${item.partNumber}`, 'success');
             renderTable();
+            updateLookupCache();
         }
 
-        function bulkImport() {
-            const text = document.getElementById('bulkInput').value.trim();
-            if (!text) { showMsg('Paste data first', 'error'); return; }
-
-            const lines = text.split('\n').filter(l => l.trim());
-            let added = 0, updated = 0;
-
-            for (const line of lines) {
-                // Support: "PN, Manufacturer" or "PN → Manufacturer" or "PN | Manufacturer" or "PN ; Manufacturer"
-                const parts = line.split(/[,→|;]\s*/);
-                if (parts.length < 2) continue;
-                const pn = parts[0].trim().toUpperCase();
-                const mfr = parts.slice(1).join(',').trim();
-                if (!pn || !mfr) continue;
-
-                const existing = mappings.find(m => m.partNumber === pn);
-                if (existing) {
-                    existing.manufacturer = mfr;
-                    saveToDb(existing);
-                    updated++;
-                } else {
-                    const item = { id: Date.now().toString() + Math.random().toString(36).substr(2, 4), partNumber: pn, manufacturer: mfr };
-                    mappings.push(item);
-                    saveToDb(item);
-                    added++;
+        async function deleteAll() {
+            if (!confirm(`Delete ALL ${mappings.length.toLocaleString()} mappings?\nThis cannot be undone.`)) return;
+            if (!confirm('Are you absolutely sure? This will permanently delete all P/N → Manufacturer data.')) return;
+            
+            showMsg('Deleting all mappings...', 'info');
+            
+            if (window.ComponentsBayDB) {
+                // Delete in batches to avoid timeout
+                for (let i = 0; i < mappings.length; i += 100) {
+                    const batch = mappings.slice(i, i + 100);
+                    for (const m of batch) {
+                        try { await ComponentsBayDB.delete('pn_manufacturers', m.id); } catch(e) {}
+                    }
                 }
             }
-
-            mappings.sort((a, b) => a.partNumber.localeCompare(b.partNumber));
-            document.getElementById('bulkInput').value = '';
-            showMsg(`Imported: ${added} added, ${updated} updated`, 'success');
+            
+            mappings = [];
+            localStorage.removeItem('pnMfrCache');
+            localStorage.removeItem('componentsBayPnManufacturers');
+            showMsg('All mappings deleted', 'success');
             renderTable();
         }
 
-        function renderTable() {
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = mappings.filter(m => {
-                if (!search) return true;
-                return m.partNumber.toLowerCase().includes(search) || m.manufacturer.toLowerCase().includes(search);
-            });
-
-            const uniqueMfrs = new Set(mappings.map(m => m.manufacturer));
-            document.getElementById('totalMappings').textContent = mappings.length;
-            document.getElementById('totalManufacturers').textContent = uniqueMfrs.size;
-
-            const body = document.getElementById('mappingBody');
-            if (filtered.length === 0) {
-                body.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:40px;color:var(--text-tertiary);">No mappings found</td></tr>';
+        // === EXCEL IMPORT ===
+        function handleFile(file) {
+            if (!file) return;
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+                showMsg('Unsupported file type. Use .xlsx, .xls, or .csv', 'error');
                 return;
             }
 
-            body.innerHTML = filtered.map(m => `
+            showMsg(`Reading ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)...`, 'info');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                    
+                    if (json.length < 2) { showMsg('File is empty or has no data rows', 'error'); return; }
+                    
+                    excelHeaders = json[0].map((h, i) => h ? String(h).trim() : `Column ${i + 1}`);
+                    excelData = json.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== null && cell !== ''));
+                    
+                    showMsg(`File read: ${excelData.length.toLocaleString()} rows, ${excelHeaders.length} columns`, 'success');
+                    openImportModal();
+                } catch(err) {
+                    showMsg('Error reading file: ' + err.message, 'error');
+                }
+            };
+            reader.readAsBinaryString(file);
+        }
+
+        function openImportModal() {
+            const mfrSel = document.getElementById('mfrColumn');
+            const mfrFullSel = document.getElementById('mfrFullColumn');
+            const pnSel = document.getElementById('pnColumn');
+            const fbSel = document.getElementById('fallbackPnColumn');
+            
+            const opts = excelHeaders.map((h, i) => `<option value="${i}">${h}</option>`).join('');
+            mfrSel.innerHTML = opts;
+            mfrFullSel.innerHTML = opts;
+            pnSel.innerHTML = opts;
+            fbSel.innerHTML = opts;
+            
+            // Auto-detect columns
+            excelHeaders.forEach((h, i) => {
+                const hl = h.toLowerCase();
+                if (hl.includes('manuf') && (hl.includes('abbr') || hl.includes('abr') || hl.includes('code') || hl.includes('short'))) mfrSel.value = i;
+                else if (hl.includes('manuf') && (hl.includes('full') || hl.includes('name') || hl.includes('complet') || hl.includes('long'))) mfrFullSel.value = i;
+                else if (hl.includes('manuf') || hl.includes('fabricant') || hl.includes('mfr')) {
+                    // Generic manufacturer column — assign to abbreviation if not yet set
+                    if (mfrSel.value === '0' && i > 0) mfrSel.value = i;
+                }
+                if (hl.includes('industry') || (hl.includes('part') && !hl.includes('vendor'))) pnSel.value = i;
+                if (hl.includes('vendor') || hl.includes('alternat') || hl.includes('fallback')) fbSel.value = i;
+            });
+
+            // Default: A=0, B=1, C=2, D=3
+            if (excelHeaders.length >= 4) {
+                const used = new Set();
+                // Set defaults if auto-detect didn't differentiate
+                if (mfrSel.value === mfrFullSel.value || mfrSel.value === pnSel.value) {
+                    mfrSel.value = 0;
+                    pnSel.value = 1;
+                    fbSel.value = 2;
+                    mfrFullSel.value = 3;
+                }
+            } else if (excelHeaders.length === 3) {
+                mfrSel.value = 0;
+                pnSel.value = 1;
+                fbSel.value = 2;
+                mfrFullSel.value = 0; // same as abbreviation if no 4th col
+            }
+
+            document.getElementById('importInfo').textContent = `📄 ${excelData.length.toLocaleString()} rows × ${excelHeaders.length} columns`;
+            document.getElementById('importCount').textContent = excelData.length.toLocaleString();
+            
+            updatePreview();
+            mfrSel.onchange = () => { updatePreview(); };
+            mfrFullSel.onchange = () => { updatePreview(); };
+            pnSel.onchange = () => { updatePreview(); };
+            fbSel.onchange = () => { updatePreview(); };
+            
+            document.getElementById('importModal').classList.add('active');
+        }
+
+        function updatePreview() {
+            const mfrCol = parseInt(document.getElementById('mfrColumn').value);
+            const mfrFullCol = parseInt(document.getElementById('mfrFullColumn').value);
+            const pnCol = parseInt(document.getElementById('pnColumn').value);
+            const fbCol = parseInt(document.getElementById('fallbackPnColumn').value);
+            const preview = excelData.slice(0, 5);
+            
+            let html = '<table class="preview-table"><thead><tr><th>Abbrev.</th><th>Full Name</th><th>Industry P/N</th><th>Vendor P/N</th><th>→ Result</th></tr></thead><tbody>';
+            preview.forEach(row => {
+                const abbr = row[mfrCol] !== undefined ? String(row[mfrCol]).trim() : '';
+                const full = row[mfrFullCol] !== undefined ? String(row[mfrFullCol]).trim() : '';
+                const pn = row[pnCol] !== undefined ? String(row[pnCol]).trim() : '';
+                const fb = row[fbCol] !== undefined ? String(row[fbCol]).trim() : '';
+                const isNA = !pn || pn.toUpperCase() === 'N/A';
+                const usedPN = isNA ? fb : pn;
+                const pnColor = isNA ? '#e67e22' : '#27ae60';
+                html += `<tr>
+                    <td>${abbr || '—'}</td>
+                    <td><strong>${full || '—'}</strong></td>
+                    <td>${pn || '—'}</td>
+                    <td>${fb || '—'}</td>
+                    <td style="font-size:11px;"><span style="color:${pnColor};font-weight:600;">${usedPN || '—'}</span> → <span style="color:#2980b9;">${full || abbr || '—'}</span></td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            document.getElementById('previewArea').innerHTML = html;
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+            excelData = null;
+            excelHeaders = [];
+            document.getElementById('fileInput').value = '';
+        }
+
+        async function confirmImport() {
+            const mfrCol = parseInt(document.getElementById('mfrColumn').value);
+            const mfrFullCol = parseInt(document.getElementById('mfrFullColumn').value);
+            const pnCol = parseInt(document.getElementById('pnColumn').value);
+            const fbCol = parseInt(document.getElementById('fallbackPnColumn').value);
+
+            closeImportModal();
+            
+            const progress = document.getElementById('importProgress');
+            const fill = document.getElementById('progressFill');
+            const text = document.getElementById('progressText');
+            progress.style.display = 'block';
+            fill.style.width = '0%';
+            
+            let added = 0, updated = 0, skipped = 0, fallbackUsed = 0;
+            const total = excelData.length;
+            const existingMap = new Map(mappings.map(m => [m.partNumber, m]));
+            const batch = [];
+
+            // Phase 1: Process rows
+            for (let i = 0; i < total; i++) {
+                const row = excelData[i];
+                const rawAbbr = row[mfrCol];
+                const rawFull = row[mfrFullCol];
+                const rawPN = row[pnCol];
+                const rawFB = row[fbCol];
+                
+                // Abbreviation must exist
+                const abbr = rawAbbr !== undefined && rawAbbr !== null ? String(rawAbbr).trim() : '';
+                if (!abbr) { skipped++; continue; }
+                
+                // Full name (use abbreviation as fallback if same column or empty)
+                let fullName = rawFull !== undefined && rawFull !== null ? String(rawFull).trim() : '';
+                if (!fullName) fullName = abbr;
+                
+                // P/N: use Industry PN, fallback to Vendor PN if N/A or empty
+                let pnRaw = rawPN !== undefined && rawPN !== null ? String(rawPN).trim() : '';
+                if (!pnRaw || pnRaw.toUpperCase() === 'N/A') {
+                    pnRaw = rawFB !== undefined && rawFB !== null ? String(rawFB).trim() : '';
+                    if (pnRaw && pnRaw.toUpperCase() !== 'N/A') fallbackUsed++;
+                }
+                
+                const pn = pnRaw.toUpperCase();
+                if (!pn || pn === 'N/A') { skipped++; continue; }
+
+                const existing = existingMap.get(pn);
+                if (existing) {
+                    if (existing.manufacturer !== abbr || existing.manufacturerFull !== fullName) {
+                        existing.manufacturer = abbr;
+                        existing.manufacturerFull = fullName;
+                        batch.push(existing);
+                        updated++;
+                    }
+                } else {
+                    const item = { id: 'pn_' + Date.now() + '_' + i, partNumber: pn, manufacturer: abbr, manufacturerFull: fullName };
+                    mappings.push(item);
+                    existingMap.set(pn, item);
+                    batch.push(item);
+                    added++;
+                }
+
+                // Update progress every 500 rows
+                if (i % 500 === 0) {
+                    const pct = Math.round((i / total) * 70);
+                    fill.style.width = pct + '%';
+                    text.textContent = `Processing ${i.toLocaleString()} / ${total.toLocaleString()}...`;
+                    await new Promise(r => setTimeout(r, 0));
+                }
+            }
+
+            // Phase 2: Save to Supabase in chunks
+            fill.style.width = '70%';
+            text.textContent = `Saving ${batch.length.toLocaleString()} entries to database...`;
+            await new Promise(r => setTimeout(r, 0));
+
+            if (window.ComponentsBayDB && batch.length > 0) {
+                const CHUNK = 50;
+                for (let i = 0; i < batch.length; i += CHUNK) {
+                    const chunk = batch.slice(i, i + CHUNK);
+                    for (const item of chunk) {
+                        try { await ComponentsBayDB.save('pn_manufacturers', item); } catch(e) {}
+                    }
+                    const pct = 70 + Math.round((i / batch.length) * 28);
+                    fill.style.width = pct + '%';
+                    text.textContent = `Saving ${Math.min(i + CHUNK, batch.length).toLocaleString()} / ${batch.length.toLocaleString()}...`;
+                    await new Promise(r => setTimeout(r, 0));
+                }
+            }
+
+            fill.style.width = '100%';
+            text.textContent = '✅ Done!';
+            setTimeout(() => { progress.style.display = 'none'; }, 3000);
+
+            mappings.sort((a, b) => a.partNumber.localeCompare(b.partNumber));
+            showMsg(`Import complete: ${added.toLocaleString()} added, ${updated.toLocaleString()} updated, ${skipped.toLocaleString()} skipped${fallbackUsed ? ', ' + fallbackUsed.toLocaleString() + ' used Vendor P/N fallback' : ''}`, 'success');
+            renderTable();
+            updateLookupCache();
+        }
+
+        // === EXPORT CSV ===
+        function exportCSV() {
+            if (mappings.length === 0) { showMsg('No mappings to export', 'error'); return; }
+            let csv = 'Part Number,Manufacturer Abbreviation,Manufacturer Full Name\n';
+            mappings.forEach(m => {
+                csv += `"${(m.partNumber || '').replace(/"/g, '""')}","${(m.manufacturer || '').replace(/"/g, '""')}","${(m.manufacturerFull || m.manufacturer || '').replace(/"/g, '""')}"\n`;
+            });
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `PN_Manufacturer_Mapping_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showMsg(`Exported ${mappings.length.toLocaleString()} mappings`, 'success');
+        }
+
+        // === RENDER TABLE WITH PAGINATION ===
+        function renderTable() {
+            const search = (document.getElementById('searchInput').value || '').toLowerCase();
+            const filtered = mappings.filter(m => {
+                if (!search) return true;
+                return (m.partNumber || '').toLowerCase().includes(search) || (m.manufacturer || '').toLowerCase().includes(search);
+            });
+
+            // Stats
+            const uniqueMfrs = new Set(mappings.map(m => m.manufacturer));
+            document.getElementById('totalMappings').textContent = mappings.length.toLocaleString();
+            document.getElementById('totalManufacturers').textContent = uniqueMfrs.size.toLocaleString();
+
+            // Pagination
+            const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+            if (currentPage >= totalPages) currentPage = Math.max(0, totalPages - 1);
+            const start = currentPage * PAGE_SIZE;
+            const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+            const body = document.getElementById('mappingBody');
+            if (filtered.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-tertiary);">' +
+                    (mappings.length === 0 ? 'No mappings yet — import an Excel file or add manually' : 'No results for this search') + '</td></tr>';
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            body.innerHTML = pageItems.map((m, idx) => `
                 <tr>
-                    <td><strong>${m.partNumber}</strong></td>
-                    <td>${m.manufacturer}</td>
+                    <td style="color:var(--text-tertiary);font-size:11px;">${(start + idx + 1).toLocaleString()}</td>
+                    <td><strong>${escHtml(m.partNumber)}</strong></td>
+                    <td style="color:var(--text-secondary);font-size:12px;">${escHtml(m.manufacturer)}</td>
+                    <td>${escHtml(m.manufacturerFull || m.manufacturer)}</td>
                     <td>
-                        <button class="btn-edit" onclick="editMapping('${m.id}')">✏️</button>
-                        <button class="btn-del" onclick="deleteMapping('${m.id}')">🗑️</button>
+                        <button class="btn-small" onclick="editMapping('${m.id}')" title="Edit">✏️</button>
+                        <button class="btn-small del" onclick="deleteMapping('${m.id}')" title="Delete">🗑️</button>
                     </td>
                 </tr>
             `).join('');
+
+            // Pagination controls
+            let pagHtml = '';
+            if (totalPages > 1) {
+                pagHtml += `<button onclick="goPage(0)" ${currentPage === 0 ? 'disabled' : ''} title="First">⏮</button>`;
+                pagHtml += `<button onclick="goPage(${currentPage - 1})" ${currentPage === 0 ? 'disabled' : ''} title="Previous">◀</button>`;
+                
+                let startP = Math.max(0, currentPage - 3);
+                let endP = Math.min(totalPages, startP + 7);
+                if (endP - startP < 7) startP = Math.max(0, endP - 7);
+                
+                for (let p = startP; p < endP; p++) {
+                    pagHtml += `<button onclick="goPage(${p})" class="${p === currentPage ? 'active' : ''}">${p + 1}</button>`;
+                }
+                
+                pagHtml += `<button onclick="goPage(${currentPage + 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''} title="Next">▶</button>`;
+                pagHtml += `<button onclick="goPage(${totalPages - 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''} title="Last">⏭</button>`;
+                pagHtml += `<span style="font-size:12px;color:var(--text-tertiary);margin-left:10px;">${filtered.length.toLocaleString()} results · Page ${currentPage + 1}/${totalPages}</span>`;
+            } else if (filtered.length > 0) {
+                pagHtml = `<span style="font-size:12px;color:var(--text-tertiary);">${filtered.length.toLocaleString()} results</span>`;
+            }
+            document.getElementById('pagination').innerHTML = pagHtml;
+        }
+
+        function goPage(p) {
+            currentPage = Math.max(0, p);
+            renderTable();
+            // Scroll table to top
+            document.querySelector('.mapping-table')?.closest('div')?.scrollTo(0, 0);
+        }
+
+        function escHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
         }
     </script>
 </body>

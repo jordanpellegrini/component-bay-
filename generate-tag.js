@@ -87,13 +87,27 @@ async function generateTag(type, itemData) {
     const todayStr = new Date().toLocaleDateString('en-GB');
 
     // Auto-lookup Manufacturer from P/N mapping
+    // Uses compressed cache {p: partNumber, m: abbreviation, f: fullName} or full format
     let manufacturer = '';
     try {
-        const pnMappings = JSON.parse(localStorage.getItem('componentsBayPnManufacturers') || '[]');
         const pn = (itemData.partNumber || '').toUpperCase();
-        const match = pnMappings.find(m => pn === m.partNumber || pn.startsWith(m.partNumber));
-        if (match) manufacturer = match.manufacturer;
-    } catch(e) {}
+        // Try compressed cache first (pnMfrCache)
+        let cache = localStorage.getItem('pnMfrCache');
+        if (cache) {
+            const arr = JSON.parse(cache);
+            const match = arr.find(m => pn === m.p || pn.startsWith(m.p));
+            if (match) manufacturer = match.f || match.m; // Full name first, fallback to abbreviation
+        }
+        // Fallback: old format (componentsBayPnManufacturers)
+        if (!manufacturer) {
+            const old = localStorage.getItem('componentsBayPnManufacturers');
+            if (old) {
+                const arr = JSON.parse(old);
+                const match = arr.find(m => pn === m.partNumber || pn.startsWith(m.partNumber));
+                if (match) manufacturer = match.manufacturerFull || match.manufacturer;
+            }
+        }
+    } catch(e) { console.warn('Manufacturer lookup error:', e); }
 
     if (type === 'serviceable') {
         // Build data object from item
