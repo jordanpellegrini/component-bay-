@@ -131,13 +131,14 @@ async function generateTag(type, itemData) {
             remarks:        itemData.comments || ''
         };
 
-        // Fill form fields with Helvetica 12pt
+        // Fill form fields with Helvetica 12pt — empty values get "N/A"
         for (const [dataKey, fieldName] of Object.entries(SERV_FIELD_MAP)) {
             try {
                 const field = form.getTextField(fieldName);
                 field.defaultUpdateAppearances(helvetica);
                 field.setFontSize(12);
-                if (data[dataKey]) field.setText(String(data[dataKey]));
+                const val = data[dataKey] ? String(data[dataKey]).trim() : '';
+                field.setText(val || 'N/A');
             } catch(e) { console.warn(`Field not found: ${fieldName}`); }
         }
 
@@ -161,12 +162,14 @@ async function generateTag(type, itemData) {
             reasonForRemoval:  itemData.reason || itemData.comments || ''
         };
 
+        // Fill form fields with Helvetica 12pt — empty values get "N/A"
         for (const [dataKey, fieldName] of Object.entries(UNSERV_FIELD_MAP)) {
             try {
                 const field = form.getTextField(fieldName);
                 field.defaultUpdateAppearances(helvetica);
                 field.setFontSize(12);
-                if (data[dataKey]) field.setText(String(data[dataKey]));
+                const val = data[dataKey] ? String(data[dataKey]).trim() : '';
+                field.setText(val || 'N/A');
             } catch(e) { console.warn(`Field not found: ${fieldName}`); }
         }
     }
