@@ -128,7 +128,7 @@ async function generateTag(type, itemData) {
             itemFH:         itemData.flightHours || '',
             dateOfRemoval:  itemData.dateOfRemoval || itemData.inspectionDate || new Date().toISOString().split('T')[0],
             removeFrom:     itemData.removeFromHC || itemData.removeFrom || '',
-            remarks:        itemData.comments || ''
+            remarks:        (itemData.comments || '').replace(/\s*\|\s*/g, '\n')
         };
 
         // Fill form fields with Helvetica 12pt, centered — empty values get "N/A"
@@ -160,7 +160,7 @@ async function generateTag(type, itemData) {
             removedAtCycle:    '',
             dateOfRemoval:     itemData.dateOfRemoval || itemData.inspectionDate || today,
             nameTechnician:    userLastName,
-            reasonForRemoval:  itemData.reason || itemData.comments || ''
+            reasonForRemoval:  (itemData.reason || itemData.comments || '').replace(/\s*\|\s*/g, '\n')
         };
 
         // Fill form fields with Helvetica 12pt, centered — empty values get "N/A"

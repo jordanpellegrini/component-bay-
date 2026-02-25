@@ -916,7 +916,7 @@
             const flightHours = document.getElementById('flightHours')?.value || '';
             const position = document.getElementById('position')?.value || '';
 
-            // Build comments: P/N Tire + S/N: (space for manual entry) + Eddy Current C/Out + original comments
+            // Build comments with line breaks for PDF
             let tagComments = [];
             if (pnTire) tagComments.push('P/N Tire: ' + pnTire);
             tagComments.push('S/N: ___________');
@@ -929,7 +929,7 @@
                 designation: designation || position,
                 serviceability: serviceability,
                 orderRef: order,
-                comments: tagComments.join(' | '),
+                comments: tagComments.join('\n'),
                 flightHours: flightHours,
                 removeFrom: removeFrom,
                 logCard: 'YES'
