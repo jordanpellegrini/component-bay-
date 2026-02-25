@@ -60,7 +60,7 @@ async function generateTag(type, itemData) {
         return;
     }
 
-    const { PDFDocument, StandardFonts } = PDFLib;
+    const { PDFDocument, StandardFonts, TextAlignment } = PDFLib;
     
     // Load template PDF
     const templateB64 = TAG_TEMPLATES[type];
@@ -131,12 +131,13 @@ async function generateTag(type, itemData) {
             remarks:        itemData.comments || ''
         };
 
-        // Fill form fields with Helvetica 12pt — empty values get "N/A"
+        // Fill form fields with Helvetica 12pt, centered — empty values get "N/A"
         for (const [dataKey, fieldName] of Object.entries(SERV_FIELD_MAP)) {
             try {
                 const field = form.getTextField(fieldName);
                 field.defaultUpdateAppearances(helvetica);
                 field.setFontSize(12);
+                field.setAlignment(TextAlignment.Center);
                 const val = data[dataKey] ? String(data[dataKey]).trim() : '';
                 field.setText(val || 'N/A');
             } catch(e) { console.warn(`Field not found: ${fieldName}`); }
@@ -162,12 +163,13 @@ async function generateTag(type, itemData) {
             reasonForRemoval:  itemData.reason || itemData.comments || ''
         };
 
-        // Fill form fields with Helvetica 12pt — empty values get "N/A"
+        // Fill form fields with Helvetica 12pt, centered — empty values get "N/A"
         for (const [dataKey, fieldName] of Object.entries(UNSERV_FIELD_MAP)) {
             try {
                 const field = form.getTextField(fieldName);
                 field.defaultUpdateAppearances(helvetica);
                 field.setFontSize(12);
+                field.setAlignment(TextAlignment.Center);
                 const val = data[dataKey] ? String(data[dataKey]).trim() : '';
                 field.setText(val || 'N/A');
             } catch(e) { console.warn(`Field not found: ${fieldName}`); }
