@@ -115,6 +115,12 @@ async function generateTag(type, itemData) {
     } catch(e) { console.warn('Manufacturer lookup error:', e); }
 
     if (type === 'serviceable') {
+        // Build Work Order from JCN + Book
+        let workOrderParts = [];
+        if (itemData.jcnNumber) workOrderParts.push('JCN ' + itemData.jcnNumber);
+        if (itemData.jcnBook) workOrderParts.push(itemData.jcnBook);
+        const workOrderValue = workOrderParts.length > 0 ? workOrderParts.join('\n') : (itemData.orderRef || itemData.order || '');
+
         // Build data object from item
         const data = {
             partNumber:     itemData.partNumber || '',
@@ -122,7 +128,7 @@ async function generateTag(type, itemData) {
             nextInspection: itemData.nextInspection || itemData.next18M || itemData.next36M || itemData.next24M || itemData.next60M || '',
             description:    itemData.designation || itemData.description || '',
             inspector:      '',
-            workOrder:      itemData.orderRef || itemData.order || '',
+            workOrder:      workOrderValue,
             inspectorName:  userLastName + ' - ' + todayStr,
             logCard:        'YES',
             itemFH:         itemData.flightHours || '',
@@ -138,7 +144,12 @@ async function generateTag(type, itemData) {
                 field.defaultUpdateAppearances(helvetica);
                 field.setFontSize(12);
                 field.setAlignment(TextAlignment.Center);
-                const val = data[dataKey] ? String(data[dataKey]).trim() : '';
+                let val = data[dataKey] ? String(data[dataKey]).trim() : '';
+                // Enable multiline for fields that may contain line breaks
+                if ((dataKey === 'workOrder' || dataKey === 'remarks') && val && val.includes('\n')) {
+                    field.enableMultiline();
+                    field.setFontSize(9);
+                }
                 field.setText(val || 'N/A');
             } catch(e) { console.warn(`Field not found: ${fieldName}`); }
         }

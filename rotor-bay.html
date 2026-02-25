@@ -5,12 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rotor Bay - Components Bay</title>
     <link rel="stylesheet" href="modern-style.css">
-    <script type="module" src="supabase-config.js">
-            generateTag(type, item);
-        }
-            generateTag(type, item);
-        }
-    </script>
+    <script type="module" src="supabase-config.js"></script>
 </head>
 <body>
     <div class="container">
@@ -169,6 +164,22 @@
                     <div class="form-group">
                         <label>Remove from A/C</label>
                         <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
+                    </div>
+                    <div class="form-group">
+                        <label>JCN Number</label>
+                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN number">
+                    </div>
+                    <div class="form-group">
+                        <label>Book</label>
+                        <select id="jcnBook" class="form-control">
+                            <option value="">-- Select --</option>
+                            <option value="EFS Book">EFS Book</option>
+                            <option value="Engine Bay Book">Engine Bay Book</option>
+                            <option value="Rotor Bay Book">Rotor Bay Book</option>
+                            <option value="Component Bay Book">Component Bay Book</option>
+                            <option value="Wheel Book">Wheel Book</option>
+                            <option value="Avionic Book">Avionic Book</option>
+                        </select>
                     </div>
 <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
@@ -441,6 +452,8 @@
                 flightHours: document.getElementById('flightHours').value.trim(),
                 dateOfRemoval: document.getElementById('dateOfRemoval').value,
                 removeFromHC: document.getElementById('removeFromHC').value.trim(),
+                jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
+                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
                 reason: '',
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser
@@ -475,7 +488,9 @@
         function resetForm() {
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
-            try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
+            try { document.getElementById('removeFromHC').value = '';
+            try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
+            try { document.getElementById('jcnBook').value = ''; } catch(e) {} } catch(e) {}
             document.getElementById('rotorForm').reset();
             editingItem = null;
             document.getElementById('nextShort').value = '';
@@ -555,6 +570,8 @@
             document.getElementById('flightHours').value = item.flightHours || '';
             document.getElementById('dateOfRemoval').value = item.dateOfRemoval || '';
             document.getElementById('removeFromHC').value = item.removeFromHC || '';
+            try { document.getElementById('jcnNumber').value = item.jcnNumber || ''; } catch(e) {}
+            try { document.getElementById('jcnBook').value = item.jcnBook || ''; } catch(e) {}
             showAddForm(); closeModal();
         }
 
@@ -614,6 +631,12 @@
             // Get reason from stored data (not a form field)
             if (editingItem) item.reason = editingItem.reason || '';
             if (!item.partNumber && !item.designation) { alert('No item data'); return; }
+            // JCN + Book for Work Order
+            const jcnEl = document.getElementById('jcnNumber');
+            const bookEl = document.getElementById('jcnBook');
+            if (jcnEl) item.jcnNumber = jcnEl.value.trim();
+            if (bookEl) item.jcnBook = bookEl.value;
+
             generateTag(type, item);
         }
     </script>

@@ -5,12 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IAFT/EAFT - Components Bay</title>
     <link rel="stylesheet" href="modern-style.css">
-    <script type="module" src="supabase-config.js">
-            generateTag(type, item);
-        }
-            generateTag(type, item);
-        }
-    </script>
+    <script type="module" src="supabase-config.js"></script>
     <style>
         .locked-field { position: relative; opacity: 0.5; pointer-events: none; }
         .locked-field::after { content: '🔒 Activates when 60M date is reached'; position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); text-align: center; font-size: 0.8em; color: #e67e22; font-weight: 600; background: rgba(255,255,255,0.9); padding: 4px; border-radius: 4px; }
@@ -98,6 +93,22 @@
                         <label>Remove from A/C</label>
                         <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
                     </div>
+                    <div class="form-group">
+                        <label>JCN Number</label>
+                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN number">
+                    </div>
+                    <div class="form-group">
+                        <label>Book</label>
+                        <select id="jcnBook" class="form-control">
+                            <option value="">-- Select --</option>
+                            <option value="EFS Book">EFS Book</option>
+                            <option value="Engine Bay Book">Engine Bay Book</option>
+                            <option value="Rotor Bay Book">Rotor Bay Book</option>
+                            <option value="Component Bay Book">Component Bay Book</option>
+                            <option value="Wheel Book">Wheel Book</option>
+                            <option value="Avionic Book">Avionic Book</option>
+                        </select>
+                    </div>
 <div class="form-group" style="grid-column: 1 / -1;"><label>Comments</label><textarea id="comments" class="form-control" rows="2"></textarea></div>
                 </div>
                 <div class="mt-20">
@@ -113,6 +124,18 @@
 
         <div id="viewAllSection" class="card hidden">
             <div style="display: flex; justify-content: space-between; align-items: center;"><h2>📋 ALL IAFT/EAFT ITEMS</h2><span class="badge" id="tableCount">0</span></div>
+            <div class="filter-bar" style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;align-items:center;">
+                <input type="text" id="filterSearch" class="form-control" placeholder="🔍 Search P/N, S/N, Designation..." style="flex:2;min-width:200px;" oninput="applyFilters()">
+                <select id="filterStatus" class="form-control" style="flex:1;min-width:150px;" onchange="applyFilters()">
+                    <option value="">All Status</option>
+                    <option value="Serviceable">✅ Serviceable</option>
+                    <option value="Unserviceable">❌ Unserviceable</option>
+                </select>
+                <select id="filterDesignation" class="form-control" style="flex:1;min-width:150px;" onchange="applyFilters()">
+                    <option value="">All Designations</option>
+                </select>
+                <button onclick="clearFilters()" class="btn" style="padding:8px 14px;" title="Clear filters">🔄</button>
+            </div>
             <div id="allItemsTable"></div>
         </div>
 
@@ -282,6 +305,8 @@
                 flightHours: document.getElementById('flightHours').value.trim(),
                 dateOfRemoval: document.getElementById('dateOfRemoval').value,
                 removeFromHC: document.getElementById('removeFromHC').value.trim(),
+                jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
+                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
                 lastModified: new Date().toISOString(), modifiedBy: currentUser
             };
 
@@ -300,12 +325,50 @@
         function showViewAll() { document.getElementById('viewAllSection').classList.remove('hidden'); document.getElementById('addFormSection').classList.add('hidden'); refreshTable(); }
 
 
+        function getFilteredData() {
+            let filtered = [...itemsData];
+            const search = (document.getElementById('filterSearch')?.value || '').toLowerCase();
+            const status = document.getElementById('filterStatus')?.value || '';
+            const desig = document.getElementById('filterDesignation')?.value || '';
+            
+            if (search) {
+                filtered = filtered.filter(item => 
+                    (item.partNumber || '').toLowerCase().includes(search) ||
+                    (item.serialNumber || '').toLowerCase().includes(search) ||
+                    (item.designation || '').toLowerCase().includes(search) ||
+                    (item.comments || '').toLowerCase().includes(search)
+                );
+            }
+            if (status) filtered = filtered.filter(item => item.serviceability === status);
+            if (desig) filtered = filtered.filter(item => item.designation === desig);
+            return filtered;
+        }
+
+        function populateDesignationFilter() {
+            const select = document.getElementById('filterDesignation');
+            if (!select) return;
+            const current = select.value;
+            const designations = [...new Set(itemsData.map(i => i.designation).filter(Boolean))].sort();
+            select.innerHTML = '<option value="">All Designations</option>' + designations.map(d => `<option value="${d}">${d}</option>`).join('');
+            select.value = current;
+        }
+
+        function applyFilters() { refreshTable(); }
+        function clearFilters() {
+            document.getElementById('filterSearch').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterDesignation').value = '';
+            refreshTable();
+        }
+
         function refreshTable() {
             const container = document.getElementById('allItemsTable');
-            document.getElementById('tableCount').textContent = itemsData.length;
+            const filtered = getFilteredData();
+            document.getElementById('tableCount').textContent = filtered.length + '/' + itemsData.length;
+            populateDesignationFilter();
             if (itemsData.length === 0) { container.innerHTML = '<div class="empty-state"><p>No items yet</p></div>'; return; }
             let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 60M</th><th>Next 24M</th><th>Next 360M</th><th>60M</th><th>Status</th><th>WIP</th><th>Actions</th></tr></thead><tbody>';
-            itemsData.forEach(item => {
+            filtered.forEach(item => {
                 const sc = item.serviceability === 'Serviceable' ? 'status-serviceable' : 'status-unserviceable';
                 const now = new Date(); now.setHours(0,0,0,0);
                 const active24 = item.has60MBeenDone && item.next60M && new Date(item.next60M) <= now;
@@ -347,6 +410,8 @@
             document.getElementById('flightHours').value = item.flightHours || '';
             document.getElementById('dateOfRemoval').value = item.dateOfRemoval || '';
             document.getElementById('removeFromHC').value = item.removeFromHC || '';
+            try { document.getElementById('jcnNumber').value = item.jcnNumber || ''; } catch(e) {}
+            try { document.getElementById('jcnBook').value = item.jcnBook || ''; } catch(e) {}
             document.getElementById('formTitle').textContent = '✏️ Edit IAFT/EAFT Item';
             const nowE = new Date(); nowE.setHours(0,0,0,0);
             const edit24MActive = !!editingItem.has60MBeenDone && editingItem.next60M && new Date(editingItem.next60M) <= nowE;
@@ -362,7 +427,9 @@
         function cancelForm() {
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
-            try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
+            try { document.getElementById('removeFromHC').value = '';
+            try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
+            try { document.getElementById('jcnBook').value = ''; } catch(e) {} } catch(e) {}
         }
 
 
@@ -399,6 +466,12 @@
             // Get reason from stored data (not a form field)
             if (editingItem) item.reason = editingItem.reason || '';
             if (!item.partNumber && !item.designation) { alert('No item data'); return; }
+            // JCN + Book for Work Order
+            const jcnEl = document.getElementById('jcnNumber');
+            const bookEl = document.getElementById('jcnBook');
+            if (jcnEl) item.jcnNumber = jcnEl.value.trim();
+            if (bookEl) item.jcnBook = bookEl.value;
+
             generateTag(type, item);
         }
     </script>

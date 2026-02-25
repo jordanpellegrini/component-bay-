@@ -111,6 +111,22 @@
                         <label>Remove from A/C</label>
                         <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
                     </div>
+                    <div class="form-group">
+                        <label>JCN Number</label>
+                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN number">
+                    </div>
+                    <div class="form-group">
+                        <label>Book</label>
+                        <select id="jcnBook" class="form-control">
+                            <option value="">-- Select --</option>
+                            <option value="EFS Book">EFS Book</option>
+                            <option value="Engine Bay Book">Engine Bay Book</option>
+                            <option value="Rotor Bay Book">Rotor Bay Book</option>
+                            <option value="Component Bay Book">Component Bay Book</option>
+                            <option value="Wheel Book">Wheel Book</option>
+                            <option value="Avionic Book">Avionic Book</option>
+                        </select>
+                    </div>
 <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="itemsComments" class="form-control" placeholder="Enter detailed comments..."></textarea>
@@ -640,7 +656,9 @@
                 comments: document.getElementById('itemsComments').value.trim(),
                 serviceability: 'Serviceable',
                 lastModified: new Date().toISOString(),
-                modifiedBy: currentUser
+                modifiedBy: currentUser,
+                jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
+                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : ''
             };
 
             consoleData.push(formData);
@@ -702,7 +720,9 @@
                 comments: document.getElementById('batteryComments').value.trim(),
                 serviceability: 'Serviceable',
                 lastModified: new Date().toISOString(),
-                modifiedBy: currentUser
+                modifiedBy: currentUser,
+                jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
+                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : ''
             };
 
             if (editingBattery) {
@@ -893,7 +913,9 @@
                 comments: document.getElementById('sonarComments').value.trim(),
                 serviceability: 'Serviceable',
                 lastModified: new Date().toISOString(),
-                modifiedBy: currentUser
+                modifiedBy: currentUser,
+                jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
+                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : ''
             };
 
             if (editingSonar) {
@@ -1010,7 +1032,9 @@
                 serviceability: hasMissing ? 'Unserviceable' : 'Serviceable',
                 reason: hasMissing ? `Missing part: ${missingParts.join(', ')}` : '',
                 lastModified: new Date().toISOString(),
-                modifiedBy: currentUser
+                modifiedBy: currentUser,
+                jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
+                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : ''
             };
 
             if (editingConsole) {
@@ -1038,6 +1062,8 @@
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
+            try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
+            try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             document.getElementById('consoleDesignation').value = '';
             document.getElementById('consolePartNumber').value = '';
             document.getElementById('consoleSerialNumber').value = '';
@@ -1390,10 +1416,11 @@
                 showAddItems();
             }
             
+            // Restore JCN fields for all types
+            try { document.getElementById('jcnNumber').value = itemToEdit.jcnNumber || ''; } catch(e) {}
+            try { document.getElementById('jcnBook').value = itemToEdit.jcnBook || ''; } catch(e) {}
+            
             closeModal();
-        }
-
-        function editCurrentConsole() {
             if (currentConsoleId) {
                 editConsole(currentConsoleId);
             }
@@ -1530,6 +1557,11 @@
                 removeFromHC: document.getElementById('removeFromHC') ? document.getElementById('removeFromHC').value : ''
             };
             if (!item.partNumber) { alert('No item data available'); return; }
+            // JCN + Book for Work Order
+            const jcnEl = document.getElementById('jcnNumber');
+            const bookEl = document.getElementById('jcnBook');
+            if (jcnEl) item.jcnNumber = jcnEl.value.trim();
+            if (bookEl) item.jcnBook = bookEl.value;
             generateTag(type, item);
         }
     </script>

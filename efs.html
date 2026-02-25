@@ -5,12 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EFS Float - Components Bay V3.3</title>
     <link rel="stylesheet" href="modern-style.css">
-    <script type="module" src="supabase-config.js">
-            generateTag(type, item);
-        }
-            generateTag(type, item);
-        }
-    </script>
+    <script type="module" src="supabase-config.js"></script>
 </head>
 <body>
     <div class="container">
@@ -159,6 +154,22 @@
                         <label>Remove from A/C</label>
                         <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
                     </div>
+                    <div class="form-group">
+                        <label>JCN Number</label>
+                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN number">
+                    </div>
+                    <div class="form-group">
+                        <label>Book</label>
+                        <select id="jcnBook" class="form-control">
+                            <option value="">-- Select --</option>
+                            <option value="EFS Book">EFS Book</option>
+                            <option value="Engine Bay Book">Engine Bay Book</option>
+                            <option value="Rotor Bay Book">Rotor Bay Book</option>
+                            <option value="Component Bay Book">Component Bay Book</option>
+                            <option value="Wheel Book">Wheel Book</option>
+                            <option value="Avionic Book">Avionic Book</option>
+                        </select>
+                    </div>
 <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="efsComments" class="form-control" placeholder="Enter detailed comments..."></textarea>
@@ -193,6 +204,18 @@
                 <span class="badge" id="tableCount">0</span>
             </div>
             <div class="panel-body">
+                <div class="filter-bar" style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;align-items:center;">
+                    <input type="text" id="filterSearch" class="form-control" placeholder="🔍 Search P/N, S/N, Designation..." style="flex:2;min-width:200px;" oninput="applyFilters()">
+                    <select id="filterStatus" class="form-control" style="flex:1;min-width:150px;" onchange="applyFilters()">
+                        <option value="">All Status</option>
+                        <option value="Serviceable">✅ Serviceable</option>
+                        <option value="Unserviceable">❌ Unserviceable</option>
+                    </select>
+                    <select id="filterDesignation" class="form-control" style="flex:1;min-width:150px;" onchange="applyFilters()">
+                        <option value="">All Designations</option>
+                    </select>
+                    <button onclick="clearFilters()" class="btn" style="padding:8px 14px;" title="Clear filters">🔄</button>
+                </div>
                 <div id="efsTable"></div>
             </div>
         </div>
@@ -508,6 +531,8 @@
                 flightHours: document.getElementById('flightHours').value.trim(),
                 dateOfRemoval: document.getElementById('dateOfRemoval').value,
                 removeFromHC: document.getElementById('removeFromHC').value.trim(),
+                jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
+                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser
             };
@@ -548,14 +573,54 @@
             document.getElementById('flightHours').value = '';
             document.getElementById('dateOfRemoval').value = '';
             document.getElementById('removeFromHC').value = '';
+            try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
+            try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             document.getElementById('editEFSId').value = '';
             // Don't reset editingEFS here - it should only be reset after successful save
             hideMessage();
         }
 
+        function getFilteredData() {
+            let filtered = [...efsData];
+            const search = (document.getElementById('filterSearch')?.value || '').toLowerCase();
+            const status = document.getElementById('filterStatus')?.value || '';
+            const desig = document.getElementById('filterDesignation')?.value || '';
+            
+            if (search) {
+                filtered = filtered.filter(item => 
+                    (item.partNumber || '').toLowerCase().includes(search) ||
+                    (item.serialNumber || '').toLowerCase().includes(search) ||
+                    (item.designation || '').toLowerCase().includes(search) ||
+                    (item.comments || '').toLowerCase().includes(search)
+                );
+            }
+            if (status) filtered = filtered.filter(item => item.serviceability === status);
+            if (desig) filtered = filtered.filter(item => item.designation === desig);
+            return filtered;
+        }
+
+        function populateDesignationFilter() {
+            const select = document.getElementById('filterDesignation');
+            if (!select) return;
+            const current = select.value;
+            const designations = [...new Set(efsData.map(i => i.designation).filter(Boolean))].sort();
+            select.innerHTML = '<option value="">All Designations</option>' + designations.map(d => `<option value="${d}">${d}</option>`).join('');
+            select.value = current;
+        }
+
+        function applyFilters() { refreshTable(); }
+        function clearFilters() {
+            document.getElementById('filterSearch').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterDesignation').value = '';
+            refreshTable();
+        }
+
         function refreshTable() {
             const tableContainer = document.getElementById('efsTable');
-            document.getElementById('tableCount').textContent = efsData.length;
+            const filtered = getFilteredData();
+            document.getElementById('tableCount').textContent = filtered.length + '/' + efsData.length;
+            populateDesignationFilter();
 
             if (efsData.length === 0) {
                 tableContainer.innerHTML = `
@@ -586,7 +651,7 @@
                         <tbody>
             `;
 
-            efsData.forEach(item => {
+            filtered.forEach(item => {
                 const statusClass = item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable';
                 
                 tableHTML += `
@@ -686,6 +751,8 @@
             document.getElementById('flightHours').value = editingEFS.flightHours || '';
             document.getElementById('dateOfRemoval').value = editingEFS.dateOfRemoval || '';
             document.getElementById('removeFromHC').value = editingEFS.removeFromHC || '';
+            try { document.getElementById('jcnNumber').value = editingEFS.jcnNumber || ''; } catch(e) {}
+            try { document.getElementById('jcnBook').value = editingEFS.jcnBook || ''; } catch(e) {}
 
             showAddEFS();
             closeModal();
@@ -837,6 +904,12 @@
             // Get reason from stored data
             if (typeof editingEFS !== 'undefined' && editingEFS) item.reason = editingEFS.reason || '';
             if (!item.partNumber) { alert('No item data'); return; }
+            // JCN + Book for Work Order
+            const jcnEl = document.getElementById('jcnNumber');
+            const bookEl = document.getElementById('jcnBook');
+            if (jcnEl) item.jcnNumber = jcnEl.value.trim();
+            if (bookEl) item.jcnBook = bookEl.value;
+
             generateTag(type, item);
         }
     </script>
