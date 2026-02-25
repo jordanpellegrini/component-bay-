@@ -212,21 +212,12 @@
 
         // === LIGHTWEIGHT CACHE for generate-tag.js ===
         function updateLookupCache() {
-            try {
-                // Store compressed cache: P/N → abbreviation + full name for tag lookup
-                const cache = mappings.map(m => ({ p: m.partNumber, m: m.manufacturer, f: m.manufacturerFull || m.manufacturer }));
-                const json = JSON.stringify(cache);
-                // Only cache if < 4MB (leave room in localStorage)
-                if (json.length < 4 * 1024 * 1024) {
-                    localStorage.setItem('pnMfrCache', json);
-                } else {
-                    // Too large: store nothing, tag gen will do a search in the full array
-                    localStorage.removeItem('pnMfrCache');
-                    console.warn('P/N cache too large for localStorage, using in-memory only');
-                }
-            } catch(e) {
-                console.warn('Cache update failed:', e);
-            }
+            // Store lookup in memory only (NOT localStorage — too large for 23K+ entries)
+            // generate-tag.js will read from window.pnMfrLookup
+            window.pnMfrLookup = mappings.map(m => ({ p: m.partNumber, m: m.manufacturer, f: m.manufacturerFull || m.manufacturer }));
+            // Clean up any old localStorage cache that may be filling storage
+            try { localStorage.removeItem('pnMfrCache'); } catch(e) {}
+            try { localStorage.removeItem('componentsBayPnManufacturers'); } catch(e) {}
         }
 
         function showMsg(text, type) {
@@ -309,8 +300,9 @@
             }
             
             mappings = [];
-            localStorage.removeItem('pnMfrCache');
-            localStorage.removeItem('componentsBayPnManufacturers');
+            window.pnMfrLookup = [];
+            try { localStorage.removeItem('pnMfrCache'); } catch(e) {}
+            try { localStorage.removeItem('componentsBayPnManufacturers'); } catch(e) {}
             showMsg('All mappings deleted', 'success');
             renderTable();
         }
@@ -453,8 +445,15 @@
             const pnCol = parseInt(document.getElementById('pnColumn').value);
             const fbCol = parseInt(document.getElementById('fallbackPnColumn').value);
 
+            // Save reference before closing modal (which sets excelData to null)
+            const importData = excelData;
             closeImportModal();
             
+            if (!importData || importData.length === 0) {
+                showMsg('No data to import', 'error');
+                return;
+            }
+
             const progress = document.getElementById('importProgress');
             const fill = document.getElementById('progressFill');
             const text = document.getElementById('progressText');
@@ -462,13 +461,13 @@
             fill.style.width = '0%';
             
             let added = 0, updated = 0, skipped = 0, fallbackUsed = 0;
-            const total = excelData.length;
+            const total = importData.length;
             const existingMap = new Map(mappings.map(m => [m.partNumber, m]));
             const batch = [];
 
             // Phase 1: Process rows
             for (let i = 0; i < total; i++) {
-                const row = excelData[i];
+                const row = importData[i];
                 const rawAbbr = row[mfrCol];
                 const rawFull = row[mfrFullCol];
                 const rawPN = row[pnCol];
@@ -517,22 +516,36 @@
                 }
             }
 
-            // Phase 2: Save to Supabase in chunks
+            // Phase 2: Save to Supabase using bulk insert (batch of 500)
             fill.style.width = '70%';
-            text.textContent = `Saving ${batch.length.toLocaleString()} entries to database...`;
+            text.textContent = `Saving ${batch.length.toLocaleString()} entries to database (batch mode)...`;
             await new Promise(r => setTimeout(r, 0));
 
-            if (window.ComponentsBayDB && batch.length > 0) {
-                const CHUNK = 50;
+            if (window.ComponentsBayDB && window.ComponentsBayDB.bulkSave && batch.length > 0) {
+                const CHUNK = 500;
+                let saved = 0;
                 for (let i = 0; i < batch.length; i += CHUNK) {
                     const chunk = batch.slice(i, i + CHUNK);
-                    for (const item of chunk) {
-                        try { await ComponentsBayDB.save('pn_manufacturers', item); } catch(e) {}
-                    }
-                    const pct = 70 + Math.round((i / batch.length) * 28);
+                    try {
+                        const result = await ComponentsBayDB.bulkSave('pn_manufacturers', chunk);
+                        saved += result || 0;
+                    } catch(e) { console.warn('Batch save error:', e); }
+                    const pct = 70 + Math.round(((i + chunk.length) / batch.length) * 28);
                     fill.style.width = pct + '%';
-                    text.textContent = `Saving ${Math.min(i + CHUNK, batch.length).toLocaleString()} / ${batch.length.toLocaleString()}...`;
+                    text.textContent = `Saved ${Math.min(i + CHUNK, batch.length).toLocaleString()} / ${batch.length.toLocaleString()}...`;
                     await new Promise(r => setTimeout(r, 0));
+                }
+                console.log(`✅ Bulk import: ${saved} saved to Supabase`);
+            } else if (window.ComponentsBayDB && batch.length > 0) {
+                // Fallback: save one by one if bulkSave not available
+                for (let i = 0; i < batch.length; i++) {
+                    try { await ComponentsBayDB.save('pn_manufacturers', batch[i]); } catch(e) {}
+                    if (i % 100 === 0) {
+                        const pct = 70 + Math.round((i / batch.length) * 28);
+                        fill.style.width = pct + '%';
+                        text.textContent = `Saving ${i.toLocaleString()} / ${batch.length.toLocaleString()}...`;
+                        await new Promise(r => setTimeout(r, 0));
+                    }
                 }
             }
 

@@ -87,25 +87,30 @@ async function generateTag(type, itemData) {
     const todayStr = new Date().toLocaleDateString('en-GB');
 
     // Auto-lookup Manufacturer from P/N mapping
-    // Uses compressed cache {p: partNumber, m: abbreviation, f: fullName} or full format
+    // Auto-lookup Manufacturer from P/N mapping
+    // Uses in-memory cache (window.pnMfrLookup) set by pn-manufacturers page
+    // Or loads from Supabase if not in memory
     let manufacturer = '';
     try {
         const pn = (itemData.partNumber || '').toUpperCase();
-        // Try compressed cache first (pnMfrCache)
-        let cache = localStorage.getItem('pnMfrCache');
-        if (cache) {
-            const arr = JSON.parse(cache);
-            const match = arr.find(m => pn === m.p || pn.startsWith(m.p));
-            if (match) manufacturer = match.f || match.m; // Full name first, fallback to abbreviation
+        
+        // 1. Try in-memory lookup (set by pn-manufacturers.html)
+        if (window.pnMfrLookup && window.pnMfrLookup.length > 0) {
+            const match = window.pnMfrLookup.find(m => pn === m.p || pn.startsWith(m.p));
+            if (match) manufacturer = match.f || match.m;
         }
-        // Fallback: old format (componentsBayPnManufacturers)
-        if (!manufacturer) {
-            const old = localStorage.getItem('componentsBayPnManufacturers');
-            if (old) {
-                const arr = JSON.parse(old);
-                const match = arr.find(m => pn === m.partNumber || pn.startsWith(m.partNumber));
-                if (match) manufacturer = match.manufacturerFull || match.manufacturer;
-            }
+        
+        // 2. Fallback: load from Supabase if not in memory
+        if (!manufacturer && window.ComponentsBayDB) {
+            try {
+                const allMfr = await ComponentsBayDB.load('pn_manufacturers');
+                if (allMfr && allMfr.length > 0) {
+                    // Cache in memory for next lookups
+                    window.pnMfrLookup = allMfr.map(m => ({ p: m.partNumber, m: m.manufacturer, f: m.manufacturerFull || m.manufacturer }));
+                    const match = window.pnMfrLookup.find(m => pn === m.p || pn.startsWith(m.p));
+                    if (match) manufacturer = match.f || match.m;
+                }
+            } catch(e) { console.warn('Supabase manufacturer load error:', e); }
         }
     } catch(e) { console.warn('Manufacturer lookup error:', e); }
 

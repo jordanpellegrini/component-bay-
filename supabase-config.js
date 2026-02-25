@@ -139,7 +139,7 @@ window.ComponentsBayDB = {
                 localData.push(data);
             }
             
-            localStorage.setItem(localKey, JSON.stringify(localData));
+            try { localStorage.setItem(localKey, JSON.stringify(localData)); } catch(e) { console.warn('localStorage quota exceeded, skipping'); }
             console.log(`💾 Fallback: Saved to localStorage (${tableName})`);
             return data;
         }
@@ -175,9 +175,19 @@ window.ComponentsBayDB = {
                 }));
             }
             
-            // Sync to localStorage for offline access
+            // Sync to localStorage for offline access (skip large datasets)
             const localKey = getLocalKey(tableName);
-            localStorage.setItem(localKey, JSON.stringify(items));
+            try {
+                const json = JSON.stringify(items);
+                // Only cache in localStorage if < 1MB (avoid quota errors with large datasets like pn_manufacturers)
+                if (json.length < 1024 * 1024) {
+                    localStorage.setItem(localKey, json);
+                } else {
+                    console.log(`⚠️ Skipping localStorage cache for ${tableName} (${(json.length / 1024 / 1024).toFixed(1)}MB too large)`);
+                }
+            } catch(e) {
+                console.warn(`⚠️ localStorage quota exceeded for ${tableName}, skipping cache`);
+            }
             
             return items || [];
 
@@ -206,10 +216,10 @@ window.ComponentsBayDB = {
                 };
             });
 
-            // Insert in batches of 50 to avoid request size limits
+            // Insert in batches of 500 for performance
             let inserted = 0;
-            for (let i = 0; i < records.length; i += 50) {
-                const batch = records.slice(i, i + 50);
+            for (let i = 0; i < records.length; i += 500) {
+                const batch = records.slice(i, i + 500);
                 const { error } = await supabase
                     .from(tableName)
                     .upsert(batch, { onConflict: 'id' });
@@ -268,7 +278,7 @@ window.ComponentsBayDB = {
             const localKey = getLocalKey(tableName);
             let localData = JSON.parse(localStorage.getItem(localKey) || '[]');
             localData = localData.filter(item => item.id !== id);
-            localStorage.setItem(localKey, JSON.stringify(localData));
+            try { localStorage.setItem(localKey, JSON.stringify(localData)); } catch(e) { console.warn('localStorage quota exceeded, skipping'); }
 
         } catch (error) {
             console.error(`💥 Delete failed (${tableName}):`, error.message);
@@ -277,7 +287,7 @@ window.ComponentsBayDB = {
             const localKey = getLocalKey(tableName);
             let localData = JSON.parse(localStorage.getItem(localKey) || '[]');
             localData = localData.filter(item => item.id !== id);
-            localStorage.setItem(localKey, JSON.stringify(localData));
+            try { localStorage.setItem(localKey, JSON.stringify(localData)); } catch(e) { console.warn('localStorage quota exceeded, skipping'); }
             console.log(`💾 Fallback: Removed from localStorage (${tableName})`);
         }
     },
@@ -341,3 +351,7 @@ window.ComponentsBayDB = {
 console.log('🔥 Supabase connection initialized for Components Bay');
 console.log('📊 Database URL:', supabaseUrl);
 console.log('✅ Ready for full database integration!');
+
+// Clean up large localStorage caches that may cause quota errors
+try { localStorage.removeItem('pnMfrCache'); } catch(e) {}
+try { localStorage.removeItem('componentsBayPnManufacturers'); } catch(e) {}
