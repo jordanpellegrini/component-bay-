@@ -905,7 +905,8 @@
             const pnWheel = document.getElementById('pnWheel')?.value || '';
             const pnTire = document.getElementById('pnTire')?.value || '';
             const numberTire = document.getElementById('numberTireChange')?.value || '';
-            const eddyCurrent = document.getElementById('eddyCurrentCout')?.value || '';
+            const eddyCheckbox = document.getElementById('eddyCurrentCout');
+            const eddyCurrent = eddyCheckbox && eddyCheckbox.checked ? 'C/Out' : '';
             const removeFrom = document.getElementById('removeFromHC')?.value || '';
             const sn = document.getElementById('serialNumber')?.value || '';
             const designation = document.getElementById('designation')?.value || '';
@@ -915,12 +916,12 @@
             const flightHours = document.getElementById('flightHours')?.value || '';
             const position = document.getElementById('position')?.value || '';
 
-            // Build comments: P/N Tire + Number Tire + Eddy Currents + original comments
+            // Build comments: P/N Tire + S/N: (space for manual entry) + Eddy Current C/Out + original comments
             let tagComments = [];
             if (pnTire) tagComments.push('P/N Tire: ' + pnTire);
+            tagComments.push('S/N: ___________');
             if (numberTire) tagComments.push('Number Tire: ' + numberTire);
-            if (eddyCurrent) tagComments.push('Eddy Currents: ' + eddyCurrent);
-            if (comments) tagComments.push(comments);
+            if (eddyCurrent) tagComments.push('Eddy Current: ' + eddyCurrent);
 
             const item = {
                 partNumber: pnWheel,
