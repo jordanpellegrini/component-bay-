@@ -262,7 +262,7 @@
                         id: item.id,
                         module: 'Wheel',
                         designation: item.designation || 'Wheel',
-                        partNumber: item.partNumber,
+                        partNumber: item.pnWheel || item.partNumber || '-',
                         serialNumber: item.serialNumber || '-',
                         reason: item.reason || 'Unserviceable',
                         details: item,
