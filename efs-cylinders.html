@@ -369,7 +369,7 @@
             let html = '<table class="data-table"><thead><tr><th>H/C</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 18M</th><th>Next 60M</th><th>Days Left</th></tr></thead><tbody>';
             rows.forEach(({ item, daysLeft }) => {
                 const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
-                html += `<tr><td>${item.hc||'-'}</td><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td>${item.serialNumber||'-'}</td><td>${item.next18M||'-'}</td><td>${item.next60M||'-'}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+                html += `<tr><td>${item.hc||'-'}</td><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber||'-'}</a></td><td>${item.next18M||'-'}</td><td>${item.next60M||'-'}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
             });
             html += '</tbody></table>';
             container.innerHTML = html;
