@@ -353,12 +353,17 @@
                 return;
             }
 
-            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 18M</th><th>Next 36M</th><th>Days Left</th></tr></thead><tbody>';
-            upcoming.forEach(item => {
+            // Compute daysLeft for each item then sort ascending
+            const rows = upcoming.map(item => {
                 const soonestDate = [item.next18M, item.next36M].filter(Boolean).map(d => new Date(d)).filter(d => d >= today && d <= in90).sort((a,b) => a-b)[0];
                 const daysLeft = Math.ceil((soonestDate - today) / 86400000);
+                return { item, daysLeft };
+            }).sort((a, b) => a.daysLeft - b.daysLeft);
+
+            let html = '<table class="data-table"><thead><tr><th>H/C</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 18M</th><th>Next 36M</th><th>Days Left</th></tr></thead><tbody>';
+            rows.forEach(({ item, daysLeft }) => {
                 const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
-                html += `<tr><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td>${item.serialNumber||'-'}</td><td>${item.next18M||'-'}</td><td>${item.next36M||'-'}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+                html += `<tr><td>${item.hc||'-'}</td><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td>${item.serialNumber||'-'}</td><td>${item.next18M||'-'}</td><td>${item.next36M||'-'}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
             });
             html += '</tbody></table>';
             container.innerHTML = html;
