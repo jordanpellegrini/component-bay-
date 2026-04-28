@@ -14,22 +14,14 @@ $SHEET_NAME = "full plan"
 
 # P/N EFS a filtrer (insensible a la casse)
 $EFS_PN_LIST = @(
-    "S956A20A1004",
-    "S956A20A1005",
-    "S956A20A1006",
-    "S956A20A1007",
-    "S956A20A1013",
-    "S956A20A1014"
+    "S956A10A1003",
+    "S956A20A1008"
 )
 
 # Mapping P/N -> Designation
 $EFS_DESIGNATIONS = @{
-    "S956A20A1004" = "LH FWD EFS"
-    "S956A20A1005" = "RH FWD EFS"
-    "S956A20A1006" = "LH AFT EFS"
-    "S956A20A1013" = "LH AFT EFS"
-    "S956A20A1007" = "RH AFT EFS"
-    "S956A20A1014" = "RH AFT EFS"
+    "S956A10A1003" = "EFS Forward Cylinders"
+    "S956A20A1008" = "EFS Rear Cylinders"
 }
 
 # Log file
