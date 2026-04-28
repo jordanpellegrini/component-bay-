@@ -359,9 +359,57 @@ foreach ($key in $efsItems.Keys) {
             Write-Log "  SKIP: $pn / SN $sn (pas de changement)" "Gray"
         }
     } else {
-        # Item not found in Supabase - SKIP (no auto-create)
-        $skipped++
-        Write-Log "  SKIP: $pn / SN $sn (n'existe pas en base - ajoutez-le manuellement)" "Yellow"
+        # CREATE new item automatically
+        $designation = if ($EFS_DESIGNATIONS.ContainsKey($pnUpper)) { $EFS_DESIGNATIONS[$pnUpper] } else { "EFS Cylinder" }
+        
+        $newData = @{
+            id = [string](Get-Date -UFormat %s) + "-" + (Get-Random -Maximum 999999).ToString("D6")
+            designation = $designation
+            hc = $item.hc
+            partNumber = $pn
+            serialNumber = $sn
+            order = ""
+            serviceability = "Serviceable"
+            workInProgress = $false
+            inspectionDate = ""
+            inspectionInterval = "18"
+            next18M = $item.next18M
+            next60M = $item.next60M
+            comments = ""
+            flightHours = ""
+            dateOfRemoval = ""
+            removeFromHC = ""
+            jcnNumber = ""
+            jcnBook = ""
+            lastModified = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
+            modifiedBy = "CARO-AutoSync"
+        }
+        
+        # Check if overdue
+        $now = Get-Date
+        $isOverdue = $false
+        if ($newData.next18M) {
+            try { if ([DateTime]::Parse($newData.next18M) -lt $now) { $isOverdue = $true } } catch {}
+        }
+        if ($newData.next60M) {
+            try { if ([DateTime]::Parse($newData.next60M) -lt $now) { $isOverdue = $true } } catch {}
+        }
+        if ($isOverdue) { $newData.serviceability = "Unserviceable" }
+        
+        $body = @{
+            id = $newData.id
+            data = $newData
+            created_at = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
+            updated_at = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
+        } | ConvertTo-Json -Depth 10 -Compress
+        
+        try {
+            Invoke-RestMethod -Uri "$SUPABASE_URL/rest/v1/efs_cylinders" -Headers $headers -Method Post -Body $body | Out-Null
+            $created++
+            Write-Log "  CREATED: $pn / SN $sn ($designation) 18M=$($item.next18M) 60M=$($item.next60M)" "Cyan"
+        } catch {
+            Write-Log "  ERREUR create $pn / SN $sn : $($_.Exception.Message)" "Red"
+        }
     }
 }
 
@@ -372,8 +420,9 @@ Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Log "RESUME:" "Cyan"
 Write-Log "  Items mis a jour : $updated" "Green"
+Write-Log "  Items crees      : $created" "Cyan"
 Write-Log "  Items inchanges   : $skipped" "Gray"
-Write-Log "--- EFS Sync Termine ---" "Cyan"
+Write-Log "--- EFS Cylinders Sync Termine ---" "Cyan"
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Appuyez sur une touche..." -ForegroundColor Yellow
