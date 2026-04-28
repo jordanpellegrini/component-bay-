@@ -1,5 +1,5 @@
 # ============================================================
-# Components Bay - EFS Auto-Sync from C.A.R.O.
+# Components Bay - EFS Cylinders Auto-Sync from C.A.R.O.
 # Reads CARO Excel (READ-ONLY) and updates EFS in Supabase
 # Schedule: Every Wednesday at 12:00
 # ============================================================
@@ -34,7 +34,7 @@ $EFS_DESIGNATIONS = @{
 
 # Log file
 $LOG_DIR = "$env:USERPROFILE\Documents\ComponentsBay_Backups"
-$LOG_FILE = "$LOG_DIR\efs_sync_log.txt"
+$LOG_FILE = "$LOG_DIR\efs_cylinders_sync_log.txt"
 
 # --- NE PAS MODIFIER EN DESSOUS ---
 
@@ -48,7 +48,7 @@ function Write-Log {
 
 # Header
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  EFS Auto-Sync from C.A.R.O." -ForegroundColor Cyan
+Write-Host "  EFS Cylinders Auto-Sync from C.A.R.O." -ForegroundColor Cyan
 Write-Host "  $(Get-Date -Format 'yyyy-MM-dd HH:mm')" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
@@ -148,7 +148,7 @@ try {
     # ============================================================
     Write-Log "Lecture des donnees EFS..." "Yellow"
     
-    # Structure: key = "PN|SN" -> { pn, sn, hc, next18M, next36M }
+    # Structure: key = "PN|SN" -> { pn, sn, hc, next18M, next60M }
     $efsItems = @{}
     $rowsRead = 0
     $rowsFiltered = 0
@@ -208,7 +208,7 @@ try {
                 sn = $sn
                 hc = $hc
                 next18M = ""
-                next36M = ""
+                next60M = ""
             }
         }
         
@@ -219,8 +219,8 @@ try {
         if ($task -match "PE\s*18\s*M") {
             $efsItems[$key].next18M = $dueDate
         }
-        elseif ($task -match "PE\s*3\s*Y") {
-            $efsItems[$key].next36M = $dueDate
+        elseif ($task -match "PE\s*5\s*Y") {
+            $efsItems[$key].next60M = $dueDate
         }
         else {
             Write-Log "  INFO: Task non reconnue row $r : '$task' (DMC: $dmc)" "Gray"
@@ -260,7 +260,7 @@ $headers = @{
 }
 
 try {
-    $response = Invoke-RestMethod -Uri "$SUPABASE_URL/rest/v1/efs?select=*" -Headers $headers -Method Get
+    $response = Invoke-RestMethod -Uri "$SUPABASE_URL/rest/v1/efs_cylinders?select=*" -Headers $headers -Method Get
     $supabaseEFS = @()
     if ($response) {
         $supabaseEFS = @($response)
@@ -319,11 +319,11 @@ foreach ($key in $efsItems.Keys) {
             $changes += "18M: $($item.next18M)"
         }
         
-        # Check next36M
-        if ($item.next36M -and $existingData.next36M -ne $item.next36M) {
-            $existingData | Add-Member -NotePropertyName "next36M" -NotePropertyValue $item.next36M -Force
+        # Check next60M
+        if ($item.next60M -and $existingData.next60M -ne $item.next60M) {
+            $existingData | Add-Member -NotePropertyName "next60M" -NotePropertyValue $item.next60M -Force
             $changed = $true
-            $changes += "36M: $($item.next36M)"
+            $changes += "60M: $($item.next60M)"
         }
         
         # Update serviceability based on dates
@@ -332,8 +332,8 @@ foreach ($key in $efsItems.Keys) {
         if ($existingData.next18M) {
             try { if ([DateTime]::Parse($existingData.next18M) -lt $now) { $isOverdue = $true } } catch {}
         }
-        if ($existingData.next36M) {
-            try { if ([DateTime]::Parse($existingData.next36M) -lt $now) { $isOverdue = $true } } catch {}
+        if ($existingData.next60M) {
+            try { if ([DateTime]::Parse($existingData.next60M) -lt $now) { $isOverdue = $true } } catch {}
         }
         
         $newServiceability = if ($isOverdue) { "Unserviceable" } else { "Serviceable" }
@@ -356,7 +356,7 @@ foreach ($key in $efsItems.Keys) {
             try {
                 $patchHeaders = $headers.Clone()
                 $patchHeaders["Prefer"] = "return=minimal"
-                Invoke-RestMethod -Uri "$SUPABASE_URL/rest/v1/efs?id=eq.$($existing.id)" -Headers $patchHeaders -Method Patch -Body $body | Out-Null
+                Invoke-RestMethod -Uri "$SUPABASE_URL/rest/v1/efs_cylinders?id=eq.$($existing.id)" -Headers $patchHeaders -Method Patch -Body $body | Out-Null
                 $updated++
                 Write-Log "  UPDATED: $pn / SN $sn -> $($changes -join ', ')" "Green"
             } catch {

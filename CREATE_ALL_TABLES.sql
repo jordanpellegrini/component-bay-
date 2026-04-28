@@ -12,6 +12,18 @@ CREATE TABLE IF NOT EXISTS efs (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- TABLE EFS CYLINDERS
+CREATE TABLE IF NOT EXISTS efs_cylinders (
+    id TEXT PRIMARY KEY,
+    data JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE efs_cylinders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON efs_cylinders FOR ALL USING (true) WITH CHECK (true);
+
 -- TABLE LIFERAFTS
 CREATE TABLE IF NOT EXISTS liferafts (
     id TEXT PRIMARY KEY,

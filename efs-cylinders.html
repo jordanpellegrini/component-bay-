@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EFS Float - Components Bay V3.3</title>
+    <title>EFS Cylinders - Components Bay V3.3</title>
     <link rel="stylesheet" href="modern-style.css">
     <script type="module" src="supabase-config.js"></script>
 </head>
@@ -28,13 +28,13 @@
         </div>
 
         <!-- Main Header -->
-        <div class="main-header module-efs">
+        <div class="main-header module-efs-cylinders">
             <div class="header-content">
-                <h1>🎈 EFS Float</h1>
+                <h1>🎈 EFS Cylinder</h1>
                 <p>Emergency Flotation System management</p>
             </div>
             <div class="header-actions">
-                <button onclick="showAddEFS()" class="btn btn-add">+ Add EFS Float</button>
+                <button onclick="showAddEFS()" class="btn btn-add">+ Add EFS Cylinder</button>
                 <button onclick="showAllEFS()" class="btn">📋 View All EFS</button>
             </div>
         </div>
@@ -51,14 +51,14 @@
             </div>
             <div class="summary-card">
                 <div class="summary-number" id="totalCount">0</div>
-                <div class="summary-label">Total EFS Floats</div>
+                <div class="summary-label">Total EFS Cylinders</div>
             </div>
         </div>
 
         <!-- Unserviceable Items Summary -->
         <div id="unserviceableSection" class="panel">
             <div class="panel-header" style="background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);">
-                <span>⚠️ Unserviceable EFS Floats Summary</span>
+                <span>⚠️ Unserviceable EFS Cylinders Summary</span>
                 <span class="badge" id="unserviceableBadge">0</span>
             </div>
             <div class="panel-body">
@@ -69,7 +69,7 @@
         <!-- Upcoming 90 Days Panel -->
         <div id="upcoming90Section" class="panel">
             <div class="panel-header" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);">
-                <span>📅 Serviceable EFS — Inspection Due Within 90 Days</span>
+                <span>📅 Serviceable EFS Cylinders — Inspection Due Within 90 Days</span>
                 <span class="badge" id="upcoming90Badge">0</span>
             </div>
             <div class="panel-body">
@@ -79,7 +79,7 @@
 
         <!-- Add EFS Form -->
         <div id="addEFSForm" class="card hidden">
-            <h2 style="margin-bottom: 25px;">Add EFS Float</h2>
+            <h2 style="margin-bottom: 25px;">Add EFS Cylinder</h2>
             <div id="efsMessage" class="hidden"></div>
             
             <form onsubmit="handleEFSSubmit(event)">
@@ -136,8 +136,8 @@
                         <label>Inspection Interval</label>
                         <select id="inspectionInterval" class="form-control" onchange="calculateNextInspection()">
                             <option value="">Select interval</option>
-                            <option value="18">18M (18 months)</option>
-                            <option value="36">36M (36 months)</option>
+                            <option value="18" selected>18M (18 months)</option>
+                            <option value="60">60M (5 years)</option>
                         </select>
                     </div>
                     
@@ -147,8 +147,8 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>Next 36M Inspection</label>
-                        <input type="date" id="next36M" class="form-control" style="background: #f8f9fa;">
+                        <label>Next 60M Inspection</label>
+                        <input type="date" id="next60M" class="form-control" style="background: #f8f9fa;">
                     </div>
                     
                     
@@ -197,7 +197,7 @@
                 </div>
                 
                 <div class="mt-20">
-                    <button type="submit" class="btn btn-success">💾 Save EFS Float</button>
+                    <button type="submit" class="btn btn-success">💾 Save EFS Cylinder</button>
                     <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
                     <span id="tagButtonsGroup" style="margin-left:15px;">
                         <button type="button" onclick="generateTagForCurrent('serviceable')" class="btn" style="background:#27ae60;color:white;">📄 Serviceable Tag</button>
@@ -209,8 +209,8 @@
 
         <!-- View All EFS Table -->
         <div id="viewAllSection" class="panel hidden">
-            <div class="panel-header module-efs">
-                <span>📋 All EFS Floats</span>
+            <div class="panel-header module-efs-cylinders">
+                <span>📋 All EFS Cylinders</span>
                 <span class="badge" id="tableCount">0</span>
             </div>
             <div class="panel-body">
@@ -235,7 +235,7 @@
     <div id="efsModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title" id="modalTitle">EFS Float Details</h2>
+                <h2 class="modal-title" id="modalTitle">EFS Cylinder Details</h2>
                 <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -257,12 +257,13 @@
 
         // EFS Part Number to Designation mapping
         const efsMapping = {
-            'S956A20A1004': 'LH FWD EFS',
-            'S956A20A1005': 'RH FWD EFS',
-            'S956A20A1006': 'LH AFT EFS',
-            'S956A20A1013': 'LH AFT EFS',
-            'S956A20A1007': 'RH AFT EFS',
-            'S956A20A1014': 'RH AFT EFS'
+            'S956A10A1003': 'EFS Forward Cylinders',
+            'S956A20A1008': 'EFS Rear Cylinders',
+            
+            
+            
+            
+            
         };
 
         // Wait for ComponentsBayDB to be available (loaded as module)
@@ -298,25 +299,25 @@
         async function loadData() {
             if (window.ComponentsBayDB) {
                 try {
-                    efsData = await window.ComponentsBayDB.load('efs');
+                    efsData = await window.ComponentsBayDB.load('efs_cylinders');
                     console.log('✅ EFS loaded from Supabase:', efsData.length, 'items');
                 } catch(e) {
                     console.error('EFS Supabase load failed, using localStorage');
-                    const saved = localStorage.getItem('componentsBayEFS');
+                    const saved = localStorage.getItem('componentsBayEFSCylinders');
                     if (saved) efsData = JSON.parse(saved);
                 }
             } else {
-                const saved = localStorage.getItem('componentsBayEFS');
+                const saved = localStorage.getItem('componentsBayEFSCylinders');
                 if (saved) efsData = JSON.parse(saved);
             }
         }
 
         async function saveData() {
-            localStorage.setItem('componentsBayEFS', JSON.stringify(efsData));
+            localStorage.setItem('componentsBayEFSCylinders', JSON.stringify(efsData));
             if (window.ComponentsBayDB) {
                 for (const item of efsData) {
                     try {
-                        await window.ComponentsBayDB.save('efs', {...item});
+                        await window.ComponentsBayDB.save('efs_cylinders', {...item});
                     } catch(e) {
                         console.error('EFS save error:', e);
                     }
@@ -343,7 +344,7 @@
             
             const upcoming = efsData.filter(item => {
                 if (item.serviceability !== 'Serviceable') return false;
-                const dates = [item.next18M, item.next36M].filter(Boolean);
+                const dates = [item.next18M, item.next60M].filter(Boolean);
                 return dates.some(d => {
                     const dt = new Date(d);
                     return dt >= today && dt <= in90;
@@ -360,15 +361,15 @@
 
             // Compute daysLeft for each item then sort ascending
             const rows = upcoming.map(item => {
-                const soonestDate = [item.next18M, item.next36M].filter(Boolean).map(d => new Date(d)).filter(d => d >= today && d <= in90).sort((a,b) => a-b)[0];
+                const soonestDate = [item.next18M, item.next60M].filter(Boolean).map(d => new Date(d)).filter(d => d >= today && d <= in90).sort((a,b) => a-b)[0];
                 const daysLeft = Math.ceil((soonestDate - today) / 86400000);
                 return { item, daysLeft };
             }).sort((a, b) => a.daysLeft - b.daysLeft);
 
-            let html = '<table class="data-table"><thead><tr><th>H/C</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 18M</th><th>Next 36M</th><th>Days Left</th></tr></thead><tbody>';
+            let html = '<table class="data-table"><thead><tr><th>H/C</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 18M</th><th>Next 60M</th><th>Days Left</th></tr></thead><tbody>';
             rows.forEach(({ item, daysLeft }) => {
                 const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
-                html += `<tr><td>${item.hc||'-'}</td><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td>${item.serialNumber||'-'}</td><td>${item.next18M||'-'}</td><td>${item.next36M||'-'}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+                html += `<tr><td>${item.hc||'-'}</td><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td>${item.serialNumber||'-'}</td><td>${item.next18M||'-'}</td><td>${item.next60M||'-'}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
             });
             html += '</tbody></table>';
             container.innerHTML = html;
@@ -391,11 +392,11 @@
                     }
                 }
                 
-                if (item.next36M) {
-                    const next36M = new Date(item.next36M);
-                    if (today > next36M) {
+                if (item.next60M) {
+                    const next60M = new Date(item.next60M);
+                    if (today > next60M) {
                         isOverdue = true;
-                        reason = 'EFS 36M inspection overdue';
+                        reason = 'EFS 60M inspection overdue';
                     }
                 }
                 
@@ -507,19 +508,19 @@
             const baseDate = new Date(inspectionDate);
             
             if (interval === '18') {
-                // Only update 18M, don't touch 36M
+                // Only update 18M, don't touch 60M
                 const next18M = new Date(baseDate);
                 next18M.setMonth(next18M.getMonth() + 18);
                 document.getElementById('next18M').value = next18M.toISOString().split('T')[0];
             } else if (interval === '36') {
-                // 36M includes 18M, so update both
+                // 60M includes 18M, so update both
                 const next18M = new Date(baseDate);
                 next18M.setMonth(next18M.getMonth() + 18);
                 document.getElementById('next18M').value = next18M.toISOString().split('T')[0];
                 
-                const next36M = new Date(baseDate);
-                next36M.setMonth(next36M.getMonth() + 36);
-                document.getElementById('next36M').value = next36M.toISOString().split('T')[0];
+                const next60M = new Date(baseDate);
+                next60M.setMonth(next60M.getMonth() + 60);
+                document.getElementById('next60M').value = next60M.toISOString().split('T')[0];
             }
         }
 
@@ -544,7 +545,7 @@
                 inspectionDate: document.getElementById('inspectionDate').value,
                 inspectionInterval: document.getElementById('inspectionInterval').value,
                 next18M: document.getElementById('next18M').value,
-                next36M: document.getElementById('next36M').value,
+                next60M: document.getElementById('next60M').value,
                 comments: document.getElementById('efsComments').value.trim(),
                 flightHours: document.getElementById('flightHours').value.trim(),
                 dateOfRemoval: document.getElementById('dateOfRemoval').value,
@@ -568,7 +569,7 @@
             saveData();
             updateSummary();
             updateUnserviceableSection();
-            showMessage('EFS Float saved successfully', 'success', 'efsMessage');
+            showMessage('EFS Cylinder saved successfully', 'success', 'efsMessage');
             resetForm();
             
             if (!document.getElementById('viewAllSection').classList.contains('hidden')) {
@@ -587,7 +588,7 @@
             document.getElementById('inspectionDate').value = '';
             document.getElementById('inspectionInterval').value = '';
             document.getElementById('next18M').value = '';
-            document.getElementById('next36M').value = '';
+            document.getElementById('next60M').value = '';
             document.getElementById('efsComments').value = '';
             document.getElementById('flightHours').value = '';
             document.getElementById('dateOfRemoval').value = '';
@@ -647,7 +648,7 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">🎈</div>
                         <p>No EFS floats registered</p>
-                        <button onclick="showAddEFS()" class="btn btn-add mt-20">+ Add First EFS Float</button>
+                        <button onclick="showAddEFS()" class="btn btn-add mt-20">+ Add First EFS Cylinder</button>
                     </div>
                 `;
                 return;
@@ -702,7 +703,7 @@
             if (!item) return;
 
             currentEFSId = id;
-            document.getElementById('modalTitle').textContent = `EFS Float - ${item.partNumber}`;
+            document.getElementById('modalTitle').textContent = `EFS Cylinder - ${item.partNumber}`;
             
             const content = `
                 <div class="form-grid">
@@ -772,7 +773,7 @@
             
             // Use new field names
             document.getElementById('next18M').value = editingEFS.next18M || editingEFS.nextInspection || '';
-            document.getElementById('next36M').value = editingEFS.next36M || '';
+            document.getElementById('next60M').value = editingEFS.next60M || '';
             
             document.getElementById('efsComments').value = editingEFS.comments || '';
             document.getElementById('flightHours').value = editingEFS.flightHours || '';
@@ -796,9 +797,9 @@
                 efsData = efsData.filter(item => item.id !== id);
                 saveData();
                 if (window.ComponentsBayDB) {
-                    try { await window.ComponentsBayDB.delete('efs', id); } catch(e) { console.error('EFS delete error:', e); }
+                    try { await window.ComponentsBayDB.delete('efs_cylinders', id); } catch(e) { console.error('EFS delete error:', e); }
                 }
-                showMessage('EFS Float deleted successfully', 'success');
+                showMessage('EFS Cylinder deleted successfully', 'success');
                 updateSummary();
                 updateUnserviceableSection();
                 refreshTable();
@@ -915,7 +916,7 @@
         function generateTagForCurrent(type) {
             const item = {};
             const fields = ['efsDesignation','efsPartNumber','efsSerialNumber','efsOrder',
-                'efsServiceability','inspectionDate','next18M','next36M','efsComments',
+                'efsServiceability','inspectionDate','next18M','next60M','efsComments',
                 'flightHours','dateOfRemoval','removeFromHC'];
             const map = {efsDesignation:'designation',efsPartNumber:'partNumber',
                 efsSerialNumber:'serialNumber',efsOrder:'orderRef',
@@ -927,7 +928,7 @@
             // Combine 18M and 36M for next inspection
             let nextParts = [];
             if (item.next18M) nextParts.push('18M: ' + item.next18M);
-            if (item.next36M) nextParts.push('36M: ' + item.next36M);
+            if (item.next60M) nextParts.push('60M: ' + item.next60M);
             item.nextInspection = nextParts.join(' / ');
             // Get reason from stored data
             if (typeof editingEFS !== 'undefined' && editingEFS) item.reason = editingEFS.reason || '';

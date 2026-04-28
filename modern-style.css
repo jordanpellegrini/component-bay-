@@ -538,6 +538,8 @@ div.data-table { display: block; }
 
 /* Module Panel Colors */
 .module-efs .panel-header { border-left: 3px solid var(--blue); }
+.module-efs-cylinders .panel-header { border-left: 3px solid var(--blue); }
+.module-efs-cylinders.main-header { background: linear-gradient(135deg, var(--blue) 0%, #1565c0 100%); }
 .module-wheel .panel-header { border-left: 3px solid var(--accent); }
 .module-maintenance .panel-header { border-left: 3px solid var(--green); }
 .module-composite .panel-header { border-left: 3px solid #6d28a8; }
