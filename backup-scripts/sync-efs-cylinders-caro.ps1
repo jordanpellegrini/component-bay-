@@ -211,7 +211,7 @@ try {
         if ($task -match "PE\s*18\s*M") {
             $efsItems[$key].next18M = $dueDate
         }
-        elseif ($task -match "PE\s*5\s*Y") {
+        elseif ($task -match "TBO\s*5\s*Y|PE\s*5\s*Y") {
             $efsItems[$key].next60M = $dueDate
         }
         else {
