@@ -184,11 +184,16 @@ try {
                 foreach ($fmt in $formats) {
                     try {
                         $parsedDate = [DateTime]::ParseExact($dueDateRaw, $fmt, [System.Globalization.CultureInfo]::InvariantCulture)
+                        # Force 21st century if 2-digit year was used (e.g. "26" -> 2026 not 1926)
+                        if ($parsedDate.Year -lt 2000) {
+                            $parsedDate = $parsedDate.AddYears(100)
+                        }
                         break
                     } catch { continue }
                 }
                 if (-not $parsedDate) {
                     $parsedDate = [DateTime]::Parse($dueDateRaw)
+                    if ($parsedDate.Year -lt 2000) { $parsedDate = $parsedDate.AddYears(100) }
                 }
                 $dueDate = $parsedDate.ToString("yyyy-MM-dd")
             } catch {
