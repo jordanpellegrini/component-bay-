@@ -48,6 +48,16 @@
                     <button onclick="downloadTemplate('efs')" class="btn btn-add">📥 Download Template</button>
                 </div>
 
+                <!-- EFS Cylinders Template -->
+                <div class="template-card">
+                    <div class="template-header">
+                        <span class="template-icon">🔵</span>
+                        <h3>EFS Cylinders Template</h3>
+                    </div>
+                    <p>Import EFS cylinders with 18M/60M (5Y) cycles</p>
+                    <button onclick="downloadTemplate('efscylinders')" class="btn btn-add">📥 Download Template</button>
+                </div>
+
                 <!-- Wheel Template -->
                 <div class="template-card">
                     <div class="template-header">
@@ -207,6 +217,11 @@
                 name: 'EFS_Import_Template',
                 headers: ['_Module', 'Designation', 'Part_Number', 'Serial_Number', 'Order', 'Serviceability', 'Work_In_Progress', 'Inspection_Date', 'Next_18M', 'Next_36M', 'Comments'],
                 example: ['EFS', 'EFS-001', 'EF123456', 'ORD-EFS-001', 'Serviceable', 'No', '2024-01-15', '2025-07-15', '2027-01-15', 'Operational']
+            },
+            efscylinders: {
+                name: 'EFS_Cylinders_Import_Template',
+                headers: ['_Module', 'H/C', 'Designation', 'Part_Number', 'Serial_Number', 'Serviceability', 'Inspection_Date', 'Next_18M', 'Next_60M', 'Comments'],
+                example: ['EFS Cylinders', 'QA276/1546', 'EFS Forward Cylinders', 'S956A10A1003', '734', 'Serviceable', '2024-01-15', '2025-07-15', '2029-01-15', '']
             },
             wheel: {
                 name: 'Wheel_Import_Template',
@@ -413,6 +428,7 @@
             if (headers.includes('_module')) return '_module_from_data';
             
             // Fallback: detect based on unique header combinations
+            if (headers.includes('next_60m')) return 'efscylinders';
             if (headers.includes('next_18m') || headers.includes('next_36m')) return 'efs';
             if (headers.includes('next_60m') || headers.includes('next_360m') || headers.includes('inspection_performed')) return 'iafteaft';
             if (headers.includes('next_24m') || headers.includes('next_48m')) return 'engine';
@@ -434,7 +450,8 @@
             if (!first) return null;
             const mod = (first._Module || first['_Module'] || first._module || '').toLowerCase().trim();
             const map = {
-                'efs': 'efs', 'life raft': 'liferaft', 'liferaft': 'liferaft',
+                'efs': 'efs',
+                'efscylinders': 'efs_cylinders', 'efs cylinders': 'efscylinders', 'efscylinders': 'efscylinders', 'life raft': 'liferaft', 'liferaft': 'liferaft',
                 'wheel': 'wheel', 'maintenance': 'maintenance', 'composite': 'composite',
                 'avionic': 'avionic', 'troop seat': 'troopseat', 'troopseat': 'troopseat',
                 'engine': 'engine', 'rotor bay': 'rotorbay', 'rotorbay': 'rotorbay',
@@ -592,6 +609,7 @@
             const tableMap = {
                 'liferaft': 'liferafts',
                 'efs': 'efs',
+                'efscylinders': 'efs_cylinders',
                 'wheel': 'wheels',
                 'maintenance': 'maintenance',
                 'composite': 'composite',
@@ -610,6 +628,7 @@
             const keyMap = {
                 'liferaft': 'componentsBayLifeRafts',  // avec S
                 'efs': 'componentsBayEFS',
+                'efscylinders': 'componentsBayEFSCylinders',
                 'wheel': 'componentsBayWheel',
                 'maintenance': 'componentsBayMaintenance',
                 'composite': 'componentsBayComposite',
@@ -737,6 +756,33 @@
                         comments: row.Comments || row.comments || ''
                     };
                     
+                case 'efscylinders':
+                    const cylInspDate = parseDate(row.Inspection_Date || row.inspection_date);
+                    let cylNext18M = parseDate(row.Next_18M || row.next_18m);
+                    let cylNext60M = parseDate(row.Next_60M || row.next_60m);
+                    if (cylInspDate && !cylNext18M) {
+                        const d = new Date(cylInspDate);
+                        d.setMonth(d.getMonth() + 18);
+                        cylNext18M = d.toISOString().split('T')[0];
+                    }
+                    if (cylInspDate && !cylNext60M) {
+                        const d = new Date(cylInspDate);
+                        d.setMonth(d.getMonth() + 60);
+                        cylNext60M = d.toISOString().split('T')[0];
+                    }
+                    return {
+                        ...baseData,
+                        hc: row['H/C'] || row.hc || row.HC || '',
+                        designation: row.Designation || row.designation || '',
+                        partNumber: row.Part_Number || row.part_number || '',
+                        serialNumber: row.Serial_Number || row.serial_number || '',
+                        inspectionDate: cylInspDate,
+                        inspectionInterval: '18',
+                        next18M: cylNext18M,
+                        next60M: cylNext60M,
+                        comments: row.Comments || row.comments || ''
+                    };
+
                 case 'troopseat':
                     const tsInspDate = parseDate(row.Inspection_Date || row.inspection_date);
                     let tsNextInsp = parseDate(row.Next_Inspection || row.next_inspection);
