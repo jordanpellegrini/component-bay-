@@ -542,10 +542,17 @@
             
             parsedData.forEach((row, index) => {
                 try {
-                    const formattedData = formatDataForModule(row, selectedModule);
-                    finalData.push(formattedData);
-                    newItems.push(formattedData);
-                    successCount++;
+                    const snRaw = (row.Serial_Number || row.serial_number || row.SN || row.sn || '').toString().trim();
+                    // Split multiple S/N separated by spaces, commas, slashes or newlines
+                    const snList = snRaw ? snRaw.split(/[\s,\/\r\n]+/).filter(s => s !== '') : [''];
+
+                    snList.forEach(sn => {
+                        const rowWithSingleSN = { ...row, Serial_Number: sn, serial_number: sn };
+                        const formattedData = formatDataForModule(rowWithSingleSN, selectedModule);
+                        finalData.push(formattedData);
+                        newItems.push(formattedData);
+                    });
+                    successCount += snList.length;
                 } catch (error) {
                     errorCount++;
                     errors.push(`Row ${index + 1}: ${error.message}`);
