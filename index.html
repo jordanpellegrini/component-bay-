@@ -869,9 +869,9 @@
         }
 
         async function runLoginAlerts() {
-            const today = new Date().toISOString().split('T')[0];
+            const alertToday = new Date().toISOString().split('T')[0];
             const lastShown = sessionStorage.getItem('componentsBayAlertDate');
-            if (lastShown === today) return; // Already shown today
+            if (lastShown === alertToday) return; // Already shown today
             const today = new Date(); today.setHours(0,0,0,0);
             const in7 = new Date(today); in7.setDate(in7.getDate() + 7);
             const alerts = [];
@@ -928,7 +928,7 @@
             });
 
             // Show alert popup
-            sessionStorage.setItem('componentsBayAlertDate', new Date().toISOString().split('T')[0]);
+            sessionStorage.setItem('componentsBayAlertDate', alertToday);
             const container = document.getElementById('loginAlertContainer');
             if (alerts.length === 0) {
                 container.innerHTML = `<div class="login-alert-overlay" onclick="dismissLoginAlert()"><div class="login-alert-box" onclick="event.stopPropagation()"><h2>✅ System Status</h2><div class="alert-nothing">All clear! No issues found.</div><button class="alert-ok-btn" onclick="dismissLoginAlert()">OK</button></div></div>`;
