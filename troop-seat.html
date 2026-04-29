@@ -75,6 +75,11 @@
                         <input type="text" id="designation" class="form-control" placeholder="Enter designation">
                     </div>
 
+                    <div class="form-group">
+                        <label>H/C</label>
+                        <input type="text" id="troopHC" class="form-control" placeholder="A/C number or Spare">
+                    </div>
+
                     <div class="form-group required">
                         <label>P/N</label>
                         <input type="text" id="partNumber" class="form-control" placeholder="Enter part number" required>
@@ -310,10 +315,11 @@
                 return;
             }
 
-            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Next Inspection</th><th>Reason</th><th>Actions</th></tr></thead><tbody>';
+            let html = '<table class="data-table"><thead><tr><th>H/C</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Next Inspection</th><th>Reason</th><th>Actions</th></tr></thead><tbody>';
             items.forEach(item => {
                 const reasonClass = item.reason && item.reason.includes('Overdue') ? 'status-overdue' : 'status-unserviceable';
                 html += `<tr>
+                    <td>${item.hc || '-'}</td>
                     <td>${item.designation || '-'}</td>
                     <td>${item.partNumber || '-'}</td>
                     <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
@@ -343,6 +349,7 @@
                 flightHours: document.getElementById('flightHours').value.trim(),
                 dateOfRemoval: document.getElementById('dateOfRemoval').value,
                 removeFromHC: document.getElementById('removeFromHC').value.trim(),
+                hc: document.getElementById('troopHC').value.trim(),
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
                 jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
                 reason: '',
@@ -376,6 +383,7 @@
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
+            try { document.getElementById('troopHC').value = ''; } catch(e) {}
             try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             document.getElementById('seatForm').reset();
@@ -393,11 +401,12 @@
                 return;
             }
 
-            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>S/N</th><th>Inspection Date</th><th>Next Inspection</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+            let html = '<table class="data-table"><thead><tr><th>H/C</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Inspection Date</th><th>Next Inspection</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
             seatData.forEach(item => {
                 const statusClass = item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable';
                 const overdueClass = item.reason && item.reason.includes('Overdue') ? 'status-overdue' : statusClass;
                 html += `<tr>
+                    <td>${item.hc || '-'}</td>
                     <td>${item.designation || '-'}</td>
                     <td>${item.partNumber || '-'}</td>
                     <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
@@ -452,6 +461,7 @@
             document.getElementById('flightHours').value = editingItem.flightHours || '';
             document.getElementById('dateOfRemoval').value = editingItem.dateOfRemoval || '';
             document.getElementById('removeFromHC').value = editingItem.removeFromHC || '';
+            try { document.getElementById('troopHC').value = editingItem.hc || ''; } catch(e) {}
             try { document.getElementById('jcnNumber').value = editingItem.jcnNumber || ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = editingItem.jcnBook || ''; } catch(e) {}
             document.getElementById('addForm').classList.remove('hidden');
