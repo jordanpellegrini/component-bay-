@@ -419,6 +419,51 @@ foreach ($key in $efsItems.Keys) {
 }
 
 # ============================================================
+# STEP 6b: Mark missing cylinders as Spare
+# Any cylinder in Supabase with matching P/N but NOT found in CARO -> H/C = "Spare"
+# ============================================================
+Write-Log "Verification des cylinders Spare..." "Yellow"
+$spared = 0
+
+foreach ($dbItem in $supabaseEFS) {
+    $d = $dbItem.data
+    if ($d -is [string]) { $d = $d | ConvertFrom-Json }
+    
+    $dbPN = ($d.partNumber + '').ToUpper()
+    $dbSN = ($d.serialNumber + '').Trim()
+    
+    # Only check items with our EFS Cylinder P/N
+    if ($EFS_PN_LIST -notcontains $dbPN) { continue }
+    
+    # Skip if already Spare
+    if ($d.hc -eq 'Spare') { continue }
+    
+    # Check if this P/N + S/N was found in CARO
+    $key = "$dbPN|$dbSN"
+    if (-not $efsItems.ContainsKey($key)) {
+        # Not in CARO -> mark as Spare
+        $d | Add-Member -NotePropertyName "hc" -NotePropertyValue "Spare" -Force
+        $d | Add-Member -NotePropertyName "lastModified" -NotePropertyValue (Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ") -Force
+        $d | Add-Member -NotePropertyName "modifiedBy" -NotePropertyValue "CARO-AutoSync" -Force
+        
+        $body = @{
+            data = $d
+            updated_at = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
+        } | ConvertTo-Json -Depth 10 -Compress
+        
+        try {
+            $patchHeaders = $headers.Clone()
+            $patchHeaders["Prefer"] = "return=minimal"
+            Invoke-RestMethod -Uri "$SUPABASE_URL/rest/v1/efs_cylinders?id=eq.$($dbItem.id)" -Headers $patchHeaders -Method Patch -Body $body | Out-Null
+            $spared++
+            Write-Log "  SPARE: $dbPN / SN $dbSN (absent du CARO)" "Magenta"
+        } catch {
+            Write-Log "  ERREUR spare $dbPN / SN $dbSN : $($_.Exception.Message)" "Red"
+        }
+    }
+}
+
+# ============================================================
 # STEP 7: Summary
 # ============================================================
 Write-Host ""
@@ -426,6 +471,7 @@ Write-Host "============================================" -ForegroundColor Cyan
 Write-Log "RESUME:" "Cyan"
 Write-Log "  Items mis a jour : $updated" "Green"
 Write-Log "  Items crees      : $created" "Cyan"
+Write-Log "  Items -> Spare   : $spared" "Magenta"
 Write-Log "  Items inchanges   : $skipped" "Gray"
 Write-Log "--- EFS Cylinders Sync Termine ---" "Cyan"
 Write-Host "============================================" -ForegroundColor Cyan

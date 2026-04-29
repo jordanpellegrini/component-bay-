@@ -64,6 +64,17 @@
             </div>
         </div>
 
+        <!-- Within 90 Days -->
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-header" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);">
+                <span>⏰ Inspections Due Within 90 Days</span>
+                <span class="badge" id="upcoming90Badge">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="upcoming90Table"></div>
+            </div>
+        </div>
+
         <!-- Add Items Form -->
         <div id="addItemsForm" class="card hidden">
             <h2 style="margin-bottom: 25px;">Add Items</h2>
@@ -442,9 +453,59 @@
             }
         }
 
+        function updateUpcoming90() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const in90 = new Date(today); in90.setDate(in90.getDate() + 90);
+
+            // Collect all upcoming inspection dates from all items
+            const upcoming = [];
+            consoleData.forEach(item => {
+                if (item.serviceability === 'Unserviceable') return;
+                const dates = [];
+                if (item.type === 'battery') {
+                    ['next1Y','next2Y'].forEach(k => { if (item[k]) dates.push({ label: k, date: item[k] }); });
+                } else if (item.type === 'sonar' && item.inspectionData) {
+                    const id = item.inspectionData;
+                    ['next1M','next1Y','next18M','next3Y'].forEach(k => { if (id[k]) dates.push({ label: k, date: id[k] }); });
+                } else if (item.type === 'item') {
+                    if (item.nextInspection) dates.push({ label: 'Next', date: item.nextInspection });
+                }
+                dates.forEach(({ label, date }) => {
+                    const dt = new Date(date);
+                    if (dt >= today && dt <= in90) {
+                        const daysLeft = Math.ceil((dt - today) / 86400000);
+                        upcoming.push({ item, label, date, daysLeft });
+                    }
+                });
+            });
+
+            // Sort by days left ascending
+            upcoming.sort((a, b) => a.daysLeft - b.daysLeft);
+
+            const badge = document.getElementById('upcoming90Badge');
+            const container = document.getElementById('upcoming90Table');
+            if (!badge || !container) return;
+            badge.textContent = upcoming.length;
+
+            if (upcoming.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color:#00695c;font-weight:600;">No inspections due in the next 90 days</p></div>';
+                return;
+            }
+
+            let html = '<table class="data-table"><thead><tr><th>Type</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Inspection</th><th>Due Date</th><th>Days Left</th></tr></thead><tbody>';
+            upcoming.forEach(({ item, label, date, daysLeft }) => {
+                const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
+                const typeLabel = item.type === 'battery' ? '🔋 Battery' : item.type === 'sonar' ? '📡 Sonar' : '🔧 Item';
+                html += `<tr><td>${typeLabel}</td><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td>${item.serialNumber||'-'}</td><td>${label}</td><td>${date}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
         function updateSummary() {
             // Check for overdue items first
             checkOverdueItems();
+            updateUpcoming90();
             
             const serviceable = consoleData.filter(item => item.serviceability === 'Serviceable').length;
             const unserviceable = consoleData.filter(item => item.serviceability === 'Unserviceable').length;
@@ -484,14 +545,14 @@
                 
                 // Check sonar next inspection dates
                 if (item.type === 'sonar') {
-                    // Check next inspection date
-                    if (item.nextInspection) {
-                        const nextInspection = new Date(item.nextInspection);
-                        if (today > nextInspection) {
+                    const id = item.inspectionData || {};
+                    const sonarDates = [id.next1M, id.next1Y, id.next18M, id.next3Y].filter(Boolean);
+                    sonarDates.forEach(d => {
+                        if (today > new Date(d)) {
                             isOverdue = true;
-                            overdueReasons.push('Scheduled inspection overdue');
+                            overdueReasons.push('Sonar inspection overdue');
                         }
-                    }
+                    });
                 }
                 
                 // Update item if overdue and not already unserviceable
@@ -1401,6 +1462,16 @@
                 // Set dynamic fields if they exist
                 if (itemToEdit.inspectionData) {
                     setSonarDynamicFields();
+                    // Restore saved inspection dates
+                    const id = itemToEdit.inspectionData;
+                    setTimeout(() => {
+                        try { if (id.baseDate) document.getElementById('sonarBaseDate').value = id.baseDate; } catch(e) {}
+                        try { if (id.inspectionType) document.getElementById('sonarInspectionType').value = id.inspectionType; } catch(e) {}
+                        try { if (id.next1M) document.getElementById('sonarNext1M').value = id.next1M; } catch(e) {}
+                        try { if (id.next1Y) document.getElementById('sonarNext1Y').value = id.next1Y; } catch(e) {}
+                        try { if (id.next18M) document.getElementById('sonarNext18M').value = id.next18M; } catch(e) {}
+                        try { if (id.next3Y) document.getElementById('sonarNext3Y').value = id.next3Y; } catch(e) {}
+                    }, 50);
                 }
                 
                 showAddSonar();
