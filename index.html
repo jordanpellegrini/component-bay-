@@ -1303,41 +1303,11 @@
     <script>
     async function generateSlide() {
         const btn = document.getElementById('generateSlideIcon');
-        const originalTitle = btn.title;
-
-        // Check if local server is running
-        btn.textContent = '⏳';
-        btn.title = 'Connecting to local server...';
-
-        try {
-            // First check server is alive
-            const check = await fetch('http://localhost:5001/status', { 
-                method: 'GET',
-                signal: AbortSignal.timeout(3000)
-            });
-            if (!check.ok) throw new Error('Server not responding');
-
-            // Send generate request
-            btn.textContent = '🔄';
-            btn.title = 'Generating PowerPoint...';
-
-            await fetch('http://localhost:5001/generate', { method: 'POST' });
-
-            btn.textContent = '✅';
-            btn.title = 'Generation started! Check your desktop in ~10 seconds.';
-            setTimeout(() => {
-                btn.textContent = '📊';
-                btn.title = originalTitle;
-            }, 5000);
-
-        } catch(e) {
-            btn.textContent = '❌';
-            btn.title = 'Server offline - Launch START_SLIDE_SERVER.bat first';
-            alert('⚠️ Le serveur local est hors ligne.\n\nLancez d\'abord:\nbackup-scripts\\START_SLIDE_SERVER.bat');
-            setTimeout(() => {
-                btn.textContent = '📊';
-                btn.title = originalTitle;
-            }, 3000);
+        // Open the local server URL in a small popup window
+        const win = window.open('http://localhost:5001/generate-page', 'SlideGenerator', 
+            'width=400,height=200,left=100,top=100');
+        if (!win) {
+            alert('⚠️ Le serveur local est hors ligne.\n\nLancez d\'abord:\nbackup-scripts\\START_SLIDE_SERVER.bat\n\nOu double-cliquez sur RUN_GENERATE_SLIDE.bat');
         }
     }
 
