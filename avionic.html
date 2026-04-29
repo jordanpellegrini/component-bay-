@@ -288,9 +288,10 @@
                 
                 <div class="message message-info mt-20">
                     <strong>P/N Auto-Mapping:</strong><br>
-                    • 63690033AA → Wet End (1M + 1Y independent)<br>
-                    • 63685380AA → CAP (18M only)<br>
-                    • 63690026AA → RMIU (3Y only)
+                    • 63690033AA → Wet End (1M + 1Y + 3Y)<br>
+                    • 63685380AA / 63685380AB → CAP (18M only)<br>
+                    • 63690026AA → RMIU (3Y only)<br>
+                    • 62887678AA → RMCU (3Y only)
                 </div>
                 
                 <div class="mt-20">
@@ -812,9 +813,11 @@
         }
 
         const sonarInspectionMapping = {
-            '63690033AA': { designation: 'Wet End', inspections: ['1M', '1Y'] },
+            '63690033AA': { designation: 'Wet End', inspections: ['1M', '1Y', '3Y'] },
             '63685380AA': { designation: 'CAP', inspections: ['18M'] },
-            '63690026AA': { designation: 'RMIU', inspections: ['3Y'] }
+            '63685380AB': { designation: 'CAP', inspections: ['18M'] },
+            '63690026AA': { designation: 'RMIU', inspections: ['3Y'] },
+            '62887678AA': { designation: 'RMCU', inspections: ['3Y'] }
         };
 
         function setSonarDynamicFields() {
@@ -843,7 +846,7 @@
             `;
             
             if (mapping.inspections.includes('1M') && mapping.inspections.includes('1Y')) {
-                // For Wet End (63690033AA) - both 1M and 1Y
+                // For Wet End (63690033AA) - 1M + 1Y + 3Y
                 fieldsHTML += `
                     <div class="form-group">
                         <label>Inspection Type</label>
@@ -851,6 +854,7 @@
                             <option value="">Select type</option>
                             <option value="1M">1M (1 Month)</option>
                             <option value="1Y">1Y (1 Year)</option>
+                            <option value="3Y">3Y (3 Years)</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -861,9 +865,13 @@
                         <label>Next 1Y Inspection</label>
                         <input type="date" id="sonarNext1Y" class="form-control" style="background: #f8f9fa;">
                     </div>
+                    <div class="form-group">
+                        <label>Next 3Y Inspection</label>
+                        <input type="date" id="sonarNext3Y" class="form-control" style="background: #f8f9fa;">
+                    </div>
                 `;
             } else if (mapping.inspections.includes('18M')) {
-                // For CAP (63685380AA) - only 18M
+                // For CAP (63685380AA / 63685380AB) - only 18M
                 fieldsHTML += `
                     <div class="form-group">
                         <label>Next 18M Inspection</label>
@@ -871,7 +879,7 @@
                     </div>
                 `;
             } else if (mapping.inspections.includes('3Y')) {
-                // For RMIU (63690026AA) - only 3Y
+                // For RMIU (63690026AA) / RMCU (62887678AA) - only 3Y
                 fieldsHTML += `
                     <div class="form-group">
                         <label>Next 3Y Inspection</label>
@@ -894,31 +902,39 @@
             const base = new Date(baseDate);
             
             if (partNumber === '63690033AA') {
-                // Wet End - calculate both 1M and 1Y
+                // Wet End - calculate 1M, 1Y, 3Y based on inspection type
                 const inspType = document.getElementById('sonarInspectionType').value;
                 if (inspType === '1M') {
                     const next1M = new Date(base);
                     next1M.setMonth(next1M.getMonth() + 1);
                     document.getElementById('sonarNext1M').value = next1M.toISOString().split('T')[0];
                 } else if (inspType === '1Y') {
-                    // 1Y includes 1M
                     const next1M = new Date(base);
                     next1M.setMonth(next1M.getMonth() + 1);
                     document.getElementById('sonarNext1M').value = next1M.toISOString().split('T')[0];
-                    
                     const next1Y = new Date(base);
                     next1Y.setFullYear(next1Y.getFullYear() + 1);
                     document.getElementById('sonarNext1Y').value = next1Y.toISOString().split('T')[0];
+                } else if (inspType === '3Y') {
+                    const next1M = new Date(base);
+                    next1M.setMonth(next1M.getMonth() + 1);
+                    document.getElementById('sonarNext1M').value = next1M.toISOString().split('T')[0];
+                    const next1Y = new Date(base);
+                    next1Y.setFullYear(next1Y.getFullYear() + 1);
+                    document.getElementById('sonarNext1Y').value = next1Y.toISOString().split('T')[0];
+                    const next3Y = new Date(base);
+                    next3Y.setFullYear(next3Y.getFullYear() + 3);
+                    document.getElementById('sonarNext3Y').value = next3Y.toISOString().split('T')[0];
                 }
                 
-            } else if (partNumber === '63685380AA') {
+            } else if (partNumber === '63685380AA' || partNumber === '63685380AB') {
                 // CAP - calculate 18M
                 const next18M = new Date(base);
                 next18M.setMonth(next18M.getMonth() + 18);
                 document.getElementById('sonarNext18M').value = next18M.toISOString().split('T')[0];
                 
-            } else if (partNumber === '63690026AA') {
-                // RMIU - calculate 3Y
+            } else if (partNumber === '63690026AA' || partNumber === '62887678AA') {
+                // RMIU / RMCU - calculate 3Y
                 const next3Y = new Date(base);
                 next3Y.setFullYear(next3Y.getFullYear() + 3);
                 document.getElementById('sonarNext3Y').value = next3Y.toISOString().split('T')[0];
@@ -947,14 +963,15 @@
                     baseDate: document.getElementById('sonarBaseDate').value,
                     inspectionType: document.getElementById('sonarInspectionType').value,
                     next1M: document.getElementById('sonarNext1M').value,
-                    next1Y: document.getElementById('sonarNext1Y').value
+                    next1Y: document.getElementById('sonarNext1Y').value,
+                    next3Y: document.getElementById('sonarNext3Y') ? document.getElementById('sonarNext3Y').value : ''
                 };
-            } else if (partNumber === '63685380AA') {
+            } else if (partNumber === '63685380AA' || partNumber === '63685380AB') {
                 inspectionData = {
                     baseDate: document.getElementById('sonarBaseDate').value,
                     next18M: document.getElementById('sonarNext18M').value
                 };
-            } else if (partNumber === '63690026AA') {
+            } else if (partNumber === '63690026AA' || partNumber === '62887678AA') {
                 inspectionData = {
                     baseDate: document.getElementById('sonarBaseDate').value,
                     next3Y: document.getElementById('sonarNext3Y').value
