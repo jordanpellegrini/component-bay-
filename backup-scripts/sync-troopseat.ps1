@@ -292,10 +292,11 @@ foreach ($key in $troopItems.Keys) {
         $changed = $false
         $changes = @()
 
-        # Check H/C
-        if ($item.hc -and $existingData.hc -ne $item.hc) {
+        # Check H/C - always update if different (including empty -> Spare)
+        $currentHC = if ($existingData.hc) { $existingData.hc } else { "" }
+        if ($item.hc -and $currentHC -ne $item.hc) {
             $existingData | Add-Member -NotePropertyName "hc" -NotePropertyValue $item.hc -Force
-            $changed = $true; $changes += "H/C: $($item.hc)"
+            $changed = $true; $changes += "H/C: '$currentHC' -> '$($item.hc)'"
         }
 
         # Check inspectionDate
