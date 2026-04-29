@@ -15,7 +15,7 @@ echo.
 schtasks /delete /tn "ComponentsBay_WeeklyBackup" /f >nul 2>&1
 
 :: Creer la tache planifiee avec rattrapage si PC eteint/veille
-schtasks /create /tn "ComponentsBay_WeeklyBackup" /tr "powershell -ExecutionPolicy Bypass -File \"%~dp0backup-components-bay.ps1\"" /sc weekly /d SUN /st 06:00 /ri 60 /du 24:00 /f
+schtasks /create /tn "ComponentsBay_WeeklyBackup" /tr "powershell -ExecutionPolicy Bypass -File \"%~dp0backup-components-bay.ps1\"" /sc weekly /d WED /st 12:00 /ri 60 /du 24:00 /f
 
 :: Activer "Run as soon as possible after a scheduled start is missed"
 powershell -ExecutionPolicy Bypass -Command "$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries; Set-ScheduledTask -TaskName 'ComponentsBay_WeeklyBackup' -Settings $settings" >nul 2>&1
