@@ -498,7 +498,7 @@
             upcoming.forEach(({ module, item, label, date, daysLeft }) => {
                 const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
                 const pn = item.pnWheel || item.partNumber || '-';
-                html += `<tr><td>${module}</td><td>${item.designation||'-'}</td><td>${pn}</td><td>${item.serialNumber||'-'}</td><td>${label}</td><td>${date}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+                html += `<tr><td>${module}</td><td>${item.designation||'-'}</td><td>${pn}</td><td><a href="#" class="clickable" onclick="showItemDetail('${item.id}','${module}')">${item.serialNumber||'-'}</a></td><td>${label}</td><td>${date}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
             });
             html += '</tbody></table>';
             container.innerHTML = html;
@@ -598,7 +598,25 @@
         }
 
         function showItemDetail(itemId, module) {
-            const item = allUnserviceableItems.find(item => item.id == itemId && item.module === module);
+            // First look in unserviceable items
+            let item = allUnserviceableItems.find(item => item.id == itemId && item.module === module);
+            
+            // If not found, look in all data (for serviceable items in Within 90 Days)
+            if (!item && window._synthesisAllData) {
+                const found = window._synthesisAllData.find(d => d.module === module && d.item.id == itemId);
+                if (found) {
+                    item = {
+                        id: found.item.id,
+                        module: found.module,
+                        designation: found.item.designation || found.item.type || '-',
+                        partNumber: found.item.pnWheel || found.item.partNumber || '-',
+                        serialNumber: found.item.serialNumber || '-',
+                        reason: found.item.reason || '',
+                        details: found.item
+                    };
+                }
+            }
+            
             if (!item) return;
 
             document.getElementById('modalTitle').textContent = `${module} - ${item.partNumber}`;
