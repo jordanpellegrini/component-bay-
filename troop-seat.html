@@ -61,6 +61,17 @@
             </div>
         </div>
 
+        <!-- Within 90 Days -->
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-header" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color:white;">
+                <span>⏰ Inspections Due Within 90 Days</span>
+                <span class="badge" id="upcoming90Badge">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="upcoming90Table"></div>
+            </div>
+        </div>
+
         <!-- Add/Edit Form -->
         <div id="addForm" class="card hidden">
             <h2 style="margin-bottom: 25px;">Add / Edit Troop Seat</h2>
@@ -305,7 +316,48 @@
 
         function showAllItems() { hideAllForms(); document.getElementById('viewAllSection').classList.remove('hidden'); refreshTable(); }
 
+        function updateUpcoming90() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const in90 = new Date(today); in90.setDate(in90.getDate() + 90);
+
+            const upcoming = seatData
+                .filter(item => item.serviceability !== 'Unserviceable' && item.nextInspection)
+                .map(item => {
+                    const dt = new Date(item.nextInspection);
+                    const daysLeft = Math.ceil((dt - today) / 86400000);
+                    return { item, dt, daysLeft };
+                })
+                .filter(({ dt }) => dt >= today && dt <= in90)
+                .sort((a, b) => a.daysLeft - b.daysLeft);
+
+            const badge = document.getElementById('upcoming90Badge');
+            const container = document.getElementById('upcoming90Table');
+            if (!badge || !container) return;
+            badge.textContent = upcoming.length;
+
+            if (upcoming.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color:#00695c;font-weight:600;">No inspections due in the next 90 days</p></div>';
+                return;
+            }
+
+            let html = '<table class="data-table"><thead><tr><th>H/C</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Next Inspection</th><th>Days Left</th></tr></thead><tbody>';
+            upcoming.forEach(({ item, daysLeft }) => {
+                const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
+                html += `<tr>
+                    <td>${item.hc || '-'}</td>
+                    <td>${item.designation || '-'}</td>
+                    <td>${item.partNumber || '-'}</td>
+                    <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                    <td>${item.nextInspection}</td>
+                    <td style="${urgency}">${daysLeft} days</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
         function updateSummary() {
+            updateUpcoming90();
             const s = seatData.filter(i => i.serviceability === 'Serviceable').length;
             const u = seatData.filter(i => i.serviceability === 'Unserviceable').length;
             document.getElementById('serviceableCount').textContent = s;
