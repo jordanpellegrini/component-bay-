@@ -347,6 +347,7 @@
         <div class="top-toolbar">
             <button id="restoreIcon" class="hidden" onclick="document.getElementById('restoreFileInput').click()" title="Restore from Backup">🔄</button>
             <button id="backupIcon" class="hidden" onclick="backupAll(event)" title="Backup All Data">📦</button>
+            <button id="generateSlideIcon" class="hidden" onclick="generateSlide()" title="Generate Weekly PowerPoint">📊</button>
             <button id="documentationIcon" title="Documentation">📚</button>
             <button id="userManagementIcon" class="hidden" title="User Management">👥</button>
         </div>
@@ -864,6 +865,7 @@
                 document.getElementById('dashboardModule').style.display = 'block';
                 document.getElementById('pnManufacturerModule').style.display = 'block';
                 document.getElementById('backupIcon').classList.remove('hidden');
+                document.getElementById('generateSlideIcon').classList.remove('hidden');
                 document.getElementById('restoreIcon').classList.remove('hidden');
             } else {
                 document.getElementById('uploadSection').style.display = 'none';
@@ -872,6 +874,7 @@
                 document.getElementById('dashboardModule').style.display = 'none';
                 document.getElementById('pnManufacturerModule').style.display = 'none';
                 document.getElementById('backupIcon').classList.add('hidden');
+                document.getElementById('generateSlideIcon').classList.add('hidden');
                 document.getElementById('restoreIcon').classList.add('hidden');
             }
 
@@ -1298,6 +1301,46 @@
     </script>
     <div id="loginAlertContainer"></div>
     <script>
+    async function generateSlide() {
+        const btn = document.getElementById('generateSlideIcon');
+        const originalTitle = btn.title;
+
+        // Check if local server is running
+        btn.textContent = '⏳';
+        btn.title = 'Connecting to local server...';
+
+        try {
+            // First check server is alive
+            const check = await fetch('http://localhost:5001/status', { 
+                method: 'GET',
+                signal: AbortSignal.timeout(3000)
+            });
+            if (!check.ok) throw new Error('Server not responding');
+
+            // Send generate request
+            btn.textContent = '🔄';
+            btn.title = 'Generating PowerPoint...';
+
+            await fetch('http://localhost:5001/generate', { method: 'POST' });
+
+            btn.textContent = '✅';
+            btn.title = 'Generation started! Check your desktop in ~10 seconds.';
+            setTimeout(() => {
+                btn.textContent = '📊';
+                btn.title = originalTitle;
+            }, 5000);
+
+        } catch(e) {
+            btn.textContent = '❌';
+            btn.title = 'Server offline - Launch START_SLIDE_SERVER.bat first';
+            alert('⚠️ Le serveur local est hors ligne.\n\nLancez d\'abord:\nbackup-scripts\\START_SLIDE_SERVER.bat');
+            setTimeout(() => {
+                btn.textContent = '📊';
+                btn.title = originalTitle;
+            }, 3000);
+        }
+    }
+
     async function backupAll(e) {
         if (e) e.preventDefault();
         
