@@ -169,14 +169,15 @@ try {
 
     for ($c = 1; $c -le $lastCol; $c++) {
         $h = $sheetFleet.Cells(1, $c).Text.Trim().ToUpper()
-        if ($h -match "KIT")                          { $colKit = $c }
-        elseif ($h -match "^P/N$|^PN$|^PART")        { $colPN = $c }
-        elseif ($h -match "^S/N$|^SN$|^SERIAL")      { $colSN = $c }
-        elseif ($h -match "INSTALL")                  { $colInstalled = $c }
+        Write-Log "  Col $c : '$h'" "Gray"
+        if ($h -match "KIT")                                          { $colKit = $c }
+        elseif ($h -match "^P/N$|^PN$|^PART")                        { $colPN = $c }
+        elseif ($h -match "^S/N$|^SN$|^SERIAL")                      { $colSN = $c }
+        elseif ($h -match "INSTALL|FITTED|Y/N")                       { $colInstalled = $c }
         elseif ($h -match "TSI|LAST.*MAINT|FIRST.*FLIGHT|MAINTENANCE") { $colLastMaint = $c }
     }
 
-    Write-Log "Fleet Overview colonnes: KIT=$colKit PN=$colPN SN=$colSN Installed=$colInstalled LastMaint=$colLastMaint" "Gray"
+    Write-Log "Fleet Overview colonnes: KIT=$colKit PN=$colPN SN=$colSN Installed=$colInstalled LastMaint=$colLastMaint" "Yellow"
 
     # Build troop seat items list
     $troopItems = @{}
@@ -189,11 +190,15 @@ try {
 
         if (-not $pn -or -not $sn) { continue }
 
+        Write-Log "  Row $r : PN=$pn SN=$sn Installed='$installed' Kit='$kit'" "Gray"
+
         $hc = ""
         $inspDate = ""
         $nextInsp = ""
 
-        if ($installed -eq "Y" -or $installed -eq "YES") {
+        $isInstalled = $installed -match "^Y$|^YES$|^OUI$|^1$"
+
+        if ($isInstalled) {
             # Installed on aircraft - use Fleet Overview data
             $hc = $kit
             $lastMaintRaw = if ($colLastMaint -gt 0) { $sheetFleet.Cells($r, $colLastMaint).Text.Trim() } else { "" }
@@ -220,7 +225,7 @@ try {
             hc            = $hc
             inspectionDate = $inspDate
             nextInspection = $nextInsp
-            installed     = ($installed -eq "Y" -or $installed -eq "YES")
+            installed     = $isInstalled
         }
     }
 
