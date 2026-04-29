@@ -190,6 +190,19 @@
                             </select>
                         </div>
                         
+                        <div class="form-group">
+                            <label>Serviceability</label>
+                            <select id="liferaftServiceability" class="form-control">
+                                <option value="Serviceable">✅ Serviceable</option>
+                                <option value="Unserviceable">❌ Unserviceable</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Reason (if Unserviceable)</label>
+                            <input type="text" id="liferaftReason" class="form-control" placeholder="Reason for unserviceability">
+                        </div>
+
                         <div class="form-group" style="grid-column: 1 / -1;">
                             <label>Comments</label>
                             <textarea id="liferaftComments" class="form-control" placeholder="Enter detailed comments about the life raft..."></textarea>
@@ -441,13 +454,24 @@
                     }
                 }
                 
-                // Update item if overdue
-                if (isOverdue && item.serviceability !== 'Unserviceable') {
+                // Update item if overdue — but never override manual Unserviceable
+                if (item.manualServiceability === 'Unserviceable') {
+                    if (item.serviceability !== 'Unserviceable') {
+                        item.serviceability = 'Unserviceable';
+                        item.reason = item.manualReason || 'Manual - Unserviceable';
+                        hasChanges = true;
+                    }
+                } else if (isOverdue && item.serviceability !== 'Unserviceable') {
                     item.serviceability = 'Unserviceable';
                     item.reason = overdueReasons.join('; ');
                     hasChanges = true;
                 } else if (isOverdue && item.reason !== overdueReasons.join('; ') && overdueReasons.length > 0) {
                     item.reason = overdueReasons.join('; ');
+                    hasChanges = true;
+                } else if (!isOverdue && item.serviceability === 'Unserviceable' && (item.reason || '').includes('overdue')) {
+                    // Auto-revert to Serviceable if dates are no longer overdue (only if not manual)
+                    item.serviceability = 'Serviceable';
+                    item.reason = '';
                     hasChanges = true;
                 }
             });
@@ -632,12 +656,14 @@
                 inspectionInterval: '12', // Always 12 months
                 nextInspection: document.getElementById('nextInspection').value,
                 comments: document.getElementById('liferaftComments').value.trim(),
+                manualServiceability: document.getElementById('liferaftServiceability').value,
+                manualReason: document.getElementById('liferaftReason').value.trim(),
                 orderRef: document.getElementById('orderRef').value.trim(),
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
                 jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
                 subItems: subItemsData,
-                serviceability: expiryCheck.hasExpired ? 'Unserviceable' : 'Serviceable',
-                reason: expiryCheck.hasExpired ? `Expired items: ${expiryCheck.expiredItems.join(', ')}` : '',
+                serviceability: (document.getElementById('liferaftServiceability').value === 'Unserviceable' || expiryCheck.hasExpired) ? 'Unserviceable' : 'Serviceable',
+                reason: document.getElementById('liferaftServiceability').value === 'Unserviceable' && document.getElementById('liferaftReason').value.trim() ? document.getElementById('liferaftReason').value.trim() : (expiryCheck.hasExpired ? `Expired items: ${expiryCheck.expiredItems.join(', ')}` : ''),
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser
             };
@@ -675,6 +701,8 @@
             document.getElementById('orderRef').value = '';
             try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = ''; } catch(e) {}
+            try { document.getElementById('liferaftServiceability').value = 'Serviceable'; } catch(e) {}
+            try { document.getElementById('liferaftReason').value = ''; } catch(e) {}
             document.getElementById('editLifeRaftId').value = '';
             // Don't reset editingLifeRaft here - it should only be reset after successful save
             
@@ -890,6 +918,8 @@
             document.getElementById('orderRef').value = editingLifeRaft.orderRef || '';
             try { document.getElementById('jcnNumber').value = editingLifeRaft.jcnNumber || ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = editingLifeRaft.jcnBook || ''; } catch(e) {}
+            try { document.getElementById('liferaftServiceability').value = editingLifeRaft.manualServiceability || 'Serviceable'; } catch(e) {}
+            try { document.getElementById('liferaftReason').value = editingLifeRaft.manualReason || ''; } catch(e) {}
 
             // Fill sub-items
             editingLifeRaft.subItems.forEach((sub, index) => {
