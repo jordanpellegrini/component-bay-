@@ -150,17 +150,25 @@
     </div>
 
     <script>
-        const currentUser = localStorage.getItem('componentsBayCurrentUser') || 'Unknown';
+        const currentUser = localStorage.getItem('componentsBayCurrentUser') || '';
         const userRole = localStorage.getItem('componentsBayUserRole') || 'user';
         document.getElementById('userInfo').textContent = currentUser;
 
-        // Admin only
-        if (!currentUser || currentUser === 'Unknown') {
+        // Admin only check
+        if (!currentUser) {
             window.location.href = 'index.html';
         } else if (userRole !== 'admin') {
             document.body.innerHTML = '<div style="text-align:center;padding:100px 20px;"><h2>⛔ Access Denied</h2><p>This page is restricted to administrators only.</p><a href="index.html" style="color:#2980b9;">← Back to Home</a></div>';
         } else {
-            loadAll();
+            // Wait for ComponentsBayDB then load
+            const waitForDB = () => new Promise(resolve => {
+                if (window.ComponentsBayDB) return resolve();
+                let tries = 0;
+                const iv = setInterval(() => {
+                    if (window.ComponentsBayDB || ++tries > 50) { clearInterval(iv); resolve(); }
+                }, 100);
+            });
+            waitForDB().then(() => loadAll());
         }
             { name: 'EFS Float',      table: 'efs',            localKey: 'componentsBayEFS',          icon: '🎈', pnField: 'partNumber' },
             { name: 'EFS Cylinders',  table: 'efs_cylinders',  localKey: 'componentsBayEFSCylinders', icon: '🔵', pnField: 'partNumber' },
@@ -236,15 +244,6 @@
             let totalItems = 0, totalUS = 0, totalWithin90 = 0;
             const allWithin90 = [];
             const moduleStats = [];
-
-            // Wait for DB
-            await new Promise(resolve => {
-                if (window.ComponentsBayDB) return resolve();
-                let tries = 0;
-                const iv = setInterval(() => {
-                    if (window.ComponentsBayDB || ++tries > 30) { clearInterval(iv); resolve(); }
-                }, 100);
-            });
 
             for (const mod of MODULES) {
                 const items = await loadModule(mod);
