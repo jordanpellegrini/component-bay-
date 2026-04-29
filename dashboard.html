@@ -170,6 +170,8 @@
             });
             waitForDB().then(() => loadAll());
         }
+
+        const MODULES = [
             { name: 'EFS Float',      table: 'efs',            localKey: 'componentsBayEFS',          icon: '🎈', pnField: 'partNumber' },
             { name: 'EFS Cylinders',  table: 'efs_cylinders',  localKey: 'componentsBayEFSCylinders', icon: '🔵', pnField: 'partNumber' },
             { name: 'Life Raft',      table: 'liferafts',      localKey: 'componentsBayLifeRafts',    icon: '🛟', pnField: 'partNumber' },
