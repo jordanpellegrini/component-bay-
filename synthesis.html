@@ -75,6 +75,8 @@
                 <span style="font-weight: 700; font-size: 13px; color: var(--text-secondary); margin-right: 4px;">🔽 FILTER:</span>
                 <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#eef2ff;border:1px solid #d0d7f7;">
                     <input type="checkbox" class="module-filter" value="EFS" checked onchange="applyFilters()"> EFS
+                    &nbsp;&nbsp;
+                    <input type="checkbox" class="module-filter" value="EFS Cylinders" checked onchange="applyFilters()"> EFS Cylinders
                 </label>
                 <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;background:#fef5e7;border:1px solid #f5deb3;">
                     <input type="checkbox" class="module-filter" value="Life Raft" checked onchange="applyFilters()"> Life Raft
@@ -124,6 +126,17 @@
             </div>
             <div class="panel-body">
                 <div id="synthesisTable"></div>
+            </div>
+        </div>
+
+        <!-- Within 90 Days -->
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-header" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);">
+                <span>⏰ Inspections Due Within 90 Days</span>
+                <span class="badge" id="upcoming90Badge">0</span>
+            </div>
+            <div class="panel-body">
+                <div id="upcoming90Table"></div>
             </div>
         </div>
     </div>
@@ -194,6 +207,7 @@
 
         async function loadAllData() {
             allUnserviceableItems = [];
+            window._synthesisAllData = [];
             
             // Helper: load from Supabase or localStorage
             async function loadModule(tableName, localKey) {
@@ -205,6 +219,10 @@
                     console.error(`Synthesis: ${tableName} Supabase load failed`);
                 }
                 return JSON.parse(localStorage.getItem(localKey) || '[]');
+            }
+
+            function trackModule(moduleName, items) {
+                items.forEach(item => window._synthesisAllData.push({ module: moduleName, item }));
             }
 
             // Load EFS data
@@ -222,6 +240,7 @@
             }
             
             // Process EFS items
+            trackModule('EFS', efsItems);
             efsItems.forEach(item => {
                 if (item.serviceability === 'Unserviceable') {
                     allUnserviceableItems.push({
@@ -237,8 +256,27 @@
                 }
             });
 
+            // Load EFS Cylinders data
+            const efsCylData = await loadModule('efs_cylinders', 'componentsBayEFSCylinders');
+            trackModule('EFS Cylinders', efsCylData);
+            efsCylData.forEach(item => {
+                if (item.serviceability === 'Unserviceable') {
+                    allUnserviceableItems.push({
+                        id: item.id || Date.now() + Math.random(),
+                        module: 'EFS Cylinders',
+                        designation: item.designation || 'EFS Cylinder',
+                        partNumber: item.partNumber || '-',
+                        serialNumber: item.serialNumber || '-',
+                        reason: item.reason || 'Unserviceable',
+                        details: item,
+                        priority: 1
+                    });
+                }
+            });
+
             // Load Life Raft data
             const liferaftData = await loadModule('liferafts', 'componentsBayLifeRafts');
+            trackModule('Life Raft', liferaftData);
             liferaftData.forEach(item => {
                 if (item.serviceability === 'Unserviceable') {
                     allUnserviceableItems.push({
@@ -256,6 +294,7 @@
 
             // Load Wheel data
             const wheelData = await loadModule('wheels', 'componentsBayWheel');
+            trackModule('Wheel', wheelData);
             wheelData.forEach(item => {
                 if (item.serviceability === 'Unserviceable') {
                     allUnserviceableItems.push({
@@ -273,6 +312,7 @@
 
             // Load Maintenance data
             const maintenanceData = await loadModule('maintenance', 'componentsBayMaintenance');
+            trackModule('Maintenance', maintenanceData);
             maintenanceData.forEach(item => {
                 if (item.serviceability === 'Unserviceable') {
                     allUnserviceableItems.push({
@@ -290,6 +330,7 @@
 
             // Load Composite data
             const compositeData = await loadModule('composite', 'componentsBayComposite');
+            trackModule('Composite', compositeData);
             compositeData.forEach(item => {
                 if (item.serviceability === 'Unserviceable') {
                     allUnserviceableItems.push({
@@ -307,6 +348,7 @@
 
             // Load Avionic data
             const avionicData = await loadModule('avionic', 'componentsBayAvionic');
+            trackModule('Avionic', avionicData);
             avionicData.forEach(item => {
                 if (item.serviceability === 'Unserviceable') {
                     allUnserviceableItems.push({
@@ -324,6 +366,7 @@
 
             // Load Troop Seat data
             const troopSeatData = await loadModule('troopseats', 'componentsBayTroopSeats');
+            trackModule('Troop Seat', troopSeatData);
             troopSeatData.forEach(item => {
                 if (item.serviceability === 'Unserviceable') {
                     allUnserviceableItems.push({
@@ -341,6 +384,7 @@
 
             // Engine module
             const engineData = await loadModule('engine', 'componentsBayEngine');
+            trackModule('Engine', engineData);
             engineData.forEach(item => {
                 if (item.serviceability === 'Unserviceable') {
                     allUnserviceableItems.push({
@@ -358,6 +402,7 @@
 
             // Rotor Bay module
             const rotorData = await loadModule('rotorbay', 'componentsBayRotorBay');
+            trackModule('Rotor Bay', rotorData);
             rotorData.forEach(item => {
                 if (item.serviceability === 'Unserviceable') {
                     allUnserviceableItems.push({
@@ -375,6 +420,7 @@
 
             // IAFT/EAFT module
             const iaftData = await loadModule('iafteaft', 'componentsBayIaftEaft');
+            trackModule('IAFT/EAFT', iaftData);
             iaftData.forEach(item => {
                 if (item.serviceability === 'Unserviceable') {
                     allUnserviceableItems.push({
@@ -396,7 +442,70 @@
             updateSummary();
         }
 
+        function updateUpcoming90() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const in90 = new Date(today); in90.setDate(in90.getDate() + 90);
+            const upcoming = [];
+
+            // All data sources we need to check
+            const allModuleData = window._synthesisAllData || [];
+            allModuleData.forEach(({ module, item }) => {
+                if (item.serviceability === 'Unserviceable') return;
+                const dates = [];
+
+                // EFS Float & EFS Cylinders
+                if (['EFS', 'EFS Cylinders'].includes(module)) {
+                    if (item.next18M) dates.push({ label: '18M', date: item.next18M });
+                    if (item.next36M) dates.push({ label: '36M', date: item.next36M });
+                    if (item.next60M) dates.push({ label: '60M', date: item.next60M });
+                }
+                // Life Raft, Maintenance, Composite, Troop Seat, Engine, Rotor Bay, IAFT/EAFT, POL, Tools
+                if (item.nextInspection) dates.push({ label: 'Inspection', date: item.nextInspection });
+                if (item.next18M && !['EFS','EFS Cylinders'].includes(module)) dates.push({ label: '18M', date: item.next18M });
+                if (item.next24M) dates.push({ label: '24M', date: item.next24M });
+                if (item.next36M && !['EFS','EFS Cylinders'].includes(module)) dates.push({ label: '36M', date: item.next36M });
+                if (item.next60M && !['EFS','EFS Cylinders'].includes(module)) dates.push({ label: '60M', date: item.next60M });
+                // Avionic/Battery/Sonar
+                if (item.next1Y) dates.push({ label: '1Y', date: item.next1Y });
+                if (item.next2Y) dates.push({ label: '2Y', date: item.next2Y });
+                if (item.inspectionData) {
+                    const id = item.inspectionData;
+                    ['next1M','next1Y','next18M','next3Y'].forEach(k => { if (id[k]) dates.push({ label: k, date: id[k] }); });
+                }
+
+                dates.forEach(({ label, date }) => {
+                    const dt = new Date(date);
+                    if (dt >= today && dt <= in90) {
+                        const daysLeft = Math.ceil((dt - today) / 86400000);
+                        upcoming.push({ module, item, label, date, daysLeft });
+                    }
+                });
+            });
+
+            upcoming.sort((a, b) => a.daysLeft - b.daysLeft);
+
+            const badge = document.getElementById('upcoming90Badge');
+            const container = document.getElementById('upcoming90Table');
+            if (!badge || !container) return;
+            badge.textContent = upcoming.length;
+
+            if (upcoming.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color:#00695c;font-weight:600;">No inspections due in the next 90 days</p></div>';
+                return;
+            }
+
+            let html = '<table class="data-table"><thead><tr><th>Module</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Inspection</th><th>Due Date</th><th>Days Left</th></tr></thead><tbody>';
+            upcoming.forEach(({ module, item, label, date, daysLeft }) => {
+                const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
+                const pn = item.pnWheel || item.partNumber || '-';
+                html += `<tr><td>${module}</td><td>${item.designation||'-'}</td><td>${pn}</td><td>${item.serialNumber||'-'}</td><td>${label}</td><td>${date}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
         function updateSummary() {
+            updateUpcoming90();
             const counts = {
                 efs: allUnserviceableItems.filter(item => item.module === 'EFS').length,
                 liferaft: allUnserviceableItems.filter(item => item.module === 'Life Raft').length,

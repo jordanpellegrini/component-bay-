@@ -536,6 +536,7 @@
             importCounter = 0;
             
             let successCount = 0;
+            let skippedDuplicates = 0;
             let errorCount = 0;
             const errors = [];
             const newItems = [];
@@ -549,8 +550,32 @@
                     snList.forEach(sn => {
                         const rowWithSingleSN = { ...row, Serial_Number: sn, serial_number: sn };
                         const formattedData = formatDataForModule(rowWithSingleSN, selectedModule);
-                        finalData.push(formattedData);
-                        newItems.push(formattedData);
+                        const pn = (formattedData.partNumber || '').toString().toUpperCase();
+                        const snNorm = (formattedData.serialNumber || '').toString().trim();
+
+                        // Check for duplicate P/N + S/N in finalData
+                        const isDuplicate = finalData.some(existing => {
+                            const exPn = (existing.partNumber || '').toString().toUpperCase();
+                            const exSn = (existing.serialNumber || '').toString().trim();
+                            return exPn === pn && exSn === snNorm && pn !== '' && snNorm !== '';
+                        });
+
+                        if (isDuplicate) {
+                            // UPDATE existing item instead of adding duplicate
+                            const existingIndex = finalData.findIndex(existing => {
+                                const exPn = (existing.partNumber || '').toString().toUpperCase();
+                                const exSn = (existing.serialNumber || '').toString().trim();
+                                return exPn === pn && exSn === snNorm;
+                            });
+                            if (existingIndex !== -1) {
+                                finalData[existingIndex] = { ...finalData[existingIndex], ...formattedData, id: finalData[existingIndex].id };
+                                newItems.push(finalData[existingIndex]);
+                            }
+                            skippedDuplicates++;
+                        } else {
+                            finalData.push(formattedData);
+                            newItems.push(formattedData);
+                        }
                     });
                     successCount += snList.length;
                 } catch (error) {
@@ -609,7 +634,7 @@
             }
             
             // Show results
-            showResults(successCount, errorCount, errors, overdueCount);
+            showResults(successCount, errorCount, errors, overdueCount, skippedDuplicates);
         }
 
         function getSupabaseTable(moduleType) {
@@ -999,18 +1024,25 @@
             }
         }
 
-        function showResults(successCount, errorCount, errors, overdueCount = 0) {
+        function showResults(successCount, errorCount, errors, overdueCount = 0, skippedDuplicates = 0) {
             const resultsSection = document.getElementById('resultsSection');
             const resultsContent = document.getElementById('resultsContent');
             
             let html = `
-                <div class="summary-cards" style="grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 25px;">
+                <div class="summary-cards" style="grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px;">
                     <div class="summary-card serviceable">
                         <div class="summary-content">
                             <h3>Successfully Imported</h3>
-                            <span class="count">${successCount}</span>
+                            <span class="count">${successCount - skippedDuplicates}</span>
                         </div>
                         <div class="summary-icon">✅</div>
+                    </div>
+                    <div class="summary-card" style="background:#fff3cd;">
+                        <div class="summary-content">
+                            <h3>Updated (duplicates)</h3>
+                            <span class="count">${skippedDuplicates}</span>
+                        </div>
+                        <div class="summary-icon">🔄</div>
                     </div>
                     <div class="summary-card ${errorCount > 0 ? 'unserviceable' : 'serviceable'}">
                         <div class="summary-content">
