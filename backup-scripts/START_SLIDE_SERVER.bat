@@ -1,3 +1,2 @@
 @echo off
-echo Demarrage ComponentsBay Slide Server...
-python "%~dp0slide-server.py"
+pythonw "%~dp0slide-server.py"

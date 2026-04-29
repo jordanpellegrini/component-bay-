@@ -247,7 +247,7 @@ def main():
 
     # ---- Slide dimensions: 12192000 x 6858000 EMU ----
     # Slide 1: table area x=4777316 y=1478384 cx=6780700 cy=3898902
-    S1X=4777316; S1Y=1478384; S1CX=6780700; S1CY=3898902
+    S1X=4600000; S1Y=1200000; S1CX=7000000; S1CY=5200000
     BAR_H = 500000
     ROW_H = 320000
 
@@ -266,7 +266,7 @@ def main():
 
     # === SLIDE 1 ===
     rh1 = table_area(S1X, S1CX, S1Y, S1Y+S1CY, len(s1_rows))
-    cw1 = [980000,1500000,1350000,680000,2270700]
+    cw1 = [960000,1400000,1350000,680000,2610000]
     bar1 = header_bar('ALL UNSERVICEABLE ITEMS (ORDERED)', len(s1_rows),
                       S1X, S1Y, S1CX, BAR_H, bg=RED, fid=200)
     tbl1 = build_table(['MODULE','DESIGNATION','P/N','S/N','REASON'], s1_rows, cw1, rh1,
@@ -275,10 +275,10 @@ def main():
     patches['ppt/slides/slide1.xml'] = patch_slide(files['ppt/slides/slide1.xml'], [bar1, gf1])
 
     # === SLIDE 2 ===
-    # Slide 2 image was at y=2410448 (below the titles)
-    S2X=198741; S2Y=2410448; S2CX=11794516; S2CY=3890357
+    # Titles end at y=1499142, table starts at y=1550000, full width
+    S2X=200000; S2Y=1550000; S2CX=11792000; S2CY=5308000
     rh2 = table_area(S2X, S2CX, S2Y, S2Y+S2CY, len(s2_rows))
-    cw2 = [1100000,2000000,1800000,7094516-BAR_H]
+    cw2 = [1100000,2500000,2500000,5692000]
     bar2 = header_bar('LIFE RAFT — NEED TO BE C/OUT', len(s2_rows),
                       S2X, S2Y, S2CX, BAR_H, bg=RED, fid=201)
     tbl2 = build_table(['MODULE','P/N','S/N','REASON'], s2_rows, cw2, rh2, hdr_bg=ORANGE)
@@ -289,7 +289,7 @@ def main():
     # Slide 3 image: x=4911094 y=643466 cx=6513144 cy=5568739
     S3X=4911094; S3Y=643466; S3CX=6513144; S3CY=5568739
     rh3 = table_area(S3X, S3CX, S3Y, S3Y+S3CY, len(s3_rows))
-    cw3 = [900000,1200000,1400000,500000,980000,980000,553144]
+    cw3 = [900000,1100000,1300000,500000,980000,980000,753144]
     bar3 = header_bar('SERVICEABLE EFS — DUE WITHIN 90 DAYS', len(s3_rows),
                       S3X, S3Y, S3CX, BAR_H, bg=ORANGE, fid=202)
     tbl3 = build_table(['H/C','DESIGNATION','P/N','S/N','NEXT 18M','NEXT 36M','DAYS LEFT'],
@@ -301,7 +301,7 @@ def main():
     # Slide 4 image: x=4777316 y=1791991 cx=6780700 cy=3271688
     S4X=4777316; S4Y=1791991; S4CX=6780700; S4CY=3271688
     rh4 = table_area(S4X, S4CX, S4Y, S4Y+S4CY, len(s4_rows))
-    cw4 = [900000,1400000,1400000,500000,980000,980000,620700]
+    cw4 = [900000,1200000,1300000,500000,980000,980000,820700]
     bar4 = header_bar('SERVICEABLE EFS CYLINDERS — DUE WITHIN 90 DAYS', len(s4_rows),
                       S4X, S4Y, S4CX, BAR_H, bg=ORANGE, fid=203)
     tbl4 = build_table(['H/C','DESIGNATION','P/N','S/N','NEXT 18M','NEXT 60M','DAYS LEFT'],
