@@ -48,41 +48,23 @@ class SlideHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            html = """<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<style>
-  body{font-family:Arial,sans-serif;background:#1a1a2e;color:white;
-       display:flex;align-items:center;justify-content:center;
-       height:100vh;margin:0;text-align:center;}
-  .box{padding:30px;background:#16213e;border-radius:12px;min-width:320px;}
-  h2{margin:0 0 16px;font-size:18px;}
-  .ico{font-size:48px;margin:16px 0;}
-  p{color:#94a3b8;font-size:13px;margin:8px 0;}
-  button{background:#3b82f6;color:white;border:none;padding:10px 24px;
-         border-radius:8px;cursor:pointer;font-size:14px;margin-top:16px;}
-</style></head>
-<body><div class="box">
-  <h2>📊 Components Bay</h2>
-  <div class="ico" id="ico">⏳</div>
-  <p id="msg">Generation du PowerPoint en cours...</p>
-  <p id="sub"></p>
-  <button onclick="window.close()">Fermer</button>
-</div>
-<script>
-  fetch('/generate',{method:'POST'})
-    .then(r=>r.json())
-    .then(()=>{
-      document.getElementById('ico').textContent='✅';
-      document.getElementById('msg').textContent='Generation lancee!';
-      document.getElementById('sub').textContent='Fichier dans APP 5.5 dans ~15 secondes.';
-      setTimeout(()=>window.close(),5000);
-    })
-    .catch(()=>{
-      document.getElementById('ico').textContent='❌';
-      document.getElementById('msg').textContent='Erreur de generation';
-    });
-</script></body></html>"""
-            self.wfile.write(html.encode('utf-8'))
+            # Trigger generation immediately on GET
+            log("Generation demandee depuis l app...")
+            threading.Thread(target=self.run_gen, daemon=True).start()
+            html = b"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>
+body{font-family:Arial,sans-serif;background:#1a1a2e;color:white;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;}
+.box{padding:30px;background:#16213e;border-radius:12px;min-width:320px;}
+h2{margin:0 0 16px;font-size:18px;}p{color:#94a3b8;font-size:13px;margin:8px 0;}
+button{background:#3b82f6;color:white;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;margin-top:16px;}
+</style></head><body><div class="box">
+<h2>Components Bay</h2>
+<p style="font-size:36px;margin:20px 0">OK</p>
+<p>Generation en cours...</p>
+<p>Fichier dans APP 5.5 dans ~15 secondes.</p>
+<button onclick="window.close()">Fermer</button>
+</div><script>setTimeout(()=>window.close(),6000);</script></body></html>"""
+            self.wfile.write(html)
         else:
             self.respond(404, {'error': 'Not found'})
 
