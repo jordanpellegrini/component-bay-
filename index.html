@@ -1303,11 +1303,28 @@
     <script>
     async function generateSlide() {
         const btn = document.getElementById('generateSlideIcon');
-        // Open the local server URL in a small popup window
-        const win = window.open('http://localhost:5001/generate-page', 'SlideGenerator', 
-            'width=400,height=200,left=100,top=100');
-        if (!win) {
-            alert('⚠️ Le serveur local est hors ligne.\n\nLancez d\'abord:\nbackup-scripts\\START_SLIDE_SERVER.bat\n\nOu double-cliquez sur RUN_GENERATE_SLIDE.bat');
+        btn.textContent = '⏳';
+        btn.title = 'Génération en cours...';
+
+        try {
+            // Use no-cors to bypass HTTPS/HTTP restriction - fire and forget
+            await fetch('http://localhost:5001/generate', {
+                method: 'POST',
+                mode: 'no-cors'
+            });
+            btn.textContent = '✅';
+            btn.title = 'Généré! Vérifiez APP 5.5 dans ~15 secondes';
+            setTimeout(() => {
+                btn.textContent = '📊';
+                btn.title = 'Generate Weekly PowerPoint';
+            }, 6000);
+        } catch(e) {
+            btn.textContent = '❌';
+            btn.title = 'Serveur hors ligne - Lancez INSTALL_WINDOWS_SERVICE.bat';
+            setTimeout(() => {
+                btn.textContent = '📊';
+                btn.title = 'Generate Weekly PowerPoint';
+            }, 4000);
         }
     }
 
