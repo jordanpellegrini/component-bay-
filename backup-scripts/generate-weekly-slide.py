@@ -255,16 +255,22 @@ def main():
     print(f"  Slide 4 (EFS Cyl. 90d):    {len(s4_rows)} items")
 
     # ---- Slide dimensions: 12192000 x 6858000 EMU ----
-    # Slide 1: table area x=4777316 y=1478384 cx=6780700 cy=3898902
-    S1X=4600000; S1Y=1200000; S1CX=7000000; S1CY=5200000
+    # Slides 1-4 share the same right-side table area (hexagon on left)
+    # matching the layout of slides 3 & 4:
+    #   table area: x=4911094, y=643466, cx=6513144, total height ~6214534
     BAR_H = 500000
-    ROW_H = 320000
+    ROW_H = 260000   # compact rows so all items fit on one slide
 
-    def table_area(x, cx, y_start, y_end, n_rows):
-        """Calculate row height to fill available space"""
-        avail = y_end - y_start - BAR_H
-        rh = min(ROW_H, avail // max(n_rows + 1, 1))
-        return rh
+    TABLE_X  = 4911094
+    TABLE_Y  = 643466
+    TABLE_CX = 6513144
+    TABLE_CY = 6858000 - TABLE_Y - 80000   # leave ~80k bottom margin -> ~6134534
+
+    def calc_row_h(n_rows, max_rh=ROW_H):
+        """Row height that fits all rows + header inside TABLE_CY."""
+        avail = TABLE_CY - BAR_H
+        rh = avail // max(n_rows + 1, 1)
+        return min(rh, max_rh)
 
     print("\nGeneration PPTX...")
     shutil.copy2(TEMPLATE, OUTPUT_PATH)
@@ -274,48 +280,44 @@ def main():
     patches = {}
 
     # === SLIDE 1 ===
-    rh1 = table_area(S1X, S1CX, S1Y, S1Y+S1CY, len(s1_rows))
-    cw1 = [960000,1400000,1350000,680000,2610000]
+    rh1 = calc_row_h(len(s1_rows))
+    # MODULE | DESIGNATION | P/N | S/N | REASON  (total = TABLE_CX = 6513144)
+    cw1 = [893231, 1302628, 1256106, 632705, 2428474]
     bar1 = header_bar('ALL UNSERVICEABLE ITEMS (ORDERED)', len(s1_rows),
-                      S1X, S1Y, S1CX, BAR_H, bg=RED, fid=200)
+                      TABLE_X, TABLE_Y, TABLE_CX, BAR_H, bg=RED, fid=200)
     tbl1 = build_table(['MODULE','DESIGNATION','P/N','S/N','REASON'], s1_rows, cw1, rh1,
                        hdr_bg=ORANGE)
-    gf1  = graphicFrame(tbl1, S1X, S1Y+BAR_H, S1CX, rh1*(len(s1_rows)+1), fid=100)
+    gf1  = graphicFrame(tbl1, TABLE_X, TABLE_Y+BAR_H, TABLE_CX, rh1*(len(s1_rows)+1), fid=100)
     patches['ppt/slides/slide1.xml'] = patch_slide(files['ppt/slides/slide1.xml'], [bar1, gf1])
 
     # === SLIDE 2 ===
-    # Titles end at y=1499142, table starts at y=1550000, full width
-    S2X=200000; S2Y=1550000; S2CX=11792000; S2CY=5308000
-    rh2 = table_area(S2X, S2CX, S2Y, S2Y+S2CY, len(s2_rows))
-    cw2 = [1100000,2500000,2500000,5692000]
+    rh2 = calc_row_h(len(s2_rows))
+    # MODULE | P/N | S/N | REASON  (total = TABLE_CX = 6513144)
+    cw2 = [900000, 1500000, 2000000, 2113144]
     bar2 = header_bar('LIFE RAFT — NEED TO BE C/OUT', len(s2_rows),
-                      S2X, S2Y, S2CX, BAR_H, bg=RED, fid=201)
+                      TABLE_X, TABLE_Y, TABLE_CX, BAR_H, bg=RED, fid=201)
     tbl2 = build_table(['MODULE','P/N','S/N','REASON'], s2_rows, cw2, rh2, hdr_bg=ORANGE)
-    gf2  = graphicFrame(tbl2, S2X, S2Y+BAR_H, S2CX, rh2*(len(s2_rows)+1), fid=101)
+    gf2  = graphicFrame(tbl2, TABLE_X, TABLE_Y+BAR_H, TABLE_CX, rh2*(len(s2_rows)+1), fid=101)
     patches['ppt/slides/slide2.xml'] = patch_slide(files['ppt/slides/slide2.xml'], [bar2, gf2])
 
     # === SLIDE 3 ===
-    # Slide 3 image: x=4911094 y=643466 cx=6513144 cy=5568739
-    S3X=4911094; S3Y=643466; S3CX=6513144; S3CY=5568739
-    rh3 = table_area(S3X, S3CX, S3Y, S3Y+S3CY, len(s3_rows))
+    rh3 = calc_row_h(len(s3_rows))
     cw3 = [900000,1100000,1300000,500000,980000,980000,753144]
     bar3 = header_bar('SERVICEABLE EFS — DUE WITHIN 90 DAYS', len(s3_rows),
-                      S3X, S3Y, S3CX, BAR_H, bg=ORANGE, fid=202)
+                      TABLE_X, TABLE_Y, TABLE_CX, BAR_H, bg=ORANGE, fid=202)
     tbl3 = build_table(['H/C','DESIGNATION','P/N','S/N','NEXT 18M','NEXT 36M','DAYS LEFT'],
                        s3_rows, cw3, rh3, hdr_bg=ORANGE, days_col=6)
-    gf3  = graphicFrame(tbl3, S3X, S3Y+BAR_H, S3CX, rh3*(len(s3_rows)+1), fid=102)
+    gf3  = graphicFrame(tbl3, TABLE_X, TABLE_Y+BAR_H, TABLE_CX, rh3*(len(s3_rows)+1), fid=102)
     patches['ppt/slides/slide3.xml'] = patch_slide(files['ppt/slides/slide3.xml'], [bar3, gf3])
 
     # === SLIDE 4 ===
-    # Slide 4 image: x=4777316 y=1791991 cx=6780700 cy=3271688
-    S4X=4777316; S4Y=1791991; S4CX=6780700; S4CY=3271688
-    rh4 = table_area(S4X, S4CX, S4Y, S4Y+S4CY, len(s4_rows))
-    cw4 = [900000,1200000,1300000,500000,980000,980000,820700]
+    rh4 = calc_row_h(len(s4_rows))
+    cw4 = [900000,1200000,1300000,500000,980000,980000,753144]
     bar4 = header_bar('SERVICEABLE EFS CYLINDERS — DUE WITHIN 90 DAYS', len(s4_rows),
-                      S4X, S4Y, S4CX, BAR_H, bg=ORANGE, fid=203)
+                      TABLE_X, TABLE_Y, TABLE_CX, BAR_H, bg=ORANGE, fid=203)
     tbl4 = build_table(['H/C','DESIGNATION','P/N','S/N','NEXT 18M','NEXT 60M','DAYS LEFT'],
                        s4_rows, cw4, rh4, hdr_bg=ORANGE, days_col=6)
-    gf4  = graphicFrame(tbl4, S4X, S4Y+BAR_H, S4CX, rh4*(len(s4_rows)+1), fid=103)
+    gf4  = graphicFrame(tbl4, TABLE_X, TABLE_Y+BAR_H, TABLE_CX, rh4*(len(s4_rows)+1), fid=103)
     patches['ppt/slides/slide4.xml'] = patch_slide(files['ppt/slides/slide4.xml'], [bar4, gf4])
 
     # Write
