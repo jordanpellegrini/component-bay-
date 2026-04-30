@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Components Bay - Weekly Slide Generator
 Generates Component_Bay_Slide.pptx from Supabase data
 """
+
+import sys, io
+# Force UTF-8 output to avoid Windows cp1252 encoding errors
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 import requests, json, zipfile, shutil, os, sys
 from datetime import datetime
@@ -257,7 +263,7 @@ def main():
         rh = min(ROW_H, avail // max(n_rows + 1, 1))
         return rh
 
-    print("\nGénération PPTX...")
+    print("\nGeneration PPTX...")
     shutil.copy2(TEMPLATE, OUTPUT_PATH)
     with zipfile.ZipFile(OUTPUT_PATH,'r') as z:
         files = {n: z.read(n) for n in z.namelist()}
@@ -314,7 +320,7 @@ def main():
         for name, data in files.items():
             z.writestr(name, patches.get(name, data))
 
-    print(f"\n✅ Fichier généré:")
+    print(f"\n Fichier gnr:")
     print(f"   {OUTPUT_PATH}")
     print("="*55)
 
