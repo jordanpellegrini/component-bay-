@@ -1304,22 +1304,9 @@
     async function generateSlide() {
         const btn = document.getElementById('generateSlideIcon');
         btn.textContent = '⏳';
-        btn.title = 'Génération en cours...';
-
-        // Use hidden iframe to bypass HTTPS->HTTP mixed content restriction
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = 'http://localhost:5001/generate-page';
-        document.body.appendChild(iframe);
-
-        btn.textContent = '✅';
-        btn.title = 'Généré! Vérifiez APP 5.5 dans ~15 secondes';
-        
-        setTimeout(() => {
-            document.body.removeChild(iframe);
-            btn.textContent = '📊';
-            btn.title = 'Generate Weekly PowerPoint';
-        }, 6000);
+        setTimeout(() => { btn.textContent = '📊'; }, 3000);
+        window.open('http://localhost:5001/generate-page', 'SlideGenerator',
+            'width=380,height=220,left=200,top=200,resizable=no,scrollbars=no');
     }
 
     async function backupAll(e) {
