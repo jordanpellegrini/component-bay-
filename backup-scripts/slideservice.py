@@ -24,7 +24,11 @@ LOG_DIR    = r"C:\ComponentsBay_Logs"
 LOG_FILE   = os.path.join(LOG_DIR, "slide_server_log.txt")
 GENERATOR  = os.path.join(SCRIPT_DIR, "generate-weekly-slide.py")
 
-os.makedirs(LOG_DIR, exist_ok=True)
+PYTHON_EXE = r"C:\Program Files\Python314\python.exe"
+if not os.path.exists(PYTHON_EXE):
+    PYTHON_EXE = r"C:\Program Files\Python313\python.exe"
+if not os.path.exists(PYTHON_EXE):
+    PYTHON_EXE = r"C:\Program Files\Python312\python.exe"
 
 def log(msg):
     line = f"[{__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}"
@@ -80,9 +84,9 @@ button{background:#3b82f6;color:white;border:none;padding:10px 24px;border-radiu
     def run_gen(self):
         try:
             log(f"Lancement generateur: {GENERATOR}")
-            log(f"Python: {sys.executable}")
+            log(f"Python: {PYTHON_EXE}")
             r = subprocess.run(
-                [sys.executable, GENERATOR],
+                [PYTHON_EXE, GENERATOR],
                 capture_output=True, text=True, timeout=120,
                 env={**os.environ, 'PYTHONIOENCODING': 'utf-8'}
             )
