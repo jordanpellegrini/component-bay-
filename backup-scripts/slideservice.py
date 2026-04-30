@@ -18,11 +18,11 @@ import win32service
 import win32serviceutil
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-GENERATOR  = os.path.join(SCRIPT_DIR, "generate-weekly-slide.py")
+GENERATOR  = os.path.join(SCRIPT_DIR, "generate-slide-v2.js")
 PORT       = 5001
 LOG_DIR    = r"C:\ComponentsBay_Logs"
 LOG_FILE   = os.path.join(LOG_DIR, "slide_server_log.txt")
-GENERATOR  = os.path.join(SCRIPT_DIR, "generate-weekly-slide.py")
+GENERATOR  = os.path.join(SCRIPT_DIR, "generate-slide-v2.js")
 
 PYTHON_EXE = r"C:\Program Files\Python314\python.exe"
 if not os.path.exists(PYTHON_EXE):
@@ -86,7 +86,7 @@ button{background:#3b82f6;color:white;border:none;padding:10px 24px;border-radiu
             log(f"Lancement generateur: {GENERATOR}")
             log(f"Python: {PYTHON_EXE}")
             r = subprocess.run(
-                [PYTHON_EXE, GENERATOR],
+                ["node", GENERATOR],
                 capture_output=True, text=True, timeout=120,
                 env={**os.environ, 'PYTHONIOENCODING': 'utf-8'}
             )

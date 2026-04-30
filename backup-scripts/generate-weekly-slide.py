@@ -61,7 +61,10 @@ def days_left(s):
 def tc(text, bold=False, sz=900, fg=BLACK, bg=None, align='l'):
     el = ET.Element(f'{{{A}}}tc')
     tb = ET.SubElement(el, f'{{{A}}}txBody')
-    ET.SubElement(tb, f'{{{A}}}bodyPr').set('anchor','ctr')
+    bp = ET.SubElement(tb, f'{{{A}}}bodyPr')
+    bp.set('anchor','ctr')
+    # Normalize spacing to prevent PowerPoint from auto-expanding row height
+    ET.SubElement(bp, f'{{{A}}}spAutoFit')
     ET.SubElement(tb, f'{{{A}}}lstStyle')
     para = ET.SubElement(tb, f'{{{A}}}p')
     pp = ET.SubElement(para, f'{{{A}}}pPr'); pp.set('algn', align)
@@ -161,7 +164,7 @@ def header_bar(title, count, x, y, cx, cy, bg=RED, fid=200):
     t2 = ET.SubElement(run2, f'{{{A}}}t'); t2.text = f"{'':>60}{count}"
     return sp
 
-def patch_slide(xml_bytes, bars_frames):
+def patch_slide(xml_bytes, bars_frames, remove_sp_names=None):
     root = ET.fromstring(xml_bytes)
     tree = root.find(f'.//{{{P}}}spTree')
     # Remove old images
@@ -170,9 +173,79 @@ def patch_slide(xml_bytes, bars_frames):
     # Remove old graphic frames (previously generated tables)
     for gf in list(tree.findall(f'{{{P}}}graphicFrame')):
         tree.remove(gf)
+    # Remove specific named shapes (old bars, title placeholders, stale rects)
+    if remove_sp_names:
+        for sp in list(tree.findall(f'{{{P}}}sp')):
+            cNvPr = sp.find(f'.//{{{P}}}cNvPr')
+            if cNvPr is None:
+                continue
+            name = cNvPr.get('name', '')
+            if any(name.startswith(n) for n in remove_sp_names):
+                tree.remove(sp)
     for el in bars_frames:
         tree.append(el)
     return ET.tostring(root, encoding='utf-8', xml_declaration=True)
+
+
+def hexagon_shape(title_line1, title_line2, highlight_color="8B1A1A"):
+    """Build the dark arrow/hexagon shape with title text (left side of slides 1 & 2)."""
+    P_NS = 'http://schemas.openxmlformats.org/presentationml/2006/main'
+    A_NS = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+    # Arrow shape (rotated down arrow = hexagon-like)
+    arrow = ET.Element(f'{{{P_NS}}}sp')
+    nv = ET.SubElement(arrow, f'{{{P_NS}}}nvSpPr')
+    cp = ET.SubElement(nv, f'{{{P_NS}}}cNvPr'); cp.set('id','14'); cp.set('name','Down Arrow 7')
+    csp = ET.SubElement(nv, f'{{{P_NS}}}cNvSpPr')
+    sl = ET.SubElement(csp, f'{{{A_NS}}}spLocks')
+    for attr in ['noGrp','noRot','noChangeAspect','noMove','noResize',
+                 'noEditPoints','noAdjustHandles','noChangeArrowheads','noChangeShapeType','noTextEdit']:
+        sl.set(attr,'1')
+    ET.SubElement(nv, f'{{{P_NS}}}nvPr')
+    spr = ET.SubElement(arrow, f'{{{P_NS}}}spPr')
+    xf = ET.SubElement(spr, f'{{{A_NS}}}xfrm'); xf.set('rot','16200000')
+    off = ET.SubElement(xf, f'{{{A_NS}}}off'); off.set('x','800100'); off.set('y','1491343')
+    ext = ET.SubElement(xf, f'{{{A_NS}}}ext'); ext.set('cx','3333749'); ext.set('cy','3499103')
+    pg = ET.SubElement(spr, f'{{{A_NS}}}prstGeom'); pg.set('prst','downArrow')
+    avl = ET.SubElement(pg, f'{{{A_NS}}}avLst')
+    gd1 = ET.SubElement(avl, f'{{{A_NS}}}gd'); gd1.set('name','adj1'); gd1.set('fmla','val 100000')
+    gd2 = ET.SubElement(avl, f'{{{A_NS}}}gd'); gd2.set('name','adj2'); gd2.set('fmla','val 15788')
+    sf = ET.SubElement(spr, f'{{{A_NS}}}solidFill')
+    ET.SubElement(sf, f'{{{A_NS}}}srgbClr').set('val','404040')
+    ln = ET.SubElement(spr, f'{{{A_NS}}}ln'); ln.set('w','53975')
+    ET.SubElement(ln, f'{{{A_NS}}}noFill')
+    # Title text box (positioned over arrow)
+    title_sp = ET.Element(f'{{{P_NS}}}sp')
+    nv2 = ET.SubElement(title_sp, f'{{{P_NS}}}nvSpPr')
+    cp2 = ET.SubElement(nv2, f'{{{P_NS}}}cNvPr'); cp2.set('id','2'); cp2.set('name','Title 1')
+    csp2 = ET.SubElement(nv2, f'{{{P_NS}}}cNvSpPr')
+    ET.SubElement(csp2, f'{{{A_NS}}}spLocks').set('noGrp','1')
+    ph = ET.SubElement(ET.SubElement(nv2, f'{{{P_NS}}}nvPr'), f'{{{P_NS}}}ph'); ph.set('type','title')
+    spr2 = ET.SubElement(title_sp, f'{{{P_NS}}}spPr')
+    xf2 = ET.SubElement(spr2, f'{{{A_NS}}}xfrm')
+    off2 = ET.SubElement(xf2, f'{{{A_NS}}}off'); off2.set('x','1028700'); off2.set('y','1967266')
+    ext2 = ET.SubElement(xf2, f'{{{A_NS}}}ext'); ext2.set('cx','2628900'); ext2.set('cy','2547257')
+    ET.SubElement(spr2, f'{{{A_NS}}}noFill')
+    tb = ET.SubElement(title_sp, f'{{{P_NS}}}txBody')
+    bp = ET.SubElement(tb, f'{{{A_NS}}}bodyPr'); bp.set('anchor','ctr')
+    ET.SubElement(bp, f'{{{A_NS}}}spAutoFit')
+    ET.SubElement(tb, f'{{{A_NS}}}lstStyle')
+    para = ET.SubElement(tb, f'{{{A_NS}}}p')
+    pp = ET.SubElement(para, f'{{{A_NS}}}pPr'); pp.set('algn','ctr')
+    for line in [title_line1, None, None, title_line2]:
+        if line is not None:
+            run = ET.SubElement(para, f'{{{A_NS}}}r')
+            rp = ET.SubElement(run, f'{{{A_NS}}}rPr')
+            rp.set('lang','en-US'); rp.set('sz','3600'); rp.set('dirty','0')
+            sf2 = ET.SubElement(rp, f'{{{A_NS}}}solidFill')
+            ET.SubElement(sf2, f'{{{A_NS}}}srgbClr').set('val','FFFFFF')
+            hl = ET.SubElement(rp, f'{{{A_NS}}}highlight')
+            ET.SubElement(hl, f'{{{A_NS}}}srgbClr').set('val', highlight_color)
+            t = ET.SubElement(run, f'{{{A_NS}}}t'); t.text = line
+        else:
+            br = ET.SubElement(para, f'{{{A_NS}}}br')
+            rp_br = ET.SubElement(br, f'{{{A_NS}}}rPr')
+            rp_br.set('lang','en-US'); rp_br.set('sz','3600'); rp_br.set('dirty','0')
+    return [arrow, title_sp]
 
 def main():
     print("="*55)
@@ -201,6 +274,11 @@ def main():
     except Exception as e:
         print(f"ERREUR Supabase: {e}"); sys.exit(1)
 
+    def trunc(s, n=28):
+        """Truncate long strings to avoid row height expansion."""
+        s = str(s)
+        return s[:n] + '…' if len(s) > n else s
+
     # ---- Slide 1: Other Parts U/S ----
     s1_rows = []
     for mod_name, items in [
@@ -211,8 +289,8 @@ def main():
         for it in items:
             if it.get('serviceability') == 'Unserviceable':
                 pn = it.get('pnWheel') or it.get('partNumber','')
-                s1_rows.append([mod_name, it.get('designation',''), pn,
-                                 it.get('serialNumber',''), it.get('reason','Unserviceable')])
+                s1_rows.append([mod_name, trunc(it.get('designation','')), pn,
+                                 it.get('serialNumber',''), trunc(it.get('reason','Unserviceable'), 30)])
 
     # ---- Slide 2: Life Raft U/S ----
     s2_rows = []
@@ -259,17 +337,19 @@ def main():
     # matching the layout of slides 3 & 4:
     #   table area: x=4911094, y=643466, cx=6513144, total height ~6214534
     BAR_H = 500000
-    ROW_H = 260000   # compact rows so all items fit on one slide
+    ROW_H = 130000   # compact rows so all items fit on one slide
 
     TABLE_X  = 4911094
     TABLE_Y  = 643466
     TABLE_CX = 6513144
-    TABLE_CY = 6858000 - TABLE_Y - 80000   # leave ~80k bottom margin -> ~6134534
+    SLIDE_H  = 6858000
+    # Table content starts at TABLE_Y + BAR_H; leave 80k bottom margin
+    TABLE_START_Y = TABLE_Y + BAR_H   # 1143466
+    TABLE_AVAIL   = SLIDE_H - TABLE_START_Y - 80000  # 5634534
 
     def calc_row_h(n_rows, max_rh=ROW_H):
-        """Row height that fits all rows + header inside TABLE_CY."""
-        avail = TABLE_CY - BAR_H
-        rh = avail // max(n_rows + 1, 1)
+        """Row height that fits all rows + header below the bar."""
+        rh = TABLE_AVAIL // max(n_rows + 1, 1)
         return min(rh, max_rh)
 
     print("\nGeneration PPTX...")
@@ -288,7 +368,10 @@ def main():
     tbl1 = build_table(['MODULE','DESIGNATION','P/N','S/N','REASON'], s1_rows, cw1, rh1,
                        hdr_bg=ORANGE)
     gf1  = graphicFrame(tbl1, TABLE_X, TABLE_Y+BAR_H, TABLE_CX, rh1*(len(s1_rows)+1), fid=100)
-    patches['ppt/slides/slide1.xml'] = patch_slide(files['ppt/slides/slide1.xml'], [bar1, gf1])
+    hex1 = hexagon_shape('Other Parts', 'NEED TO BE C/OUT', highlight_color='8B1A1A')
+    patches['ppt/slides/slide1.xml'] = patch_slide(files['ppt/slides/slide1.xml'],
+                                                         hex1 + [bar1, gf1],
+                                                         remove_sp_names=['Bar200', 'Bar', 'Down Arrow', 'Title'])
 
     # === SLIDE 2 ===
     rh2 = calc_row_h(len(s2_rows))
@@ -298,7 +381,10 @@ def main():
                       TABLE_X, TABLE_Y, TABLE_CX, BAR_H, bg=RED, fid=201)
     tbl2 = build_table(['MODULE','P/N','S/N','REASON'], s2_rows, cw2, rh2, hdr_bg=ORANGE)
     gf2  = graphicFrame(tbl2, TABLE_X, TABLE_Y+BAR_H, TABLE_CX, rh2*(len(s2_rows)+1), fid=101)
-    patches['ppt/slides/slide2.xml'] = patch_slide(files['ppt/slides/slide2.xml'], [bar2, gf2])
+    hex2 = hexagon_shape('Life Raft', 'NEED TO BE C/OUT', highlight_color='8B1A1A')
+    patches['ppt/slides/slide2.xml'] = patch_slide(files['ppt/slides/slide2.xml'],
+                                                         hex2 + [bar2, gf2],
+                                                         remove_sp_names=['Bar201', 'Bar', 'Rectangle', 'Title', 'Down Arrow'])
 
     # === SLIDE 3 ===
     rh3 = calc_row_h(len(s3_rows))
