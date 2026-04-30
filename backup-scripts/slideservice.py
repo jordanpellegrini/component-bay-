@@ -79,15 +79,23 @@ button{background:#3b82f6;color:white;border:none;padding:10px 24px;border-radiu
 
     def run_gen(self):
         try:
-            log("Lancement generateur...")
-            r = subprocess.run([sys.executable, GENERATOR],
-                               capture_output=True, text=True, timeout=120)
+            log(f"Lancement generateur: {GENERATOR}")
+            log(f"Python: {sys.executable}")
+            r = subprocess.run(
+                [sys.executable, GENERATOR],
+                capture_output=True, text=True, timeout=120,
+                env={**os.environ, 'PYTHONIOENCODING': 'utf-8'}
+            )
             if r.returncode == 0:
                 log("SUCCES generation")
             else:
-                log(f"ERREUR: {r.stderr[:200]}")
+                log(f"ERREUR code={r.returncode}: {r.stderr[:500] if r.stderr else 'no stderr'}")
+                log(f"STDOUT: {r.stdout[:200] if r.stdout else 'no stdout'}")
+        except subprocess.TimeoutExpired:
+            log("TIMEOUT: Generation trop longue")
         except Exception as e:
-            log(f"ERREUR: {e}")
+            import traceback
+            log(f"ERREUR: {traceback.format_exc()}")
 
     def respond(self, code, data):
         body = json.dumps(data).encode()
