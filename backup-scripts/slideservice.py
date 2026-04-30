@@ -20,8 +20,9 @@ import win32serviceutil
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 GENERATOR  = os.path.join(SCRIPT_DIR, "generate-weekly-slide.py")
 PORT       = 5001
-LOG_DIR    = os.path.join(os.path.expanduser("~"), "Documents", "ComponentsBay_Backups")
+LOG_DIR    = r"C:\ComponentsBay_Logs"
 LOG_FILE   = os.path.join(LOG_DIR, "slide_server_log.txt")
+GENERATOR  = os.path.join(SCRIPT_DIR, "generate-weekly-slide.py")
 
 os.makedirs(LOG_DIR, exist_ok=True)
 

@@ -19,7 +19,10 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 
 SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE     = os.path.join(SCRIPT_DIR, "Component_Bay_Slide_Template.pptx")
-OUTPUT_PATH  = os.path.join(r"C:\Users\jpellegrini\Desktop\APP 5.5",
+OUTPUT_DIR   = r"C:\Users\jpellegrini\Desktop\APP 5.5"
+if not os.path.exists(OUTPUT_DIR):
+    OUTPUT_DIR = r"C:\ComponentsBay_Logs"
+OUTPUT_PATH  = os.path.join(OUTPUT_DIR,
                 f"Component_Bay_Slide_{datetime.now().strftime('%Y-%m-%d')}.pptx")
 
 # Namespaces
