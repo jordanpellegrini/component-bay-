@@ -30,6 +30,20 @@ if not os.path.exists(PYTHON_EXE):
 if not os.path.exists(PYTHON_EXE):
     PYTHON_EXE = r"C:\Program Files\Python312\python.exe"
 
+# Node.js — chemin complet car le service Windows n'a pas le PATH utilisateur
+NODE_EXE = r"C:\Program Files\nodejs\node.exe"
+if not os.path.exists(NODE_EXE):
+    NODE_EXE = r"C:\Program Files (x86)\nodejs\node.exe"
+if not os.path.exists(NODE_EXE):
+    for _p in [
+        os.path.expanduser(r"~\AppData\Roaming\nvm\current\node.exe"),
+        r"C:\nvm\nodejs\node.exe",
+        r"C:\nodejs\node.exe",
+    ]:
+        if os.path.exists(_p):
+            NODE_EXE = _p
+            break
+
 def log(msg):
     line = f"[{__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}"
     try:
@@ -86,7 +100,7 @@ button{background:#3b82f6;color:white;border:none;padding:10px 24px;border-radiu
             log(f"Lancement generateur: {GENERATOR}")
             log(f"Python: {PYTHON_EXE}")
             r = subprocess.run(
-                ["node", GENERATOR],
+                [NODE_EXE, GENERATOR],
                 capture_output=True, text=True, timeout=120,
                 env={**os.environ, 'PYTHONIOENCODING': 'utf-8'}
             )
