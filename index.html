@@ -1306,26 +1306,20 @@
         btn.textContent = '⏳';
         btn.title = 'Génération en cours...';
 
-        try {
-            // Use no-cors to bypass HTTPS/HTTP restriction - fire and forget
-            await fetch('http://localhost:5001/generate', {
-                method: 'POST',
-                mode: 'no-cors'
-            });
-            btn.textContent = '✅';
-            btn.title = 'Généré! Vérifiez APP 5.5 dans ~15 secondes';
-            setTimeout(() => {
-                btn.textContent = '📊';
-                btn.title = 'Generate Weekly PowerPoint';
-            }, 6000);
-        } catch(e) {
-            btn.textContent = '❌';
-            btn.title = 'Serveur hors ligne - Lancez INSTALL_WINDOWS_SERVICE.bat';
-            setTimeout(() => {
-                btn.textContent = '📊';
-                btn.title = 'Generate Weekly PowerPoint';
-            }, 4000);
-        }
+        // Use hidden iframe to bypass HTTPS->HTTP mixed content restriction
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = 'http://localhost:5001/generate-page';
+        document.body.appendChild(iframe);
+
+        btn.textContent = '✅';
+        btn.title = 'Généré! Vérifiez APP 5.5 dans ~15 secondes';
+        
+        setTimeout(() => {
+            document.body.removeChild(iframe);
+            btn.textContent = '📊';
+            btn.title = 'Generate Weekly PowerPoint';
+        }, 6000);
     }
 
     async function backupAll(e) {
