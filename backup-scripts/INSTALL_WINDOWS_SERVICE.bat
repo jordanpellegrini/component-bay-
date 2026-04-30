@@ -13,19 +13,14 @@ pause
 
 set SCRIPT_DIR=%~dp0
 
-:: Find Python path
-set PYTHON_PATH=
-for /f "tokens=*" %%i in ('where python3 2^>nul') do set PYTHON_PATH=%%i
-if "%PYTHON_PATH%"=="" (
-    for /f "tokens=*" %%i in ('where python 2^>nul') do set PYTHON_PATH=%%i
-)
-if "%PYTHON_PATH%"=="" (
-    for /f "tokens=*" %%i in ('where py 2^>nul') do set PYTHON_PATH=%%i
-)
-
-if "%PYTHON_PATH%"=="" (
-    echo ERREUR: Python introuvable!
-    echo Verifiez que Python est installe et dans le PATH.
+:: Python installed for all users - direct path
+set PYTHON_PATH=C:\Program Files\Python314\python.exe
+if not exist "%PYTHON_PATH%" set PYTHON_PATH=C:\Program Files\Python313\python.exe
+if not exist "%PYTHON_PATH%" set PYTHON_PATH=C:\Program Files\Python312\python.exe
+if not exist "%PYTHON_PATH%" set PYTHON_PATH=C:\Program Files\Python311\python.exe
+if not exist "%PYTHON_PATH%" (
+    echo ERREUR: Python introuvable dans C:\Program Files\
+    echo Verifiez le chemin d'installation.
     pause
     exit /b 1
 )
