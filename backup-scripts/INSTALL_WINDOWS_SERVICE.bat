@@ -29,10 +29,10 @@ echo Python trouve: %PYTHON_PATH%
 echo.
 
 echo Installation du service...
-"%PYTHON_PATH%" "%SCRIPT_DIR%slide-service.py" install
+"%PYTHON_PATH%" "%SCRIPT_DIR%slideservice.py" install
 
 echo Demarrage du service...
-"%PYTHON_PATH%" "%SCRIPT_DIR%slide-service.py" start
+"%PYTHON_PATH%" "%SCRIPT_DIR%slideservice.py" start
 
 echo.
 echo ============================================
@@ -40,8 +40,8 @@ echo   Service installe et demarre!
 echo   Tourne en permanence en arriere-plan.
 echo   Pour verifier: http://localhost:5001/status
 echo.
-echo   Pour arreter    : "%PYTHON_PATH%" slide-service.py stop
-echo   Pour desinstaller: "%PYTHON_PATH%" slide-service.py remove
+echo   Pour arreter    : "%PYTHON_PATH%" slideservice.py stop
+echo   Pour desinstaller: "%PYTHON_PATH%" slideservice.py remove
 echo ============================================
 echo.
 pause
