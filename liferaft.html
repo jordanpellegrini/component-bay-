@@ -612,7 +612,7 @@
         function generateSubItemsTable() {
             const tbody = document.getElementById('subItemsTableBody');
             tbody.innerHTML = '';
-            const intervals = ['','1Y','2Y','3Y','4Y','5Y','7Y','10Y'];
+            const intervals = ['','1Y','2Y','3Y','4Y','5Y','6Y','7Y','8Y','9Y','10Y'];
             
             subItems.forEach((item, index) => {
                 const opts = intervals.map(v => `<option value="${v}">${v || '—'}</option>`).join('');
@@ -1241,15 +1241,32 @@
     
         function generateTagForCurrent(type) {
             const item = {};
-            const fields = ['designation','partNumber','serialNumber','serviceability',
-                'inspectionDate','nextInspection','orderRef','comments','reason'];
-            fields.forEach(f => {
-                const el = document.getElementById(f);
-                if (el) item[f] = el.value;
-            });
-            // Get reason from stored data
-            if (typeof editingLifeRaft !== 'undefined' && editingLifeRaft) item.reason = editingLifeRaft.reason || '';
+
+            // Life Raft fields use 'liferaft' prefix
+            const fieldMap = {
+                designation:    'liferaftDesignation',
+                partNumber:     'liferaftPartNumber',
+                serialNumber:   'liferaftSerialNumber',
+                serviceability: 'liferaftServiceability',
+                comments:       'liferaftComments',
+                reason:         'liferaftReason',
+                inspectionDate: 'inspectionDate',
+                nextInspection: 'nextInspection',
+                orderRef:       'liferaftOrder'
+            };
+
+            for (const [key, elId] of Object.entries(fieldMap)) {
+                const el = document.getElementById(elId);
+                if (el) item[key] = el.value;
+            }
+
+            // Override reason from stored editing data if available
+            if (typeof editingLifeRaft !== 'undefined' && editingLifeRaft) {
+                item.reason = editingLifeRaft.reason || item.reason || '';
+            }
+
             if (!item.partNumber) { alert('No item data'); return; }
+
             // JCN + Book for Work Order
             const jcnEl = document.getElementById('jcnNumber');
             const bookEl = document.getElementById('jcnBook');
