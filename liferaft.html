@@ -996,14 +996,14 @@
                 [sc('LIFE RAFT SYSTEMS — EXPORT', styleHeader), '', '', '', '', ''],
                 [sc(`Generated: ${today}`, styleLabelGray), '', '', '', '', ''],
                 [''],
-                [sc('S/N', styleSubLabel), sc('P/N', styleSubLabel), sc('Serviceability', styleSubLabel), sc('Next Inspection', styleSubLabel), sc('Comments', styleSubLabel)],
+                [sc('P/N', styleSubLabel), sc('S/N', styleSubLabel), sc('Serviceability', styleSubLabel), sc('Next Inspection', styleSubLabel), sc('Comments', styleSubLabel)],
             ];
             liferaftData.forEach(item => {
                 const expiredCount = (item.subItems || []).filter(s => isExpired(s.expiryDate)).length;
                 const svcStyle = item.serviceability === 'Unserviceable' ? styleExp : styleOK;
                 summaryRows.push([
-                    sc(item.serialNumber || '', styleSubRow0),
                     sc(item.partNumber || '', styleSubRow0),
+                    sc(item.serialNumber || '', styleSubRow0),
                     sc(item.serviceability || '', svcStyle),
                     sc(item.nextInspection || '', styleSubRow0),
                     sc(item.comments || '', styleSubRow0),
@@ -1033,7 +1033,7 @@
                     // Main info — 2 columns of label/value pairs
                     [sc('Designation', styleLabelGray),     sc(item.designation || '', styleValue),     '', sc('Serviceability', styleLabelGray), sc(item.serviceability || '', svcOk ? styleOK : styleExp)],
                     [sc('Part Number (P/N)', styleLabelGray), sc(item.partNumber || '', styleValue),    '', sc('Reason U/S', styleLabelGray),      sc(item.reason || '', styleValue)],
-                    [sc('Serial Number (S/N)', styleLabelGray), sc(item.serialNumber || '', styleValue), '', sc('JCN Number', styleLabelGray),    sc(item.jcnNumber || '', styleValue)],
+                    [sc('Serial Number (S/N)', styleLabelGray), sc(item.serialNumber || '', styleValue), '', '', ''],
                     [sc('Next Inspection', styleLabelGray), sc(item.nextInspection || '', styleValue),   '', '', ''],
                     [sc('Comments', styleLabelGray),        sc(item.comments || '', { ...styleValue, alignment: { wrapText: true, vertical: 'top' } }), '', '', ''],
                     [''],
@@ -1070,9 +1070,9 @@
 
                 // Merges
                 ws['!merges'] = [
-                    { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },   // title
-                    { s: { r: 8, c: 1 }, e: { r: 8, c: 4 } },   // comments value
-                    { s: { r: 10, c: 0 }, e: { r: 10, c: 4 } }, // sub-components header
+                    { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },  // title
+                    { s: { r: 6, c: 1 }, e: { r: 6, c: 4 } },  // comments value
+                    { s: { r: 8, c: 0 }, e: { r: 8, c: 4 } },  // sub-components header
                 ];
 
                 XLSX.utils.book_append_sheet(wb, ws, sn);
