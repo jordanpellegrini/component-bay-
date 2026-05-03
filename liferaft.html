@@ -1020,7 +1020,11 @@
             liferaftData.forEach(item => {
                 const sn = (item.serialNumber || 'Unknown').toString().replace(/[:\\\/\?\*\[\]]/g, '').substring(0, 31);
 
-                const expiredCount = (item.subItems || []).filter(s => isExpired(s.expiryDate)).length;
+                // Use saved subItems if available, otherwise show default list (item + P/N only)
+                const savedSubs = (item.subItems && item.subItems.length > 0)
+                    ? item.subItems
+                    : subItems.map(s => ({ item: s.item, partNumber: s.partNumber, serialNumber: '', expiryDate: '' }));
+                const expiredCount = savedSubs.filter(s => isExpired(s.expiryDate)).length;
                 const svcOk = item.serviceability !== 'Unserviceable';
 
                 const rows = [
@@ -1037,12 +1041,12 @@
                     [sc('Comments', styleLabelGray),        sc(item.comments || '', { ...styleValue, alignment: { wrapText: true, vertical: 'top' } }), '', '', ''],
                     [''],
                     // Sub-components header
-                    [sc(`SUB-COMPONENTS (${(item.subItems || []).length} items — ${expiredCount} expired)`, styleSubHeader), '', '', '', ''],
+                    [sc(`SUB-COMPONENTS (${savedSubs.length} items — ${expiredCount} expired)`, styleSubHeader), '', '', '', ''],
                     [sc('Item', styleSubLabel), sc('Part Number', styleSubLabel), sc('S/N / Batch N°', styleSubLabel), sc('Expiry Date', styleSubLabel), sc('Status', styleSubLabel)],
                 ];
 
                 // Sub-components rows
-                (item.subItems || []).forEach((sub, idx) => {
+                savedSubs.forEach((sub, idx) => {
                     const expired = isExpired(sub.expiryDate);
                     const rowStyle = idx % 2 === 0 ? styleSubRow0 : styleSubRow1;
                     const statusStyle = expired ? styleExp : styleOK;
