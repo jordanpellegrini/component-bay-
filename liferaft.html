@@ -49,6 +49,7 @@
             color: #dd6b20;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -970,49 +971,115 @@
                 return;
             }
 
-            const data = liferaftData.map(item => ({
-                'Designation': item.designation,
-                'Part Number': item.partNumber,
-                'Serial Number': item.serialNumber || '',
-                'Next Inspection': item.nextInspection || '',
-                'Serviceability': item.serviceability || '',
-                'Reason': item.reason || '',
-                'Comments': item.comments || '',
-                'Sub-Items': item.subItems.map(sub => `${sub.item}: ${sub.serialNumber || '-'} (Exp: ${sub.expiryDate || '-'})`).join(' | '),
-                'Last Modified': new Date(item.lastModified).toLocaleString(),
-                'Modified By': item.modifiedBy || ''
-            }));
+            const wb = XLSX.utils.book_new();
+            const today = new Date().toISOString().split('T')[0];
 
-            downloadCSV(data, `LifeRaft_Export_${new Date().toISOString().split('T')[0]}.csv`);
-            showMessage('Export completed successfully', 'success');
-        }
+            // ── Style helpers ──────────────────────────────────────────────
+            const styleHeader = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 }, fill: { fgColor: { rgb: '1B2B4B' } }, alignment: { vertical: 'center', horizontal: 'left' }, border: { bottom: { style: 'thin', color: { rgb: 'C8D5E3' } } } };
+            const styleSubHeader = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 10 }, fill: { fgColor: { rgb: 'C0392B' } }, alignment: { vertical: 'center', horizontal: 'center' }, border: { bottom: { style: 'thin', color: { rgb: '991B1B' } } } };
+            const styleLabelGray = { font: { bold: true, sz: 9, color: { rgb: '475569' } }, fill: { fgColor: { rgb: 'F0F4F8' } }, alignment: { vertical: 'center' } };
+            const styleValue = { font: { sz: 9 }, alignment: { vertical: 'center', wrapText: false } };
+            const styleSubLabel = { font: { bold: true, sz: 8, color: { rgb: 'D4900A' } }, fill: { fgColor: { rgb: '1B2B4B' } }, alignment: { vertical: 'center', horizontal: 'center' } };
+            const styleSubRow0 = { font: { sz: 8 }, fill: { fgColor: { rgb: 'FFFFFF' } }, alignment: { vertical: 'center' } };
+            const styleSubRow1 = { font: { sz: 8 }, fill: { fgColor: { rgb: 'EEF2F7' } }, alignment: { vertical: 'center' } };
+            const styleOK  = { font: { bold: true, sz: 8, color: { rgb: '15803D' } }, alignment: { vertical: 'center', horizontal: 'center' } };
+            const styleExp = { font: { bold: true, sz: 8, color: { rgb: '991B1B' } }, alignment: { vertical: 'center', horizontal: 'center' } };
 
-        function downloadCSV(data, filename) {
-            const csvContent = convertToCSV(data);
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
-        }
+            function sc(v, s) { return { v, s }; }
+            function isExpired(dateStr) {
+                if (!dateStr) return false;
+                return new Date(dateStr) < new Date();
+            }
 
-        function convertToCSV(data) {
-            if (!data.length) return '';
-            
-            const headers = Object.keys(data[0]);
-            const csvRows = [];
-            
-            csvRows.push(headers.join(','));
-            
-            data.forEach(row => {
-                const values = headers.map(header => {
-                    const value = row[header] || '';
-                    return `"${value.toString().replace(/"/g, '""')}"`;
-                });
-                csvRows.push(values.join(','));
+            // ── Summary sheet ──────────────────────────────────────────────
+            const summaryRows = [
+                [sc('LIFE RAFT SYSTEMS — EXPORT', styleHeader), '', '', '', '', ''],
+                [sc(`Generated: ${today}`, styleLabelGray), '', '', '', '', ''],
+                [''],
+                [sc('S/N', styleSubLabel), sc('P/N', styleSubLabel), sc('Serviceability', styleSubLabel), sc('Next Inspection', styleSubLabel), sc('Expired Sub-Items', styleSubLabel), sc('Comments', styleSubLabel)],
+            ];
+            liferaftData.forEach(item => {
+                const expiredCount = (item.subItems || []).filter(s => isExpired(s.expiryDate)).length;
+                const svcStyle = item.serviceability === 'Unserviceable' ? styleExp : styleOK;
+                summaryRows.push([
+                    sc(item.serialNumber || '', styleSubRow0),
+                    sc(item.partNumber || '', styleSubRow0),
+                    sc(item.serviceability || '', svcStyle),
+                    sc(item.nextInspection || '', styleSubRow0),
+                    sc(expiredCount > 0 ? `${expiredCount} expired` : '—', expiredCount > 0 ? styleExp : styleOK),
+                    sc(item.comments || '', styleSubRow0),
+                ]);
             });
-            
-            return csvRows.join('\n');
+
+            const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+            wsSummary['!cols'] = [{ wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 30 }];
+            wsSummary['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+            XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+            // ── One sheet per life raft ────────────────────────────────────
+            liferaftData.forEach(item => {
+                const sn = (item.serialNumber || 'Unknown').toString().replace(/[:\\\/\?\*\[\]]/g, '').substring(0, 31);
+
+                const expiredCount = (item.subItems || []).filter(s => isExpired(s.expiryDate)).length;
+                const svcOk = item.serviceability !== 'Unserviceable';
+
+                const rows = [
+                    // Title
+                    [sc(`LIFE RAFT — S/N: ${item.serialNumber || 'N/A'}`, styleHeader), '', '', '', ''],
+                    [''],
+                    // Main info — 2 columns of label/value pairs
+                    [sc('Designation', styleLabelGray),     sc(item.designation || '', styleValue),     '', sc('Serviceability', styleLabelGray), sc(item.serviceability || '', svcOk ? styleOK : styleExp)],
+                    [sc('Part Number (P/N)', styleLabelGray), sc(item.partNumber || '', styleValue),    '', sc('Reason U/S', styleLabelGray),      sc(item.reason || '', styleValue)],
+                    [sc('Serial Number (S/N)', styleLabelGray), sc(item.serialNumber || '', styleValue), '', sc('JCN Number', styleLabelGray),    sc(item.jcnNumber || '', styleValue)],
+                    [sc('Inspection Date', styleLabelGray), sc(item.inspectionDate || '', styleValue),   '', sc('Interval (months)', styleLabelGray), sc(item.inspectionInterval || '', styleValue)],
+                    [sc('Next Inspection', styleLabelGray), sc(item.nextInspection || '', styleValue),   '', sc('Book', styleLabelGray),            sc(item.book || '', styleValue)],
+                    [sc('Order', styleLabelGray),           sc(item.order || '', styleValue),            '', sc('Order in Progress', styleLabelGray), sc(item.orderInProgress || '', styleValue)],
+                    [sc('Comments', styleLabelGray),        sc(item.comments || '', { ...styleValue, alignment: { wrapText: true, vertical: 'top' } }), '', '', ''],
+                    [''],
+                    // Sub-components header
+                    [sc(`SUB-COMPONENTS (${(item.subItems || []).length} items — ${expiredCount} expired)`, styleSubHeader), '', '', '', ''],
+                    [sc('Item', styleSubLabel), sc('Part Number', styleSubLabel), sc('S/N / Batch N°', styleSubLabel), sc('Expiry Date', styleSubLabel), sc('Status', styleSubLabel)],
+                ];
+
+                // Sub-components rows
+                (item.subItems || []).forEach((sub, idx) => {
+                    const expired = isExpired(sub.expiryDate);
+                    const rowStyle = idx % 2 === 0 ? styleSubRow0 : styleSubRow1;
+                    const statusStyle = expired ? styleExp : styleOK;
+                    rows.push([
+                        sc(sub.item || '', rowStyle),
+                        sc(sub.partNumber || '', rowStyle),
+                        sc(sub.serialNumber || sub.batchNumber || '', rowStyle),
+                        sc(sub.expiryDate || '', rowStyle),
+                        sc(expired ? '⚠ EXPIRED' : '✓ OK', statusStyle),
+                    ]);
+                });
+
+                const ws = XLSX.utils.aoa_to_sheet(rows);
+
+                // Column widths
+                ws['!cols'] = [{ wch: 28 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 12 }];
+
+                // Row heights
+                ws['!rows'] = rows.map((_, i) => {
+                    if (i === 0) return { hpt: 22 };
+                    if (i === 10) return { hpt: 18 };
+                    return { hpt: 16 };
+                });
+
+                // Merges
+                ws['!merges'] = [
+                    { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },   // title
+                    { s: { r: 8, c: 1 }, e: { r: 8, c: 4 } },   // comments value
+                    { s: { r: 10, c: 0 }, e: { r: 10, c: 4 } }, // sub-components header
+                ];
+
+                XLSX.utils.book_append_sheet(wb, ws, sn);
+            });
+
+            // ── Download ───────────────────────────────────────────────────
+            XLSX.writeFile(wb, `LifeRaft_Export_${today}.xlsx`);
+            showMessage('Export Excel completed — one tab per life raft', 'success');
         }
 
         function logout() {
