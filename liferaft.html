@@ -996,7 +996,7 @@
                 [sc('LIFE RAFT SYSTEMS — EXPORT', styleHeader), '', '', '', '', ''],
                 [sc(`Generated: ${today}`, styleLabelGray), '', '', '', '', ''],
                 [''],
-                [sc('S/N', styleSubLabel), sc('P/N', styleSubLabel), sc('Serviceability', styleSubLabel), sc('Next Inspection', styleSubLabel), sc('Expired Sub-Items', styleSubLabel), sc('Comments', styleSubLabel)],
+                [sc('S/N', styleSubLabel), sc('P/N', styleSubLabel), sc('Serviceability', styleSubLabel), sc('Next Inspection', styleSubLabel), sc('Comments', styleSubLabel)],
             ];
             liferaftData.forEach(item => {
                 const expiredCount = (item.subItems || []).filter(s => isExpired(s.expiryDate)).length;
@@ -1006,14 +1006,13 @@
                     sc(item.partNumber || '', styleSubRow0),
                     sc(item.serviceability || '', svcStyle),
                     sc(item.nextInspection || '', styleSubRow0),
-                    sc(expiredCount > 0 ? `${expiredCount} expired` : '—', expiredCount > 0 ? styleExp : styleOK),
                     sc(item.comments || '', styleSubRow0),
                 ]);
             });
 
             const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-            wsSummary['!cols'] = [{ wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 30 }];
-            wsSummary['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+            wsSummary['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 30 }];
+            wsSummary['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }];
             XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
 
             // ── One sheet per life raft ────────────────────────────────────
@@ -1035,9 +1034,7 @@
                     [sc('Designation', styleLabelGray),     sc(item.designation || '', styleValue),     '', sc('Serviceability', styleLabelGray), sc(item.serviceability || '', svcOk ? styleOK : styleExp)],
                     [sc('Part Number (P/N)', styleLabelGray), sc(item.partNumber || '', styleValue),    '', sc('Reason U/S', styleLabelGray),      sc(item.reason || '', styleValue)],
                     [sc('Serial Number (S/N)', styleLabelGray), sc(item.serialNumber || '', styleValue), '', sc('JCN Number', styleLabelGray),    sc(item.jcnNumber || '', styleValue)],
-                    [sc('Inspection Date', styleLabelGray), sc(item.inspectionDate || '', styleValue),   '', sc('Interval (months)', styleLabelGray), sc(item.inspectionInterval || '', styleValue)],
-                    [sc('Next Inspection', styleLabelGray), sc(item.nextInspection || '', styleValue),   '', sc('Book', styleLabelGray),            sc(item.book || '', styleValue)],
-                    [sc('Order', styleLabelGray),           sc(item.order || '', styleValue),            '', sc('Order in Progress', styleLabelGray), sc(item.orderInProgress || '', styleValue)],
+                    [sc('Next Inspection', styleLabelGray), sc(item.nextInspection || '', styleValue),   '', '', ''],
                     [sc('Comments', styleLabelGray),        sc(item.comments || '', { ...styleValue, alignment: { wrapText: true, vertical: 'top' } }), '', '', ''],
                     [''],
                     // Sub-components header
