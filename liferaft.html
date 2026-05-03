@@ -61,6 +61,7 @@
             </div>
             <div class="nav-right">
                 <button onclick="exportData()" class="nav-btn export-btn">📊 Export Excel</button>
+                <button onclick="initializeAllSubItems()" class="nav-btn" style="background:#1B2B4B;color:#fff;border:1px solid #D4900A;" title="Initialize sub-components for all life rafts that don't have them yet">🔧 Init Sub-Items</button>
                 <span id="userInfo" class="nav-btn user-btn"></span>
                 <button onclick="logout()" class="nav-btn logout-btn">🚪 Logout</button>
             </div>
@@ -1005,6 +1006,43 @@
         function closeModal() {
             document.getElementById('liferaftModal').classList.remove('active');
             currentLifeRaftId = null;
+        }
+
+        async function initializeAllSubItems() {
+            const missing = liferaftData.filter(item => !item.subItems || item.subItems.length === 0);
+            if (missing.length === 0) {
+                showMessage('All life rafts already have sub-components initialized!', 'success');
+                return;
+            }
+
+            if (!confirm(`Initialize sub-components for ${missing.length} life raft(s) that have none?\nThis will add the 20 default items (without S/N or dates) to each.`)) return;
+
+            showMessage(`Initializing ${missing.length} life raft(s)...`, 'info');
+            let done = 0;
+
+            for (const item of missing) {
+                item.subItems = subItems.map(s => ({
+                    item: s.item,
+                    partNumber: s.partNumber,
+                    serialNumber: '',
+                    batchNumber: '',
+                    expiryDate: ''
+                }));
+                item.lastModified = new Date().toISOString();
+                item.modifiedBy = currentUser;
+                try {
+                    await window.ComponentsBayDB.save('liferafts', item);
+                    done++;
+                } catch(e) {
+                    console.error('Failed to save:', item.serialNumber, e);
+                }
+            }
+
+            showMessage(`✅ ${done} life raft(s) initialized successfully!`, 'success');
+            await loadData();
+            updateSummary();
+            updateUnserviceableSection();
+            refreshTable();
         }
 
         function exportData() {
