@@ -222,8 +222,8 @@
                 
                 <!-- Sub-Components -->
                 <div class="card" style="background: #f8f9fa; margin-bottom: 25px;">
-                    <h3 style="margin-bottom: 20px; color: #17a2b8;">Life Raft Sub-Components (20 items)</h3>
-                    <p style="color: #666; margin-bottom: 20px;">Fixed items and part numbers - enter S/N and expiry dates</p>
+                    <h3 style="margin-bottom: 20px; color: #17a2b8;">Life Raft Sub-Components (21 items)</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Fixed items and part numbers - enter S/N, Manufacturer Date and Interval to auto-calculate Expiry Date</p>
                     
                     <table class="sub-items-table">
                         <thead>
@@ -231,6 +231,8 @@
                                 <th>Item</th>
                                 <th>Part Number</th>
                                 <th>S/N / Batch N°</th>
+                                <th>Manufacturer Date</th>
+                                <th>Interval</th>
                                 <th>Expiry Date</th>
                             </tr>
                         </thead>
@@ -323,7 +325,8 @@
             { item: 'BLANKET, THERMAL RESCUE', partNumber: '03817009' },
             { item: 'WHISTLE', partNumber: '05090005' },
             { item: 'REVERSE OSMOSIS PUMP', partNumber: '11125009' },
-            { item: 'BAG, PLASTIC, MINIGRIP', partNumber: '11020009' }
+            { item: 'BAG, PLASTIC, MINIGRIP', partNumber: '11020009' },
+            { item: 'CYLINDER', partNumber: '51668001' }
         ];
 
         // Wait for ComponentsBayDB to be available (loaded as module)
@@ -593,21 +596,38 @@
             refreshTable();
         }
 
+        function calcExpiryFromInterval(index) {
+            const mfgVal = document.getElementById(`subitem_mfg_${index}`).value;
+            const interval = document.getElementById(`subitem_interval_${index}`).value;
+            const expiryInput = document.getElementById(`subitem_expiry_${index}`);
+            if (mfgVal && interval) {
+                const mfg = new Date(mfgVal);
+                const years = parseInt(interval.replace('Y',''));
+                mfg.setFullYear(mfg.getFullYear() + years);
+                expiryInput.value = mfg.toISOString().split('T')[0];
+                checkExpiryDates();
+            }
+        }
+
         function generateSubItemsTable() {
             const tbody = document.getElementById('subItemsTableBody');
             tbody.innerHTML = '';
+            const intervals = ['','1Y','2Y','3Y','4Y','5Y','7Y','10Y'];
             
             subItems.forEach((item, index) => {
+                const opts = intervals.map(v => `<option value="${v}">${v || '—'}</option>`).join('');
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td style="font-weight: 600;">${item.item}</td>
-                    <td style="background: #f0f0f0; color: #666;">${item.partNumber}</td>
+                    <td style="font-weight:600;">${item.item}</td>
+                    <td style="background:#f0f0f0;color:#666;">${item.partNumber}</td>
+                    <td><input type="text" id="subitem_sn_${index}" placeholder="S/N or Batch N°"></td>
+                    <td><input type="date" id="subitem_mfg_${index}" onchange="calcExpiryFromInterval(${index})"></td>
                     <td>
-                        <input type="text" id="subitem_sn_${index}" placeholder="Enter S/N or Batch N°">
+                        <select id="subitem_interval_${index}" onchange="calcExpiryFromInterval(${index})" style="width:100%;padding:4px;">
+                            ${opts}
+                        </select>
                     </td>
-                    <td>
-                        <input type="date" id="subitem_expiry_${index}" onchange="checkExpiryDates()">
-                    </td>
+                    <td><input type="date" id="subitem_expiry_${index}" onchange="checkExpiryDates()"></td>
                 `;
                 tbody.appendChild(row);
             });
@@ -676,12 +696,16 @@
             
             subItems.forEach((item, index) => {
                 const sn = document.getElementById(`subitem_sn_${index}`).value.trim();
+                const mfg = document.getElementById(`subitem_mfg_${index}`)?.value || '';
+                const interval = document.getElementById(`subitem_interval_${index}`)?.value || '';
                 const expiry = document.getElementById(`subitem_expiry_${index}`).value;
                 
                 subItemsData.push({
                     item: item.item,
                     partNumber: item.partNumber,
                     serialNumber: sn,
+                    manufacturerDate: mfg,
+                    interval: interval,
                     expiryDate: expiry
                 });
             });
@@ -750,6 +774,9 @@
             // Reset sub-items
             subItems.forEach((item, index) => {
                 document.getElementById(`subitem_sn_${index}`).value = '';
+                document.getElementById(`subitem_mfg_${index}`).value = '';
+                const sel = document.getElementById(`subitem_interval_${index}`);
+                if (sel) sel.value = '';
                 document.getElementById(`subitem_expiry_${index}`).value = '';
                 document.getElementById(`subitem_expiry_${index}`).classList.remove('expired-date', 'expiring-soon');
             });
@@ -968,6 +995,9 @@
             // Fill sub-items
             editingLifeRaft.subItems.forEach((sub, index) => {
                 document.getElementById(`subitem_sn_${index}`).value = sub.serialNumber || '';
+                document.getElementById(`subitem_mfg_${index}`).value = sub.manufacturerDate || '';
+                const selEl = document.getElementById(`subitem_interval_${index}`);
+                if (selEl) selEl.value = sub.interval || '';
                 document.getElementById(`subitem_expiry_${index}`).value = sub.expiryDate || '';
             });
 
@@ -1026,6 +1056,8 @@
                     partNumber: s.partNumber,
                     serialNumber: '',
                     batchNumber: '',
+                    manufacturerDate: '',
+                    interval: '',
                     expiryDate: ''
                 }));
                 item.lastModified = new Date().toISOString();
@@ -1119,7 +1151,7 @@
                     [''],
                     // Sub-components header
                     [sc(`SUB-COMPONENTS (${savedSubs.length} items — ${expiredCount} expired)`, styleSubHeader), '', '', '', ''],
-                    [sc('Item', styleSubLabel), sc('Part Number', styleSubLabel), sc('S/N / Batch N°', styleSubLabel), sc('Expiry Date', styleSubLabel), sc('Status', styleSubLabel)],
+                    [sc('Item', styleSubLabel), sc('Part Number', styleSubLabel), sc('S/N / Batch N°', styleSubLabel), sc('Manufacturer Date', styleSubLabel), sc('Interval', styleSubLabel), sc('Expiry Date', styleSubLabel), sc('Status', styleSubLabel)],
                 ];
 
                 // Sub-components rows
@@ -1131,6 +1163,8 @@
                         sc(sub.item || '', rowStyle),
                         sc(sub.partNumber || '', rowStyle),
                         sc(sub.serialNumber || sub.batchNumber || '', rowStyle),
+                        sc(sub.manufacturerDate || '', rowStyle),
+                        sc(sub.interval || '', rowStyle),
                         sc(sub.expiryDate || '', rowStyle),
                         sc(expired ? '⚠ EXPIRED' : '✓ OK', statusStyle),
                     ]);
@@ -1139,7 +1173,7 @@
                 const ws = XLSX.utils.aoa_to_sheet(rows);
 
                 // Column widths
-                ws['!cols'] = [{ wch: 28 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 12 }];
+                ws['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 12 }];
 
                 // Row heights
                 ws['!rows'] = rows.map((_, i) => {
