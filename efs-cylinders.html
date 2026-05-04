@@ -36,6 +36,7 @@
             <div class="header-actions">
                 <button onclick="showAddEFS()" class="btn btn-add">+ Add EFS Cylinder</button>
                 <button onclick="showAllEFS()" class="btn">📋 View All EFS</button>
+                <button onclick="openClaudeChat()" class="btn" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;">🤖 Ask Claude</button>
             </div>
         </div>
 
@@ -69,7 +70,7 @@
         <!-- Upcoming 90 Days Panel -->
         <div id="upcoming90Section" class="panel">
             <div class="panel-header" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);">
-                <span>📅 Serviceable EFS Cylinders — Inspection Due Within 90 Days</span>
+                <span>📅 Serviceable EFS Cylinders — Inspection Due Within 6 Months</span>
                 <span class="badge" id="upcoming90Badge">0</span>
             </div>
             <div class="panel-body">
@@ -366,10 +367,12 @@
                 return { item, daysLeft };
             }).sort((a, b) => a.daysLeft - b.daysLeft);
 
-            let html = '<table class="data-table"><thead><tr><th>H/C</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 18M</th><th>Next 60M</th><th>Days Left</th></tr></thead><tbody>';
+            let html = '<table class="data-table"><thead><tr><th>H/C</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 60M</th><th>Days Left ↑</th></tr></thead><tbody>';
             rows.forEach(({ item, daysLeft }) => {
                 const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
-                html += `<tr><td>${item.hc||'-'}</td><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber||'-'}</a></td><td>${item.next18M||'-'}</td><td>${item.next60M||'-'}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+                const d60 = item.next60M ? Math.ceil((new Date(item.next60M) - today) / 86400000) : '-';
+                const urg60 = typeof d60 === 'number' && d60 <= 30 ? 'color:#e74c3c;font-weight:700;' : typeof d60 === 'number' && d60 <= 90 ? 'color:#f39c12;font-weight:600;' : '';
+                html += `<tr><td>${item.hc||'-'}</td><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber||'-'}</a></td><td>${item.next60M||'-'}</td><td style="${urg60}">${typeof d60==='number'?d60+' days':'-'}</td></tr>`;
             });
             html += '</tbody></table>';
             container.innerHTML = html;
@@ -439,6 +442,7 @@
                                 <th>Designation</th>
                                 <th>P/N</th>
                                 <th>S/N</th>
+                                <th>Next 60M</th>
                                 <th>Reason</th>
                                 <th>Actions</th>
                             </tr>
@@ -456,6 +460,7 @@
                         <td>${item.designation || '-'}</td>
                         <td>${item.partNumber}</td>
                         <td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td>${item.next60M || '-'}</td>
                         <td><span class="status-badge ${reasonClass}">${reasonText}</span></td>
                         <td>
                             <button class="btn" onclick="editEFS('${item.id}')" style="padding: 6px 12px; font-size: 12px;">✏️ Edit</button>
@@ -663,8 +668,8 @@
                                 <th>Designation</th>
                                 <th>P/N</th>
                                 <th>S/N</th>
-                                <th>Next Inspection</th>
-                                <th>Interval</th>
+                                <th>Next 18M</th>
+                                <th>Next 60M</th>
                                 <th>Serviceability</th>
                                 <th>Work in Progress</th>
                                 <th>Actions</th>
@@ -682,8 +687,8 @@
                         <td>${item.designation || '-'}</td>
                         <td>${item.partNumber}</td>
                         <td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
-                        <td>${item.nextInspection || '-'}</td>
-                        <td>${item.inspectionInterval ? item.inspectionInterval + 'M' : '-'}</td>
+                        <td>${item.next18M || '-'}</td>
+                        <td>${item.next60M || '-'}</td>
                         <td><span class="status-badge ${statusClass}">${item.serviceability || 'N/A'}</span></td>
                         <td>${item.workInProgress ? 'Yes' : 'No'}</td>
                         <td>
@@ -944,5 +949,188 @@
     </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="generate-tag.js"></script>
+
+<!-- Claude Chat Modal -->
+<div id="claudeChatModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:18px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;padding:16px 20px;border-radius:18px 18px 0 0;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.4em;">🤖</span>
+            <div style="flex:1;">
+                <div style="font-weight:700;font-size:1em;">Claude AI — EFS Cylinders Assistant</div>
+                <div style="font-size:0.75em;opacity:0.8;">Private conversation — only you can see this</div>
+            </div>
+            <button onclick="closeClaudeChat()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px;">✕ Close</button>
+        </div>
+        <!-- Messages -->
+        <div id="claudeMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:300px;max-height:450px;">
+            <div style="background:#f3f0ff;border-radius:12px 12px 12px 0;padding:12px 16px;max-width:85%;align-self:flex-start;">
+                <div style="font-weight:600;color:#7c3aed;font-size:0.8em;margin-bottom:4px;">🤖 Claude</div>
+                <div style="color:#1e1b4b;line-height:1.5;">Bonjour ! Je suis connecté à vos données EFS Cylinders. Je peux lire, analyser et modifier les items si vous me le demandez. Que puis-je faire pour vous ?</div>
+            </div>
+        </div>
+        <!-- Input -->
+        <div style="padding:14px 16px;border-top:1px solid #e5e7eb;display:flex;gap:10px;">
+            <textarea id="claudeInput" placeholder="Posez votre question... (ex: combien d'items expirent dans 3 mois ?)" 
+                style="flex:1;border:2px solid #e5e7eb;border-radius:10px;padding:10px;font-size:14px;resize:none;height:60px;outline:none;font-family:inherit;"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendToClaudeChat();}"></textarea>
+            <button onclick="sendToClaudeChat()" id="claudeSendBtn"
+                style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:10px;padding:0 20px;cursor:pointer;font-size:18px;align-self:stretch;">➤</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── Claude Chat ────────────────────────────────────────────────────────────
+    const CLAUDE_USER_KEY = 'claudeChat_efscyl_' + (localStorage.getItem('componentsBayCurrentUser') || 'unknown');
+    let claudeHistory = [];
+
+    function openClaudeChat() {
+        document.getElementById('claudeChatModal').style.display = 'flex';
+        // Load user's private history
+        try { claudeHistory = JSON.parse(localStorage.getItem(CLAUDE_USER_KEY) || '[]'); } catch(e) { claudeHistory = []; }
+        renderChatHistory();
+        document.getElementById('claudeInput').focus();
+    }
+
+    function closeClaudeChat() {
+        document.getElementById('claudeChatModal').style.display = 'none';
+    }
+
+    function renderChatHistory() {
+        const container = document.getElementById('claudeMessages');
+        const welcome = container.children[0].outerHTML;
+        container.innerHTML = welcome;
+        claudeHistory.forEach(msg => appendMessage(msg.role, msg.content, false));
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function appendMessage(role, content, save=true) {
+        const container = document.getElementById('claudeMessages');
+        const isUser = role === 'user';
+        const div = document.createElement('div');
+        div.style.cssText = `background:${isUser ? '#1B2B4B' : '#f3f0ff'};border-radius:${isUser ? '12px 12px 0 12px' : '12px 12px 12px 0'};padding:12px 16px;max-width:85%;align-self:${isUser ? 'flex-end' : 'flex-start'};`;
+        div.innerHTML = `
+            <div style="font-weight:600;color:${isUser ? '#D4900A' : '#7c3aed'};font-size:0.8em;margin-bottom:4px;">${isUser ? '👤 You' : '🤖 Claude'}</div>
+            <div style="color:${isUser ? 'white' : '#1e1b4b'};line-height:1.5;white-space:pre-wrap;">${content}</div>
+        `;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        if (save) {
+            claudeHistory.push({ role, content });
+            // Keep last 50 messages
+            if (claudeHistory.length > 50) claudeHistory = claudeHistory.slice(-50);
+            localStorage.setItem(CLAUDE_USER_KEY, JSON.stringify(claudeHistory));
+        }
+    }
+
+    async function sendToClaudeChat() {
+        const input = document.getElementById('claudeInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+        input.value = '';
+        document.getElementById('claudeSendBtn').disabled = true;
+
+        appendMessage('user', msg);
+
+        const today = new Date().toISOString().split('T')[0];
+        const dataSnapshot = efsData.map(i => ({
+            id: i.id, hc: i.hc, designation: i.designation,
+            partNumber: i.partNumber, serialNumber: i.serialNumber,
+            serviceability: i.serviceability, next18M: i.next18M,
+            next60M: i.next60M, reason: i.reason, comments: i.comments,
+            workInProgress: i.workInProgress, inspectionDate: i.inspectionDate,
+            inspectionInterval: i.inspectionInterval
+        }));
+
+        const systemPrompt = `You are an aircraft maintenance assistant integrated into Components Bay EFS Cylinders for ASM.
+Today: ${today}
+Total: ${efsData.length} | Unserviceable: ${efsData.filter(i=>i.serviceability==='Unserviceable').length} | Serviceable: ${efsData.filter(i=>i.serviceability==='Serviceable').length}
+
+EFS Cylinders data (all items):
+${JSON.stringify(dataSnapshot, null, 2)}
+
+You can READ and MODIFY data. When the user asks you to modify something (update a date, change serviceability, add a comment, etc.):
+1. First confirm what you understood ("Je vais mettre next18M = 2025-04-21 pour le S/N 1818, confirmer ?")
+2. Wait for confirmation ("oui", "yes", "ok", "confirme")
+3. Then respond with a JSON action block like this:
+
+<action>
+{
+  "type": "update",
+  "id": "ITEM_ID_HERE",
+  "fields": {
+    "next18M": "2025-04-21"
+  }
+}
+</action>
+
+Valid fields to update: next18M, next60M, serviceability, reason, comments, inspectionDate, workInProgress, hc, designation
+Dates must be in YYYY-MM-DD format.
+Respond in the same language as the user (French or English). Be concise.
+This is a private conversation.`;
+
+        const messages = claudeHistory.slice(-20).map(h => ({ role: h.role, content: h.content }));
+        messages.push({ role: 'user', content: msg });
+
+        const loadDiv = document.createElement('div');
+        loadDiv.style.cssText = 'background:#f3f0ff;border-radius:12px;padding:12px 16px;max-width:85%;align-self:flex-start;color:#7c3aed;';
+        loadDiv.innerHTML = '🤖 <em>Thinking...</em>';
+        document.getElementById('claudeMessages').appendChild(loadDiv);
+        document.getElementById('claudeMessages').scrollTop = 99999;
+
+        try {
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 1000,
+                    system: systemPrompt,
+                    messages: messages
+                })
+            });
+            const data = await res.json();
+            loadDiv.remove();
+            let reply = data.content?.[0]?.text || 'No response.';
+
+            // ── Parse and execute action if present ────────────────────────
+            const actionMatch = reply.match(/<action>([\s\S]*?)<\/action>/);
+            if (actionMatch) {
+                try {
+                    const action = JSON.parse(actionMatch[1].trim());
+                    if (action.type === 'update' && action.id && action.fields) {
+                        const item = efsData.find(i => i.id === action.id);
+                        if (item) {
+                            Object.assign(item, action.fields);
+                            item.lastModified = new Date().toISOString();
+                            item.modifiedBy = localStorage.getItem('componentsBayCurrentUser') || 'unknown';
+                            await window.ComponentsBayDB.save('efs_cylinders', {...item});
+                            // Remove action block from displayed reply
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim();
+                            reply += '\n\n✅ Modification sauvegardée dans Supabase.';
+                            updateSummary();
+                            if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
+                        } else {
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim();
+                            reply += '\n\n❌ Item non trouvé (ID introuvable).';
+                        }
+                    }
+                } catch(e) {
+                    reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim();
+                    reply += '\n\n❌ Erreur lors de la modification: ' + e.message;
+                }
+            }
+
+            appendMessage('assistant', reply);
+        } catch(err) {
+            loadDiv.remove();
+            appendMessage('assistant', 'Error: ' + err.message);
+        }
+        document.getElementById('claudeSendBtn').disabled = false;
+        document.getElementById('claudeInput').focus();
+    }
+</script>
+
 </body>
 </html>
