@@ -85,7 +85,7 @@
             <div class="tool-icon">📦</div>
             <div class="tool-title">Backup All Data</div>
             <div class="tool-desc">Download a full ZIP backup of all modules data from Supabase</div>
-            <div class="tool-badge" style="background:rgba(255,255,255,0.2);">💾 Download ZIP</div>
+            <div class="tool-badge" style="background:rgba(255,255,255,0.2);" id="backupBadge">💾 Download ZIP</div>
         </div>
 
         <div class="tool-card orange" onclick="document.getElementById('restoreFileInput').click()">
@@ -111,7 +111,7 @@
     </div>
     <div class="tools-grid">
 
-        <div class="tool-card dark" onclick="openUserManagement()">
+        <div class="tool-card dark" onclick="openUserManagement()" >
             <div class="tool-icon">👥</div>
             <div class="tool-title">User Management</div>
             <div class="tool-desc">Add, edit, delete users and manage roles and passwords</div>
@@ -196,6 +196,41 @@
 
 </div>
 
+
+<!-- User Management Modal -->
+<div id="userMgmtModal" class="modal">
+    <div class="modal-content" style="max-width:800px;">
+        <div class="modal-header">
+            <h2 class="modal-title">👥 User Management</h2>
+            <button class="close-btn" onclick="document.getElementById('userMgmtModal').classList.remove('active')">&times;</button>
+        </div>
+        <div id="userMsg" class="hidden"></div>
+        <div class="card">
+            <h3 style="margin-bottom:20px;">Add New User</h3>
+            <form id="addUserForm" onsubmit="addUser(event)">
+                <div class="form-grid">
+                    <div class="form-group"><label>Username *</label><input type="text" name="username" class="form-control" placeholder="Enter username" required></div>
+                    <div class="form-group"><label>Password *</label><input type="password" name="password" class="form-control" placeholder="Enter password" required></div>
+                    <div class="form-group"><label>First Name *</label><input type="text" name="firstName" class="form-control" placeholder="First name" required></div>
+                    <div class="form-group"><label>Last Name *</label><input type="text" name="lastName" class="form-control" placeholder="Last name" required></div>
+                    <div class="form-group"><label>Role *</label>
+                        <select name="role" class="form-control" required>
+                            <option value="">Select role</option>
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">➕ Add User</button>
+            </form>
+        </div>
+        <div class="card">
+            <h3 style="margin-bottom:20px;">Existing Users</h3>
+            <div id="usersList"></div>
+        </div>
+    </div>
+</div>
+
 <!-- Restore file input (hidden) -->
 <input type="file" id="restoreFileInput" accept=".zip" style="display:none" onchange="restoreFromBackup(this.files[0])">
 
@@ -212,32 +247,111 @@
         if (!user || user.role !== 'admin') { window.location.href = 'index.html'; }
     }
 
-    // Stub functions — delegate to index.html functions via localStorage trigger
+    // ── USER MANAGEMENT ──────────────────────────────────────────────────
+    let users = [];
+    (async () => {
+        try {
+            if (window.ComponentsBayDB) users = await ComponentsBayDB.load('users');
+            else users = JSON.parse(localStorage.getItem('componentsBayUsers') || '[]');
+        } catch(e) { users = JSON.parse(localStorage.getItem('componentsBayUsers') || '[]'); }
+    })();
+
     function openUserManagement() {
-        localStorage.setItem('openUserMgmt', '1');
-        window.location.href = 'index.html';
+        document.getElementById('userMgmtModal').classList.add('active');
+        refreshUsers();
     }
 
+    function refreshUsers() {
+        const el = document.getElementById('usersList');
+        if (!users.length) { el.innerHTML = '<p>No users found</p>'; return; }
+        let html = '<div class="data-table"><table><thead><tr><th>Username</th><th>Name</th><th>Role</th><th>Actions</th></tr></thead><tbody>';
+        users.forEach((u, i) => {
+            html += `<tr>
+                <td><strong>${u.username}</strong></td>
+                <td>${u.firstName||''} ${u.lastName||''}</td>
+                <td><span class="status-badge ${u.role==='admin'?'status-unserviceable':'status-serviceable'}">${(u.role||'').toUpperCase()}</span></td>
+                <td>
+                    <button onclick="changePassword('${u.username}')" class="btn" style="padding:5px 10px;font-size:12px;margin-right:5px;">🔑 Change Password</button>
+                    ${u.username !== 'Admin' ? `<button onclick="deleteUser(${i})" class="btn btn-danger" style="padding:5px 10px;font-size:12px;">🗑️ Delete</button>` : ''}
+                </td>
+            </tr>`;
+        });
+        html += '</tbody></table></div>';
+        el.innerHTML = html;
+    }
+
+    async function addUser(e) {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const userData = { id: Date.now().toString(), username: fd.get('username'), password: fd.get('password'), firstName: fd.get('firstName'), lastName: fd.get('lastName'), role: fd.get('role'), created_at: new Date().toISOString() };
+        if (users.find(u => u.username === userData.username)) { showMsg('Username already exists', false); return; }
+        try {
+            if (window.ComponentsBayDB) await ComponentsBayDB.save('users', userData);
+            users.push(userData);
+            localStorage.setItem('componentsBayUsers', JSON.stringify(users));
+            e.target.reset(); refreshUsers(); showMsg('User ' + userData.username + ' added!', true);
+        } catch(err) { showMsg('Error: ' + err.message, false); }
+    }
+
+    async function changePassword(username) {
+        const np = prompt('New password for ' + username + ':');
+        if (!np) return;
+        const u = users.find(x => x.username === username);
+        if (u) { u.password = np; if (window.ComponentsBayDB) try { await ComponentsBayDB.save('users', u); } catch(e) {} localStorage.setItem('componentsBayUsers', JSON.stringify(users)); showMsg('Password changed for ' + username, true); }
+    }
+
+    async function deleteUser(idx) {
+        if (!confirm('Delete user "' + users[idx].username + '"?')) return;
+        const uid = users[idx].id;
+        users.splice(idx, 1);
+        localStorage.setItem('componentsBayUsers', JSON.stringify(users));
+        if (window.ComponentsBayDB && uid) try { await ComponentsBayDB.delete('users', uid); } catch(e) {}
+        refreshUsers(); showMsg('User deleted', true);
+    }
+
+    function showMsg(msg, ok) {
+        const el = document.getElementById('userMsg');
+        el.textContent = msg;
+        el.className = ok ? 'message success' : 'message error';
+        setTimeout(() => el.className = 'hidden', 3000);
+    }
+
+    // ── BACKUP ────────────────────────────────────────────────────────────
     async function backupAll(e) {
-        // Load JSZip
         if (!window.JSZip) {
-            await new Promise((res, rej) => {
-                const s = document.createElement('script');
-                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-                s.onload = res; s.onerror = rej;
-                document.head.appendChild(s);
-            });
+            await new Promise((res, rej) => { const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
         }
-        // Redirect to index to trigger backup (simplest approach)
-        localStorage.setItem('triggerBackup', '1');
-        window.location.href = 'index.html';
+        const badge = document.getElementById('backupBadge');
+        if (badge) badge.textContent = '⏳ In progress...';
+        try {
+            const zip = new JSZip();
+            const dateStr = new Date().toISOString().slice(0,10);
+            const timeStr = new Date().toTimeString().slice(0,5).replace(':','h');
+            const folder = zip.folder('ComponentsBay_Backup_' + dateStr + '_' + timeStr);
+            const tables = ['efs','liferafts','wheels','maintenance','composite','avionic','troopseats','engine','rotorbay','iafteaft','pol','tools','users','generated_tags','pn_manufacturers'];
+            let total = 0;
+            for (const t of tables) {
+                try {
+                    let data = window.ComponentsBayDB ? await ComponentsBayDB.load(t) : [];
+                    if (!data || !data.length) { const s = localStorage.getItem('componentsBay'+t.charAt(0).toUpperCase()+t.slice(1)); if (s) data = JSON.parse(s); }
+                    if (data && data.length) { folder.file('data/' + t + '.json', JSON.stringify(data,null,2)); total += data.length; }
+                } catch(e) {}
+            }
+            folder.file('backup-info.json', JSON.stringify({ backupDate: new Date().toISOString(), backupBy: currentUser, totalItems: total }, null, 2));
+            const blob = await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{level:6} });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ComponentsBay_Backup_' + dateStr + '_' + timeStr + '.zip'; a.click(); URL.revokeObjectURL(a.href);
+            if (badge) badge.textContent = '✅ Done!';
+            setTimeout(() => { if (badge) badge.textContent = '💾 Download ZIP'; }, 3000);
+        } catch(err) {
+            if (badge) badge.textContent = '❌ Failed';
+            alert('Backup failed: ' + err.message);
+            setTimeout(() => { if (badge) badge.textContent = '💾 Download ZIP'; }, 3000);
+        }
     }
 
     function restoreFromBackup(file) {
         if (!file) return;
-        // Store file name and redirect
-        localStorage.setItem('triggerRestore', file.name);
-        alert('Pour restaurer un backup, retournez à la page principale et utilisez le bouton 🔄 en haut.');
+        alert('Pour restaurer, utilisez le bouton 🔄 sur la page principale.');
     }
 
     // ── WEEKLY SLIDE ─────────────────────────────────────────────────────
