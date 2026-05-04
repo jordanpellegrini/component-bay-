@@ -141,12 +141,12 @@
     </div>
     <div class="tools-grid">
 
-        <a href="generate-weekly.html" class="tool-card purple">
+        <div class="tool-card purple" onclick="generateSlide()" style="cursor:pointer;">
             <div class="tool-icon">📊</div>
             <div class="tool-title">Weekly Slide Generator</div>
             <div class="tool-desc">Generate the weekly PowerPoint U/S report for the squadron</div>
-            <div class="tool-badge" style="background:rgba(255,255,255,0.2);">📅 PowerPoint</div>
-        </a>
+            <div class="tool-badge" style="background:rgba(255,255,255,0.2);" id="slideBadge">📅 Open Generator</div>
+        </div>
 
         <a href="synthesis.html" class="tool-card dark">
             <div class="tool-icon">📋</div>
@@ -238,6 +238,15 @@
         // Store file name and redirect
         localStorage.setItem('triggerRestore', file.name);
         alert('Pour restaurer un backup, retournez à la page principale et utilisez le bouton 🔄 en haut.');
+    }
+
+    // ── WEEKLY SLIDE ─────────────────────────────────────────────────────
+    function generateSlide() {
+        const badge = document.getElementById('slideBadge');
+        if (badge) badge.textContent = '⏳ Opening...';
+        window.open('http://localhost:5001/generate-page', 'SlideGenerator',
+            'width=380,height=220,left=200,top=200,resizable=no,scrollbars=no');
+        setTimeout(() => { if (badge) badge.textContent = '📅 Open Generator'; }, 3000);
     }
 </script>
 </body>

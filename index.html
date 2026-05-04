@@ -347,7 +347,6 @@
         <div class="top-toolbar">
             <button id="restoreIcon" class="hidden" onclick="document.getElementById('restoreFileInput').click()" title="Restore from Backup">🔄</button>
             <button id="backupIcon" class="hidden" onclick="backupAll(event)" title="Backup All Data">📦</button>
-            <button id="adminToolsIcon" class="hidden" onclick="toggleAdminTools()" title="Admin Tools">⚙️</button>
             <button id="generateSlideIcon" class="hidden" onclick="generateSlide()" title="Generate Weekly PowerPoint">📊</button>
             <button id="documentationIcon" title="Documentation">📚</button>
             <button id="userManagementIcon" class="hidden" title="User Management">👥</button>
@@ -589,98 +588,6 @@
             </div>
         </div>
 
-        <!-- ADMIN TOOLS SECTION -->
-        <div id="adminToolsSection" style="display:none; margin-top: 30px;">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-                <div style="width:4px;height:32px;background:linear-gradient(135deg,#1B2B4B,#D4900A);border-radius:2px;"></div>
-                <h2 style="margin:0;color:#1B2B4B;font-size:1.4em;font-weight:700;">⚙️ Admin Tools</h2>
-            </div>
-
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">
-
-                <!-- User Management -->
-                <div onclick="openUserManagement()" class="ultra-module-card" style="cursor:pointer;background:linear-gradient(135deg,#1B2B4B 0%,#243860 100%);">
-                    <div class="module-icon-ultra">👥</div>
-                    <div class="module-title-ultra" style="color:white;">User Management</div>
-                    <div class="module-description-ultra" style="color:#aab4c8;">Add, edit and manage users and roles</div>
-                    <div class="module-status-ultra" style="background:rgba(212,144,10,0.2);color:#D4900A;">⚡ Admin</div>
-                </div>
-
-                <!-- Backup -->
-                <div onclick="backupAll(event)" class="ultra-module-card" style="cursor:pointer;background:linear-gradient(135deg,#27ae60 0%,#1e8449 100%);">
-                    <div class="module-icon-ultra">📦</div>
-                    <div class="module-title-ultra" style="color:white;">Backup Data</div>
-                    <div class="module-description-ultra" style="color:#a9dfbf;">Download a full backup ZIP of all data</div>
-                    <div class="module-status-ultra" style="background:rgba(255,255,255,0.15);color:white;">💾 Export</div>
-                </div>
-
-                <!-- Restore -->
-                <div onclick="document.getElementById('restoreFileInput').click()" class="ultra-module-card" style="cursor:pointer;background:linear-gradient(135deg,#e67e22 0%,#ca6f1e 100%);">
-                    <div class="module-icon-ultra">🔄</div>
-                    <div class="module-title-ultra" style="color:white;">Restore Backup</div>
-                    <div class="module-description-ultra" style="color:#fdebd0;">Load a backup ZIP to restore all data</div>
-                    <div class="module-status-ultra" style="background:rgba(255,255,255,0.15);color:white;">📂 Import</div>
-                </div>
-
-                <!-- Generate Weekly Slide -->
-                <a href="generate-weekly.html" class="ultra-module-card" style="background:linear-gradient(135deg,#8e44ad 0%,#7d3c98 100%);text-decoration:none;">
-                    <div class="module-icon-ultra">📊</div>
-                    <div class="module-title-ultra" style="color:white;">Weekly Slide</div>
-                    <div class="module-description-ultra" style="color:#e8daef;">Generate the weekly PowerPoint U/S report</div>
-                    <div class="module-status-ultra" style="background:rgba(255,255,255,0.15);color:white;">📅 Weekly</div>
-                </a>
-
-                <!-- Import Excel -->
-                <a href="import-excel.html" class="ultra-module-card" style="background:linear-gradient(135deg,#1B2B4B 0%,#243860 100%);text-decoration:none;">
-                    <div class="module-icon-ultra">📊</div>
-                    <div class="module-title-ultra" style="color:white;">Import Excel</div>
-                    <div class="module-description-ultra" style="color:#aab4c8;">Bulk import data from Excel templates</div>
-                    <div class="module-status-ultra" style="background:rgba(212,144,10,0.2);color:#D4900A;">⚡ Admin</div>
-                </a>
-
-                <!-- Tags History -->
-                <a href="tags-history.html" class="ultra-module-card" style="background:linear-gradient(135deg,#1B2B4B 0%,#243860 100%);text-decoration:none;">
-                    <div class="module-icon-ultra">🏷️</div>
-                    <div class="module-title-ultra" style="color:white;">Tags History</div>
-                    <div class="module-description-ultra" style="color:#aab4c8;">View and re-download all generated tags</div>
-                    <div class="module-status-ultra" style="background:rgba(212,144,10,0.2);color:#D4900A;">⚡ Admin</div>
-                </a>
-
-                <!-- P/N Manufacturer -->
-                <a href="pn-manufacturers.html" class="ultra-module-card" style="background:linear-gradient(135deg,#1B2B4B 0%,#243860 100%);text-decoration:none;">
-                    <div class="module-icon-ultra">🏭</div>
-                    <div class="module-title-ultra" style="color:white;">P/N → Manufacturer</div>
-                    <div class="module-description-ultra" style="color:#aab4c8;">Manage Part Number to Manufacturer mappings</div>
-                    <div class="module-status-ultra" style="background:rgba(212,144,10,0.2);color:#D4900A;">⚡ Admin</div>
-                </a>
-
-                <!-- Supabase -->
-                <a href="https://supabase.com/dashboard/project/nwidtkiteamvnomewjux/editor/17573?schema=public" target="_blank" class="ultra-module-card" style="background:linear-gradient(135deg,#3ecf8e 0%,#1a9e6a 100%);text-decoration:none;">
-                    <div class="module-icon-ultra">🗄️</div>
-                    <div class="module-title-ultra" style="color:white;">Supabase</div>
-                    <div class="module-description-ultra" style="color:#d5f5e3;">Database editor — view and manage all tables</div>
-                    <div class="module-status-ultra" style="background:rgba(255,255,255,0.2);color:white;">🔗 External</div>
-                </a>
-
-                <!-- GitHub -->
-                <a href="https://github.com/jordanpellegrini/component-bay-" target="_blank" class="ultra-module-card" style="background:linear-gradient(135deg,#24292e 0%,#3d3d3d 100%);text-decoration:none;">
-                    <div class="module-icon-ultra">🐙</div>
-                    <div class="module-title-ultra" style="color:white;">GitHub</div>
-                    <div class="module-description-ultra" style="color:#c8c8c8;">Source code repository — push and manage files</div>
-                    <div class="module-status-ultra" style="background:rgba(255,255,255,0.15);color:white;">🔗 External</div>
-                </a>
-
-                <!-- Vercel -->
-                <a href="https://vercel.com/jordans-projects-9b4b0e7d/component-bay-dj2e" target="_blank" class="ultra-module-card" style="background:linear-gradient(135deg,#000000 0%,#333333 100%);text-decoration:none;">
-                    <div class="module-icon-ultra">▲</div>
-                    <div class="module-title-ultra" style="color:white;">Vercel</div>
-                    <div class="module-description-ultra" style="color:#c8c8c8;">Deployment dashboard — check builds and logs</div>
-                    <div class="module-status-ultra" style="background:rgba(255,255,255,0.15);color:white;">🔗 External</div>
-                </a>
-
-            </div>
-        </div>
-
     </div>
 
     <!-- User Management Modal -->
@@ -808,18 +715,6 @@
             document.getElementById('documentationIcon').addEventListener('click', openDocumentation);
         }
 
-        function toggleAdminTools() {
-            const section = document.getElementById('adminToolsSection');
-            const btn = document.getElementById('adminToolsIcon');
-            if (section.style.display === 'none') {
-                section.style.display = 'block';
-                btn.style.background = 'rgba(212,144,10,0.3)';
-                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else {
-                section.style.display = 'none';
-                btn.style.background = '';
-            }
-        }
 
         async function loadUsers() {
             try {
@@ -979,7 +874,6 @@
                 document.getElementById('dashboardModule').style.display = 'block';
                 document.getElementById('pnManufacturerModule').style.display = 'block';
                 document.getElementById('backupIcon').classList.remove('hidden');
-                document.getElementById('adminToolsIcon').classList.remove('hidden');
                 document.getElementById('adminToolsModule').style.display = 'block';
                 document.getElementById('generateSlideIcon').classList.remove('hidden');
                 document.getElementById('restoreIcon').classList.remove('hidden');
@@ -990,7 +884,6 @@
                 document.getElementById('dashboardModule').style.display = 'none';
                 document.getElementById('pnManufacturerModule').style.display = 'none';
                 document.getElementById('backupIcon').classList.add('hidden');
-                document.getElementById('adminToolsIcon').classList.add('hidden');
                 document.getElementById('adminToolsModule').style.display = 'none';
                 document.getElementById('generateSlideIcon').classList.add('hidden');
                 document.getElementById('restoreIcon').classList.add('hidden');
