@@ -355,3 +355,6 @@ console.log('✅ Ready for full database integration!');
 // Clean up large localStorage caches that may cause quota errors
 try { localStorage.removeItem('pnMfrCache'); } catch(e) {}
 try { localStorage.removeItem('componentsBayPnManufacturers'); } catch(e) {}
+
+// Clé API Claude — utilisée par les modules avec le bouton 🤖 Ask Claude
+window.CLAUDE_API_KEY = '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';

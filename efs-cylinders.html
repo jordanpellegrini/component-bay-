@@ -1080,9 +1080,22 @@ This is a private conversation.`;
         document.getElementById('claudeMessages').scrollTop = 99999;
 
         try {
-            const res = await fetch('/api/claude', {
+            const CLAUDE_API_KEY = window.CLAUDE_API_KEY || localStorage.getItem('claudeApiKey') || '';
+            if (!CLAUDE_API_KEY) {
+                loadDiv.remove();
+                appendMessage('assistant', '❌ Clé API Claude non configurée. Ajoute `window.CLAUDE_API_KEY = "sk-ant-..."` dans `supabase-config.js`.');
+                document.getElementById('claudeSendBtn').disabled = false;
+                document.getElementById('claudeInput').focus();
+                return;
+            }
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': CLAUDE_API_KEY,
+                    'anthropic-version': '2023-06-01',
+                    'anthropic-dangerous-direct-browser-access': 'true'
+                },
                 body: JSON.stringify({
                     model: 'claude-sonnet-4-20250514',
                     max_tokens: 1000,
@@ -1092,7 +1105,7 @@ This is a private conversation.`;
             });
             const data = await res.json();
             loadDiv.remove();
-            let reply = data.content?.[0]?.text || 'No response.';
+            let reply = data.content?.[0]?.text || data.error?.message || 'No response.';
 
             // ── Parse and execute action if present ────────────────────────
             const actionMatch = reply.match(/<action>([\s\S]*?)<\/action>/);
