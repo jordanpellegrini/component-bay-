@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Tools — Components Bay</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="modern-style.css">
     <style>
         body { background: #f1f5f9; font-family: 'Segoe UI', sans-serif; }
         .page-header {
@@ -235,7 +235,7 @@
 <input type="file" id="restoreFileInput" accept=".zip" style="display:none" onchange="restoreFromBackup(this.files[0])">
 
 <!-- Load supabase config and main scripts -->
-<script src="supabase-config.js"></script>
+<script type="module" src="supabase-config.js"></script>
 <script>
     // Check admin access
     const currentUser = localStorage.getItem('componentsBayCurrentUser');
@@ -247,17 +247,26 @@
         if (!user || user.role !== 'admin') { window.location.href = 'index.html'; }
     }
 
+    // ── Wait for ComponentsBayDB to be available ─────────────────────────
+    function waitForDB(cb, retries=20) {
+        if (window.ComponentsBayDB) { cb(); return; }
+        if (retries <= 0) { cb(); return; }
+        setTimeout(() => waitForDB(cb, retries-1), 150);
+    }
+
     // ── USER MANAGEMENT ──────────────────────────────────────────────────
     let users = [];
 
     async function openUserManagement() {
         document.getElementById('userMgmtModal').classList.add('active');
         document.getElementById('usersList').innerHTML = '<p>Loading...</p>';
-        try {
-            if (window.ComponentsBayDB) users = await ComponentsBayDB.load('users');
-            else users = JSON.parse(localStorage.getItem('componentsBayUsers') || '[]');
-        } catch(e) { users = JSON.parse(localStorage.getItem('componentsBayUsers') || '[]'); }
-        refreshUsers();
+        waitForDB(async () => {
+            try {
+                if (window.ComponentsBayDB) users = await ComponentsBayDB.load('users');
+                else users = JSON.parse(localStorage.getItem('componentsBayUsers') || '[]');
+            } catch(e) { users = JSON.parse(localStorage.getItem('componentsBayUsers') || '[]'); }
+            refreshUsers();
+        });
     }
 
     function refreshUsers() {
@@ -317,6 +326,9 @@
 
     // ── BACKUP ────────────────────────────────────────────────────────────
     async function backupAll(e) {
+        waitForDB(async () => { await _doBackup(); });
+    }
+    async function _doBackup() {
         if (!window.JSZip) {
             await new Promise((res, rej) => { const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
         }
