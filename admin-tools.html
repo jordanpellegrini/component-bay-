@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Tools — Components Bay</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body { background: #f1f5f9; font-family: 'Segoe UI', sans-serif; }
+        .page-header {
+            background: linear-gradient(135deg, #1B2B4B 0%, #243860 100%);
+            color: white; padding: 24px 30px;
+            display: flex; align-items: center; gap: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .page-header h1 { margin: 0; font-size: 1.6em; }
+        .page-header p { margin: 4px 0 0; opacity: 0.7; font-size: 0.9em; }
+        .back-btn {
+            background: rgba(255,255,255,0.15); border: none; color: white;
+            padding: 8px 16px; border-radius: 8px; cursor: pointer;
+            font-size: 14px; margin-left: auto; text-decoration: none;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.25); }
+        .container { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+        .section-title {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 16px; margin-top: 30px;
+        }
+        .section-title:first-child { margin-top: 0; }
+        .section-title .bar { width: 4px; height: 24px; border-radius: 2px; }
+        .section-title h2 { margin: 0; font-size: 1.1em; color: #1B2B4B; font-weight: 700; }
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px; margin-bottom: 10px;
+        }
+        .tool-card {
+            border-radius: 14px; padding: 22px 20px;
+            display: flex; flex-direction: column; gap: 8px;
+            cursor: pointer; text-decoration: none;
+            transition: transform 0.18s, box-shadow 0.18s;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        .tool-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.18); }
+        .tool-icon { font-size: 2em; }
+        .tool-title { font-size: 1em; font-weight: 700; }
+        .tool-desc { font-size: 0.82em; opacity: 0.8; line-height: 1.4; }
+        .tool-badge {
+            margin-top: auto; padding: 4px 10px; border-radius: 20px;
+            font-size: 0.75em; font-weight: 600; width: fit-content;
+        }
+        /* Colors */
+        .dark  { background: linear-gradient(135deg,#1B2B4B,#243860); color: white; }
+        .green { background: linear-gradient(135deg,#27ae60,#1e8449); color: white; }
+        .orange{ background: linear-gradient(135deg,#e67e22,#ca6f1e); color: white; }
+        .purple{ background: linear-gradient(135deg,#8e44ad,#7d3c98); color: white; }
+        .supa  { background: linear-gradient(135deg,#3ecf8e,#1a9e6a); color: white; }
+        .github{ background: linear-gradient(135deg,#24292e,#3d3d3d); color: white; }
+        .vercel{ background: linear-gradient(135deg,#000,#333); color: white; }
+        .red   { background: linear-gradient(135deg,#e74c3c,#c0392b); color: white; }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <div>⚙️</div>
+    <div>
+        <h1>Admin Tools</h1>
+        <p>Management, deployment and external services</p>
+    </div>
+    <a href="index.html" class="back-btn">← Back to Home</a>
+</div>
+
+<div class="container">
+
+    <!-- DATA MANAGEMENT -->
+    <div class="section-title">
+        <div class="bar" style="background:linear-gradient(135deg,#1B2B4B,#D4900A);"></div>
+        <h2>📁 Data Management</h2>
+    </div>
+    <div class="tools-grid">
+
+        <div class="tool-card green" onclick="backupAll(event)">
+            <div class="tool-icon">📦</div>
+            <div class="tool-title">Backup All Data</div>
+            <div class="tool-desc">Download a full ZIP backup of all modules data from Supabase</div>
+            <div class="tool-badge" style="background:rgba(255,255,255,0.2);">💾 Download ZIP</div>
+        </div>
+
+        <div class="tool-card orange" onclick="document.getElementById('restoreFileInput').click()">
+            <div class="tool-icon">🔄</div>
+            <div class="tool-title">Restore Backup</div>
+            <div class="tool-desc">Load a backup ZIP to restore all data — replaces current data</div>
+            <div class="tool-badge" style="background:rgba(255,255,255,0.2);">📂 Load ZIP</div>
+        </div>
+
+        <a href="import-excel.html" class="tool-card dark">
+            <div class="tool-icon">📊</div>
+            <div class="tool-title">Import Excel</div>
+            <div class="tool-desc">Bulk import data from Excel templates with automatic parsing</div>
+            <div class="tool-badge" style="background:rgba(212,144,10,0.3);color:#D4900A;">⚡ Admin</div>
+        </a>
+
+    </div>
+
+    <!-- USER MANAGEMENT -->
+    <div class="section-title">
+        <div class="bar" style="background:linear-gradient(135deg,#1B2B4B,#D4900A);"></div>
+        <h2>👥 Users</h2>
+    </div>
+    <div class="tools-grid">
+
+        <div class="tool-card dark" onclick="openUserManagement()">
+            <div class="tool-icon">👥</div>
+            <div class="tool-title">User Management</div>
+            <div class="tool-desc">Add, edit, delete users and manage roles and passwords</div>
+            <div class="tool-badge" style="background:rgba(212,144,10,0.3);color:#D4900A;">⚡ Admin</div>
+        </div>
+
+        <a href="pn-manufacturers.html" class="tool-card dark">
+            <div class="tool-icon">🏭</div>
+            <div class="tool-title">P/N → Manufacturer</div>
+            <div class="tool-desc">Manage Part Number to Manufacturer mappings for auto-fill in tags</div>
+            <div class="tool-badge" style="background:rgba(212,144,10,0.3);color:#D4900A;">⚡ Admin</div>
+        </a>
+
+        <a href="tags-history.html" class="tool-card dark">
+            <div class="tool-icon">🏷️</div>
+            <div class="tool-title">Tags History</div>
+            <div class="tool-desc">View and re-download all generated Serviceable & Unserviceable tags</div>
+            <div class="tool-badge" style="background:rgba(212,144,10,0.3);color:#D4900A;">⚡ Admin</div>
+        </a>
+
+    </div>
+
+    <!-- REPORTS -->
+    <div class="section-title">
+        <div class="bar" style="background:linear-gradient(135deg,#1B2B4B,#D4900A);"></div>
+        <h2>📅 Reports</h2>
+    </div>
+    <div class="tools-grid">
+
+        <a href="generate-weekly.html" class="tool-card purple">
+            <div class="tool-icon">📊</div>
+            <div class="tool-title">Weekly Slide Generator</div>
+            <div class="tool-desc">Generate the weekly PowerPoint U/S report for the squadron</div>
+            <div class="tool-badge" style="background:rgba(255,255,255,0.2);">📅 PowerPoint</div>
+        </a>
+
+        <a href="synthesis.html" class="tool-card dark">
+            <div class="tool-icon">📋</div>
+            <div class="tool-title">Synthesis Dashboard</div>
+            <div class="tool-desc">Unified overview of all unserviceable items across all modules</div>
+            <div class="tool-badge" style="background:rgba(212,144,10,0.3);color:#D4900A;">📊 Overview</div>
+        </a>
+
+        <a href="dashboard.html" class="tool-card dark">
+            <div class="tool-icon">📈</div>
+            <div class="tool-title">Fleet Dashboard</div>
+            <div class="tool-desc">Serviceability charts by module, global stats and within 90 days overview</div>
+            <div class="tool-badge" style="background:rgba(212,144,10,0.3);color:#D4900A;">📈 Live Charts</div>
+        </a>
+
+    </div>
+
+    <!-- EXTERNAL SERVICES -->
+    <div class="section-title">
+        <div class="bar" style="background:linear-gradient(135deg,#1B2B4B,#D4900A);"></div>
+        <h2>🔗 External Services</h2>
+    </div>
+    <div class="tools-grid">
+
+        <a href="https://supabase.com/dashboard/project/nwidtkiteamvnomewjux/editor/17573?schema=public" target="_blank" class="tool-card supa">
+            <div class="tool-icon">🗄️</div>
+            <div class="tool-title">Supabase</div>
+            <div class="tool-desc">Database editor — view, edit and manage all tables directly</div>
+            <div class="tool-badge" style="background:rgba(255,255,255,0.2);">🔗 Open</div>
+        </a>
+
+        <a href="https://github.com/jordanpellegrini/component-bay-" target="_blank" class="tool-card github">
+            <div class="tool-icon">🐙</div>
+            <div class="tool-title">GitHub</div>
+            <div class="tool-desc">Source code repository — push updates and manage files</div>
+            <div class="tool-badge" style="background:rgba(255,255,255,0.2);">🔗 Open</div>
+        </a>
+
+        <a href="https://vercel.com/jordans-projects-9b4b0e7d/component-bay-dj2e" target="_blank" class="tool-card vercel">
+            <div class="tool-icon">▲</div>
+            <div class="tool-title">Vercel</div>
+            <div class="tool-desc">Deployment dashboard — check builds, logs and deployments</div>
+            <div class="tool-badge" style="background:rgba(255,255,255,0.2);">🔗 Open</div>
+        </a>
+
+    </div>
+
+</div>
+
+<!-- Restore file input (hidden) -->
+<input type="file" id="restoreFileInput" accept=".zip" style="display:none" onchange="restoreFromBackup(this.files[0])">
+
+<!-- Load supabase config and main scripts -->
+<script src="supabase-config.js"></script>
+<script>
+    // Check admin access
+    const currentUser = localStorage.getItem('componentsBayCurrentUser');
+    const usersRaw = localStorage.getItem('componentsBayUsers');
+    if (!currentUser) { window.location.href = 'index.html'; }
+    else if (usersRaw) {
+        const users = JSON.parse(usersRaw);
+        const user = users.find(u => u.username === currentUser);
+        if (!user || user.role !== 'admin') { window.location.href = 'index.html'; }
+    }
+
+    // Stub functions — delegate to index.html functions via localStorage trigger
+    function openUserManagement() {
+        localStorage.setItem('openUserMgmt', '1');
+        window.location.href = 'index.html';
+    }
+
+    async function backupAll(e) {
+        // Load JSZip
+        if (!window.JSZip) {
+            await new Promise((res, rej) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                s.onload = res; s.onerror = rej;
+                document.head.appendChild(s);
+            });
+        }
+        // Redirect to index to trigger backup (simplest approach)
+        localStorage.setItem('triggerBackup', '1');
+        window.location.href = 'index.html';
+    }
+
+    function restoreFromBackup(file) {
+        if (!file) return;
+        // Store file name and redirect
+        localStorage.setItem('triggerRestore', file.name);
+        alert('Pour restaurer un backup, retournez à la page principale et utilisez le bouton 🔄 en haut.');
+    }
+</script>
+</body>
+</html>
