@@ -1115,6 +1115,19 @@ This is a private conversation.`;
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim();
                             reply += '\n\n❌ Item non trouvé (ID introuvable).';
                         }
+                    } else if (action.type === 'create' && action.fields) {
+                        if (!action.fields.partNumber || !action.fields.serialNumber) {
+                            reply = reply.replace(/<action>[\\s\\S]*?<\\/action>/, '').trim();
+                            reply += '\\n\\n❌ P/N et S/N obligatoires.';
+                        } else if (window.ComponentsBayDB) {
+                            const newItem = { id: Date.now().toString() + '-' + Math.random().toString(36).substr(2,6), serviceability: action.fields.serviceability || 'Serviceable', createdAt: new Date().toISOString(), createdBy: localStorage.getItem('componentsBayCurrentUser') || 'unknown', lastModified: new Date().toISOString(), ...action.fields };
+                            await window.ComponentsBayDB.save('efs_cylinders', newItem);
+                            efsData.push(newItem);
+                            reply = reply.replace(/<action>[\\s\\S]*?<\\/action>/, '').trim();
+                            reply += '\\n\\n✅ Item créé et sauvegardé.';
+                            updateSummary();
+                            if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
+                        }
                     }
                 } catch(e) {
                     reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim();

@@ -678,12 +678,31 @@ Respond in the same language as the user. Be concise. This is a private conversa
                         if (item && window.ComponentsBayDB) {
                             Object.assign(item, action.fields);
                             item.lastModified = new Date().toISOString();
+                            item.modifiedBy = localStorage.getItem('componentsBayCurrentUser') || 'unknown';
                             await window.ComponentsBayDB.save('iafteaft', {...item});
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Modification sauvegardée.';
                             if (typeof updateSummary === 'function') updateSummary();
                             if (typeof refreshTable === 'function') refreshTable();
                         } else {
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Item non trouvé.';
+                        }
+                    } else if (action.type === 'create' && action.fields) {
+                        if (!action.fields.partNumber || !action.fields.serialNumber) {
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ P/N et S/N obligatoires pour créer un item.';
+                        } else if (window.ComponentsBayDB) {
+                            const newItem = {
+                                id: Date.now().toString() + '-' + Math.random().toString(36).substr(2,6),
+                                serviceability: 'Serviceable',
+                                createdAt: new Date().toISOString(),
+                                createdBy: localStorage.getItem('componentsBayCurrentUser') || 'unknown',
+                                lastModified: new Date().toISOString(),
+                                ...action.fields
+                            };
+                            await window.ComponentsBayDB.save('iafteaft', newItem);
+                            if (typeof itemsData !== 'undefined') itemsData.push(newItem);
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Item créé et sauvegardé dans Supabase.';
+                            if (typeof updateSummary === 'function') updateSummary();
+                            if (typeof refreshTable === 'function') refreshTable();
                         }
                     }
                 } catch(e) { reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Erreur: ' + e.message; }
