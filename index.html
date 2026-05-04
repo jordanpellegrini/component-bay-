@@ -1575,12 +1575,28 @@
                 <div style="color:#1e1b4b;line-height:1.5;">Bonjour ! Je suis connecté aux données Components Bay. Je peux lire, analyser et modifier les items si vous me le demandez. Que puis-je faire pour vous ?</div>
             </div>
         </div>
-        <div style="padding:14px 16px;border-top:1px solid #e5e7eb;display:flex;gap:10px;">
-            <textarea id="claudeInput" placeholder="Posez votre question..."
-                style="flex:1;border:2px solid #e5e7eb;border-radius:10px;padding:10px;font-size:14px;resize:none;height:60px;outline:none;font-family:inherit;"
-                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendToClaudeChat();}"></textarea>
-            <button onclick="sendToClaudeChat()" id="claudeSendBtn"
-                style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:10px;padding:0 20px;cursor:pointer;font-size:18px;align-self:stretch;">➤</button>
+        <div style="padding:10px 16px;border-top:1px solid #e5e7eb;">
+            <!-- Attachment preview -->
+            <div id="claudeAttachPreview" style="display:none;margin-bottom:8px;padding:8px 12px;background:#f3f0ff;border-radius:8px;display:none;align-items:center;gap:8px;">
+                <span id="claudeAttachName" style="font-size:13px;color:#7c3aed;font-weight:600;flex:1;"></span>
+                <button onclick="clearAttachment()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;">✕</button>
+            </div>
+            <!-- Input row -->
+            <div style="display:flex;gap:8px;align-items:flex-end;">
+                <!-- Photo button -->
+                <label title="Upload photo" style="cursor:pointer;background:#f3f0ff;border:none;border-radius:10px;padding:10px 12px;color:#7c3aed;font-size:18px;align-self:stretch;display:flex;align-items:center;">
+                    📷<input type="file" id="claudePhotoInput" accept="image/*" style="display:none" onchange="handlePhotoAttach(this)">
+                </label>
+                <!-- Excel button -->
+                <label title="Upload Excel" style="cursor:pointer;background:#f3f0ff;border:none;border-radius:10px;padding:10px 12px;color:#7c3aed;font-size:18px;align-self:stretch;display:flex;align-items:center;">
+                    📊<input type="file" id="claudeExcelInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelAttach(this)">
+                </label>
+                <textarea id="claudeInput" placeholder="Posez votre question, uploadez une photo ou un Excel..."
+                    style="flex:1;border:2px solid #e5e7eb;border-radius:10px;padding:10px;font-size:14px;resize:none;height:60px;outline:none;font-family:inherit;"
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendToClaudeChat();}"></textarea>
+                <button onclick="sendToClaudeChat()" id="claudeSendBtn"
+                    style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:10px;padding:0 20px;cursor:pointer;font-size:18px;align-self:stretch;">➤</button>
+            </div>
         </div>
     </div>
 </div>
@@ -1622,10 +1638,12 @@
     async function sendToClaudeChat() {
         const input = document.getElementById('claudeInput');
         const msg = input.value.trim();
-        if (!msg) return;
+        const hasAttachment = !!_claudeAttachment;
+        if (!msg && !hasAttachment) return;
         input.value = '';
         document.getElementById('claudeSendBtn').disabled = true;
-        _appendMessage('user', msg);
+        const displayMsg = msg + (hasAttachment ? (msg ? ' [+' + _claudeAttachment.name + ']' : '[' + _claudeAttachment.name + ']') : '');
+        _appendMessage('user', displayMsg);
         const today = new Date().toISOString().split('T')[0];
         
         const dataStr = 'No specific module data available.';
@@ -1647,10 +1665,30 @@ Respond in the same language as the user. Be concise. This is a private conversa
         document.getElementById('claudeMessages').appendChild(loadDiv);
         document.getElementById('claudeMessages').scrollTop = 99999;
         try {
+            // Build message content with optional attachment
+            let userContent;
+            if (_claudeAttachment && _claudeAttachment.type === 'image') {
+                userContent = [
+                    { type: 'image', source: { type: 'base64', media_type: _claudeAttachment.mimeType, data: _claudeAttachment.data } },
+                    { type: 'text', text: msg || 'Analyse cette image et extrait les données de maintenance (P/N, S/N, Designation, dates). Propose de créer/modifier les items correspondants.' }
+                ];
+                // Replace last user message content
+                if (messages.length > 0 && messages[messages.length-1].role === 'user') {
+                    messages[messages.length-1].content = userContent;
+                }
+            } else if (_claudeAttachment && _claudeAttachment.type === 'excel') {
+                const excelSummary = JSON.stringify(_claudeAttachment.data.slice(0, 50), null, 2);
+                const excelMsg = (msg || 'Analyse ce fichier Excel') + '\n\nFichier: ' + _claudeAttachment.name + ' (' + _claudeAttachment.data.length + ' lignes)\nDonnées (50 premières lignes):\n' + excelSummary;
+                if (messages.length > 0 && messages[messages.length-1].role === 'user') {
+                    messages[messages.length-1].content = excelMsg;
+                }
+            }
+            clearAttachment();
+
             const res = await fetch('/api/claude', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: systemPrompt, messages })
+                body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: systemPrompt, messages })
             });
             const data = await res.json();
             loadDiv.remove();
