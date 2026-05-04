@@ -82,6 +82,36 @@
             </div>
         </div>
 
+        <!-- Expired Panel -->
+        <div class="panel" id="expiredSection">
+            <div class="panel-header" style="background:linear-gradient(135deg,#ff4757 0%,#ff3742 100%);color:white;">
+                ⚠️ EXPIRED POL ITEMS <span class="badge" id="expiredBadge">0</span>
+            </div>
+            <div class="panel-body">
+                <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+                    <input type="text" id="filterExpired" class="form-control" placeholder="🔍 Search P/N, Designation, Batch..." style="flex:2;min-width:200px;" oninput="updateExpiredSection()">
+                    <select id="filterExpiredDesig" class="form-control" style="flex:1;min-width:150px;" onchange="updateExpiredSection()"><option value="">All Designations</option></select>
+                    <button onclick="document.getElementById('filterExpired').value='';document.getElementById('filterExpiredDesig').value='';updateExpiredSection();" class="btn" style="padding:8px 14px;">🔄 Clear</button>
+                </div>
+                <div id="expiredPanel"></div>
+            </div>
+        </div>
+
+        <!-- Within 30 Days Panel -->
+        <div class="panel" id="within30Section">
+            <div class="panel-header" style="background:linear-gradient(135deg,#f39c12 0%,#e67e22 100%);color:white;">
+                📅 POL ITEMS — EXPIRING WITHIN 30 DAYS <span class="badge" id="within30Badge">0</span>
+            </div>
+            <div class="panel-body">
+                <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+                    <input type="text" id="filter30" class="form-control" placeholder="🔍 Search P/N, Designation, Batch..." style="flex:2;min-width:200px;" oninput="updateWithin30Section()">
+                    <select id="filter30Desig" class="form-control" style="flex:1;min-width:150px;" onchange="updateWithin30Section()"><option value="">All Designations</option></select>
+                    <button onclick="document.getElementById('filter30').value='';document.getElementById('filter30Desig').value='';updateWithin30Section();" class="btn" style="padding:8px 14px;">🔄 Clear</button>
+                </div>
+                <div id="within30Panel"></div>
+            </div>
+        </div>
+
         <!-- Add/Edit Form -->
         <div id="addFormSection" class="card hidden">
             <h2 id="formTitle">➕ Add POL Item</h2>
@@ -307,6 +337,7 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const sevenDays = new Date(today); sevenDays.setDate(sevenDays.getDate() + 7);
+            const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
 
             let valid = 0, expired = 0, expiringSoon = 0;
             polData.forEach(item => {
@@ -321,6 +352,60 @@
             document.getElementById('expiredCount').textContent = expired;
             document.getElementById('expiringSoonCount').textContent = expiringSoon;
             document.getElementById('totalCount').textContent = polData.length;
+            updateExpiredSection();
+            updateWithin30Section();
+        }
+
+        function populatePolDropdown(ddId, data) {
+            const dd = document.getElementById(ddId);
+            if (dd && dd.options.length <= 1) {
+                [...new Set(data.filter(i=>i.designation).map(i=>i.designation))].sort().forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; dd.appendChild(o); });
+            }
+        }
+
+        function updateExpiredSection() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const search = (document.getElementById('filterExpired')?.value || '').toLowerCase();
+            const desig = document.getElementById('filterExpiredDesig')?.value || '';
+            let items = polData.filter(i => i.expiryDate && new Date(i.expiryDate) < today);
+            items.sort((a,b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+            if (search) items = items.filter(i => (i.partNumber||'').toLowerCase().includes(search)||(i.designation||'').toLowerCase().includes(search)||(i.batchNumber||'').toLowerCase().includes(search));
+            if (desig) items = items.filter(i => i.designation === desig);
+            document.getElementById('expiredBadge').textContent = polData.filter(i => i.expiryDate && new Date(i.expiryDate) < today).length;
+            populatePolDropdown('filterExpiredDesig', polData);
+            const container = document.getElementById('expiredPanel');
+            if (items.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color:#00695c;font-weight:600;">No expired POL items</p></div>'; return; }
+            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>Batch N°</th><th>Expiry Date</th><th>Days Expired</th></tr></thead><tbody>';
+            items.forEach(item => {
+                const daysExpired = Math.floor((today - new Date(item.expiryDate)) / 86400000);
+                html += `<tr><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td>${item.batchNumber||'-'}</td><td>${item.expiryDate}</td><td style="color:#e74c3c;font-weight:700;">${daysExpired} days ago</td></tr>`;
+            });
+            html += '</tbody></table>'; container.innerHTML = html;
+        }
+
+        function updateWithin30Section() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
+            const search = (document.getElementById('filter30')?.value || '').toLowerCase();
+            const desig = document.getElementById('filter30Desig')?.value || '';
+            let items = polData.filter(i => {
+                if (!i.expiryDate) return false;
+                const exp = new Date(i.expiryDate); return exp >= today && exp <= in30;
+            });
+            items.sort((a,b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+            if (search) items = items.filter(i => (i.partNumber||'').toLowerCase().includes(search)||(i.designation||'').toLowerCase().includes(search)||(i.batchNumber||'').toLowerCase().includes(search));
+            if (desig) items = items.filter(i => i.designation === desig);
+            document.getElementById('within30Badge').textContent = polData.filter(i => { if (!i.expiryDate) return false; const exp = new Date(i.expiryDate); return exp >= today && exp <= in30; }).length;
+            populatePolDropdown('filter30Desig', polData);
+            const container = document.getElementById('within30Panel');
+            if (items.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color:#00695c;font-weight:600;">No POL items expiring in the next 30 days</p></div>'; return; }
+            let html = '<table class="data-table"><thead><tr><th>Designation</th><th>P/N</th><th>Batch N°</th><th>Expiry Date</th><th>Days Left ↑</th></tr></thead><tbody>';
+            items.forEach(item => {
+                const daysLeft = Math.ceil((new Date(item.expiryDate) - today) / 86400000);
+                const urgency = daysLeft <= 7 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 14 ? 'color:#f39c12;font-weight:600;' : '';
+                html += `<tr><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td>${item.batchNumber||'-'}</td><td>${item.expiryDate}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+            });
+            html += '</tbody></table>'; container.innerHTML = html;
         }
 
         function handleSubmit(event) {
