@@ -249,15 +249,14 @@
 
     // ── USER MANAGEMENT ──────────────────────────────────────────────────
     let users = [];
-    (async () => {
+
+    async function openUserManagement() {
+        document.getElementById('userMgmtModal').classList.add('active');
+        document.getElementById('usersList').innerHTML = '<p>Loading...</p>';
         try {
             if (window.ComponentsBayDB) users = await ComponentsBayDB.load('users');
             else users = JSON.parse(localStorage.getItem('componentsBayUsers') || '[]');
         } catch(e) { users = JSON.parse(localStorage.getItem('componentsBayUsers') || '[]'); }
-    })();
-
-    function openUserManagement() {
-        document.getElementById('userMgmtModal').classList.add('active');
         refreshUsers();
     }
 
