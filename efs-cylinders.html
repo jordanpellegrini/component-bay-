@@ -352,29 +352,26 @@
 
         function updateUpcoming90() {
             const today = new Date(); today.setHours(0,0,0,0);
-            const in90 = new Date(today); in90.setDate(in90.getDate() + 90);
+            const in6M = new Date(today); in6M.setMonth(in6M.getMonth() + 6);
             
             const upcoming = efsData.filter(item => {
                 if (item.serviceability !== 'Serviceable') return false;
-                const dates = [item.next18M, item.next60M].filter(Boolean);
-                return dates.some(d => {
-                    const dt = new Date(d);
-                    return dt >= today && dt <= in90;
-                });
+                if (!item.next60M) return false;
+                const dt = new Date(item.next60M);
+                return dt >= today && dt <= in6M;
             });
 
             const container = document.getElementById('upcoming90Table');
             document.getElementById('upcoming90Badge').textContent = upcoming.length;
 
             if (upcoming.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color:#00695c;font-weight:600;">No inspections due in the next 90 days</p></div>';
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p style="color:#00695c;font-weight:600;">No 60M inspections due in the next 6 months</p></div>';
                 return;
             }
 
-            // Compute daysLeft for each item then sort ascending
+            // Compute daysLeft based on next60M only, sort ascending
             const rows = upcoming.map(item => {
-                const soonestDate = [item.next18M, item.next60M].filter(Boolean).map(d => new Date(d)).filter(d => d >= today && d <= in90).sort((a,b) => a-b)[0];
-                const daysLeft = Math.ceil((soonestDate - today) / 86400000);
+                const daysLeft = Math.ceil((new Date(item.next60M) - today) / 86400000);
                 return { item, daysLeft };
             }).sort((a, b) => a.daysLeft - b.daysLeft);
 
