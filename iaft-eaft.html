@@ -621,6 +621,12 @@
     let _claudeHistory = [];
     let _claudeAttachment = null;
 
+    function clearAttachment() {
+        _claudeAttachment = null;
+        var preview = document.getElementById('claudeAttachmentPreview');
+        if (preview) preview.style.display = 'none';
+    }
+
     function openClaudeChat() {
         document.getElementById('claudeChatModal').style.display = 'flex';
         try { _claudeHistory = JSON.parse(localStorage.getItem(_CLAUDE_USER_KEY) || '[]'); } catch(e) { _claudeHistory = []; }
