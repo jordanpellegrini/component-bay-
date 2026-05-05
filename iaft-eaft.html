@@ -767,7 +767,7 @@ Respond in the same language as the user. Be concise. This is a private conversa
                     }
                 } catch(e) { reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Erreur: ' + e.message; }
             }
-            _// Strip action tags from display text
+            // Strip action tags from display text
         const displayReply = reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
         appendMessage('assistant', displayReply || reply);
         
