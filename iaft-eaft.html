@@ -14,7 +14,6 @@
         .status-60m-done { background: #d4edda; border: 1px solid #28a745; border-radius: 8px; padding: 12px 16px; margin: 10px 0; font-size: 0.9em; color: #155724; }
     </style>
 
-    <script src="claude-key.js"></script>
 </head>
 <body>
     <div class="container">
@@ -718,14 +717,9 @@ Respond in the same language as the user. Be concise. This is a private conversa
             }
             clearAttachment();
 
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
+            const res = await fetch('/api/claude', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': window.CLAUDE_API_KEY || '',
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: systemPrompt, messages })
             });
             const data = await res.json();

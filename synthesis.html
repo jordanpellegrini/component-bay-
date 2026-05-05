@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="modern-style.css">
     <script type="module" src="supabase-config.js"></script>
 
-    <script src="claude-key.js"></script>
 </head>
 <body>
     <div class="container">
@@ -909,14 +908,9 @@ Respond in the same language as the user. Be concise. This is a private conversa
         document.getElementById('claudeMessages').appendChild(loadDiv);
         document.getElementById('claudeMessages').scrollTop = 99999;
         try {
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
+            const res = await fetch('/api/claude', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': window.CLAUDE_API_KEY || '',
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: systemPrompt, messages })
             });
             const data = await res.json();
