@@ -1086,13 +1086,18 @@
         const systemPrompt = `You are an aircraft maintenance assistant for ASM integrated into the Wheel module of Components Bay.
 Today: ${today} | Total items: ${totalItems} | Unserviceable: ${totalUS}
 Data: ${dataStr}
+
+Available fields: designation, partNumber, serialNumber, serviceability (Serviceable/Unserviceable), nextInspection (YYYY-MM-DD), reason, comments
+Required for ADD: partNumber, serialNumber
+
 You can READ and MODIFY data. When asked to modify:
-1. Confirm what you understood
+1. Confirm what you understood with all field values
 2. Wait for confirmation (oui/yes/ok/confirme)
 3. For UPDATE: <action>{"type":"update","id":"ITEM_ID","fields":{"field":"value"}}</action>
-   For ADD: <action>{"type":"add","fields":{"field":"value"}}</action>
+   For ADD: <action>{"type":"add","fields":{"partNumber":"...","serialNumber":"...","designation":"...","serviceability":"...","nextInspection":"YYYY-MM-DD","reason":"...","comments":"..."}}</action>
    For DELETE: <action>{"type":"delete","id":"ITEM_ID"}</action>
-Respond in the same language as the user. Be concise. This is a private conversation.`;
+IMPORTANT: Always include ALL provided fields in the action JSON. Dates must be YYYY-MM-DD format.
+Respond in the same language as the user. Be concise.`;
         const messages = _claudeHistory.slice(-20).map(h => ({ role: h.role, content: h.content }));
         messages.push({ role: 'user', content: msg });
         const loadDiv = document.createElement('div');
@@ -1142,8 +1147,7 @@ Respond in the same language as the user. Be concise. This is a private conversa
                             item.modifiedBy = localStorage.getItem('componentsBayCurrentUser') || 'unknown';
                             await window.ComponentsBayDB.save('wheels', {...item});
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Modification sauvegardée.';
-                            if (typeof updateSummary === 'function') updateSummary();
-                            if (typeof refreshTable === 'function') refreshTable();
+                            try { if (typeof updateSummary === 'function') updateSummary(); if (typeof refreshTable === 'function') refreshTable(); } catch(e) { console.warn('refresh error:', e); }
                         } else {
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Item non trouvé.';
                         }
@@ -1162,8 +1166,7 @@ Respond in the same language as the user. Be concise. This is a private conversa
                             await window.ComponentsBayDB.save('wheels', newItem);
                             if (typeof wheelData !== 'undefined') wheelData.push(newItem);
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Item créé et sauvegardé dans Supabase.';
-                            if (typeof updateSummary === 'function') updateSummary();
-                            if (typeof refreshTable === 'function') refreshTable();
+                            try { if (typeof updateSummary === 'function') updateSummary(); if (typeof refreshTable === 'function') refreshTable(); } catch(e) { console.warn('refresh error:', e); }
                         }
                     } else if (action.type === 'delete' && action.id) {
                         const allData = (typeof wheelData !== 'undefined' ? wheelData : []);
@@ -1173,8 +1176,7 @@ Respond in the same language as the user. Be concise. This is a private conversa
                             const idx = allData.findIndex(i => i.id === action.id);
                             if (idx > -1) allData.splice(idx, 1);
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Item supprimé.';
-                            if (typeof updateSummary === 'function') updateSummary();
-                            if (typeof refreshTable === 'function') refreshTable();
+                            try { if (typeof updateSummary === 'function') updateSummary(); if (typeof refreshTable === 'function') refreshTable(); } catch(e) { console.warn('refresh error:', e); }
                         } else {
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Item introuvable.';
                         }
