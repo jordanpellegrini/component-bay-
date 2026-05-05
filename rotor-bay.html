@@ -901,7 +901,6 @@ Respond in the same language as the user. Be concise. This is a private conversa
                             if (typeof updateSummary === 'function') updateSummary();
                             if (typeof refreshTable === 'function') refreshTable();
                         }
-                    }
                     } else if (action.type === 'delete' && action.id) {
                         const allData = (typeof rotorData !== 'undefined' ? rotorData : []);
                         const item = allData.find(i => i.id === action.id);
