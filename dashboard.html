@@ -310,6 +310,10 @@
     function closeClaudeChat() {
         document.getElementById('claudeChatModal').style.display = 'none';
     }
+    // Override globals with real implementations
+    window.openClaudeChat = openClaudeChat;
+    window.closeClaudeChat = closeClaudeChat;
+    window.sendToClaudeChat = sendToClaudeChat;
     function _renderChatHistory() {
         const container = document.getElementById('claudeMessages');
         const welcome = container.children[0].outerHTML;

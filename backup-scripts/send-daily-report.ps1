@@ -24,10 +24,10 @@ if (Test-Path $LOG_FILE) {
     $alreadySent = (Get-Content $LOG_FILE -Encoding UTF8 | Where-Object { $_ -match $todayStr -and $_ -match "Email envoye" }) -ne $null
 }
 if ($alreadySent) {
-    Write-Log "Email deja envoye aujourd'hui ($todayStr) — script arrete." "Yellow"
+    Write-Log "Email deja envoye aujourd hui ($todayStr) - script arrete." "Yellow"
     exit 0
 }
-Write-Log "Aucun envoi detecte aujourd'hui — on continue." "Green"
+Write-Log "Aucun envoi detecte aujourd hui - on continue." "Green"
 
 $hdrs = @{
     "apikey"        = $SUPABASE_KEY
@@ -217,7 +217,7 @@ $htmlBody = @"
 "@
 
 # ============================================================
-# Send via Outlook
+# Send via Outlook COM (sans elevation admin)
 # ============================================================
 Write-Log "Envoi email via Outlook..." "Yellow"
 try {

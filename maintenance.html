@@ -751,7 +751,14 @@
             generateTag(type, item);
         }
     </script>
-<script src="generate-tag.js"></script>
+<script>
+    (function() {
+        var s = document.createElement('script');
+        s.src = 'generate-tag.js';
+        s.onerror = function() { console.warn('generate-tag.js not found, skipping.'); };
+        document.head.appendChild(s);
+    })();
+</script>
 
 <!-- Claude Chat Modal -->
 <div id="claudeChatModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
@@ -809,6 +816,10 @@
     function closeClaudeChat() {
         document.getElementById('claudeChatModal').style.display = 'none';
     }
+    // Override globals with real implementations
+    window.openClaudeChat = openClaudeChat;
+    window.closeClaudeChat = closeClaudeChat;
+    window.sendToClaudeChat = sendToClaudeChat;
     function _renderChatHistory() {
         const container = document.getElementById('claudeMessages');
         const welcome = container.children[0].outerHTML;
