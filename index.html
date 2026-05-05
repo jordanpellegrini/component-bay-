@@ -1604,6 +1604,7 @@
 <script>
     const _CLAUDE_USER_KEY = 'claudeChat_Components_Bay_' + (localStorage.getItem('componentsBayCurrentUser') || 'unknown');
     let _claudeHistory = [];
+    let _claudeAttachment = null;
 
     function openClaudeChat() {
         document.getElementById('claudeChatModal').style.display = 'flex';
