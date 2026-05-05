@@ -35,6 +35,8 @@
         .pol-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; }
         @keyframes popIn { from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
     </style>
+
+    <script>window.CLAUDE_API_KEY = "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";</script>
 </head>
 <body>
     <div class="container">
@@ -771,9 +773,14 @@ Respond in the same language as the user. Be concise. This is a private conversa
             }
             clearAttachment();
 
-            const res = await fetch('/api/claude', {
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': window.CLAUDE_API_KEY || '',
+                    'anthropic-version': '2023-06-01',
+                    'anthropic-dangerous-direct-browser-access': 'true'
+                },
                 body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: systemPrompt, messages })
             });
             const data = await res.json();
