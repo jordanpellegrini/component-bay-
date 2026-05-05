@@ -858,7 +858,7 @@
         input.value = '';
         document.getElementById('claudeSendBtn').disabled = true;
         const displayMsg = msg + (hasAttachment ? (msg ? ' [+' + _claudeAttachment.name + ']' : '[' + _claudeAttachment.name + ']') : '');
-        appendMessage('user', displayMsg);
+        _appendMessage('user', displayMsg);
         const today = new Date().toISOString().split('T')[0];
         
         const dataSnapshot = (typeof maintenanceData !== 'undefined' ? maintenanceData : []).slice(0, 100).map(i => ({
@@ -967,10 +967,10 @@ Respond in the same language as the user. Be concise. This is a private conversa
                     }
                 } catch(e) { reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Erreur: ' + e.message; }
             }
-            appendMessage('assistant', reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim() || reply);
+            _appendMessage('assistant', reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim() || reply);
         } catch(err) {
             loadDiv.remove();
-            appendMessage('assistant', 'Error: ' + err.message);
+            _appendMessage('assistant', 'Error: ' + err.message);
         }
         document.getElementById('claudeSendBtn').disabled = false;
         document.getElementById('claudeInput').focus();
