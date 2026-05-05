@@ -6,6 +6,7 @@
     <title>POL - Components Bay</title>
     <link rel="stylesheet" href="modern-style.css">
     <script type="module" src="supabase-config.js"></script>
+    <script src="claude-action-handler.js"></script>
     <style>
         .pol-notification {
             position: fixed;
@@ -742,7 +743,9 @@ Data: ${dataStr}
 You can READ and MODIFY data. When asked to modify:
 1. Confirm what you understood
 2. Wait for confirmation (oui/yes/ok/confirme)
-3. Respond with: <action>{"type":"update","id":"ITEM_ID","fields":{"field":"value"}}</action>
+3. For UPDATE: <action>{"type":"update","id":"ITEM_ID","fields":{"field":"value"}}</action>
+   For ADD: <action>{"type":"add","fields":{"field":"value"}}</action>
+   For DELETE: <action>{"type":"delete","id":"ITEM_ID"}</action>
 Respond in the same language as the user. Be concise. This is a private conversation.`;
         const messages = _claudeHistory.slice(-20).map(h => ({ role: h.role, content: h.content }));
         messages.push({ role: 'user', content: msg });
@@ -819,7 +822,24 @@ Respond in the same language as the user. Be concise. This is a private conversa
                     }
                 } catch(e) { reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Erreur: ' + e.message; }
             }
-            _appendMessage('assistant', reply);
+            _// Strip action tags from display text
+        const displayReply = reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
+        appendMessage('assistant', displayReply || reply);
+        
+        // Parse and execute action if present
+        const action = window.ClaudeActionHandler && window.ClaudeActionHandler.parse(reply);
+        if (action) {
+            setTimeout(() => {
+                window.ClaudeActionHandler.execute(
+                    action,
+                    appendMessage,
+                    polData,
+                    saveData,
+                    deleteItem,
+                    loadData
+                );
+            }, 500);
+        }
         } catch(err) {
             loadDiv.remove();
             _appendMessage('assistant', 'Error: ' + err.message);

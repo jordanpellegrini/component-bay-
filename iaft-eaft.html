@@ -6,6 +6,7 @@
     <title>IAFT/EAFT - Components Bay</title>
     <link rel="stylesheet" href="modern-style.css">
     <script type="module" src="supabase-config.js"></script>
+    <script src="claude-action-handler.js"></script>
     <style>
         .locked-field { position: relative; opacity: 0.5; pointer-events: none; }
         .locked-field::after { content: '🔒 Activates when 60M date is reached'; position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); text-align: center; font-size: 0.8em; color: #e67e22; font-weight: 600; background: rgba(255,255,255,0.9); padding: 4px; border-radius: 4px; }
@@ -687,7 +688,9 @@ Data: ${dataStr}
 You can READ and MODIFY data. When asked to modify:
 1. Confirm what you understood
 2. Wait for confirmation (oui/yes/ok/confirme)
-3. Respond with: <action>{"type":"update","id":"ITEM_ID","fields":{"field":"value"}}</action>
+3. For UPDATE: <action>{"type":"update","id":"ITEM_ID","fields":{"field":"value"}}</action>
+   For ADD: <action>{"type":"add","fields":{"field":"value"}}</action>
+   For DELETE: <action>{"type":"delete","id":"ITEM_ID"}</action>
 Respond in the same language as the user. Be concise. This is a private conversation.`;
         const messages = _claudeHistory.slice(-20).map(h => ({ role: h.role, content: h.content }));
         messages.push({ role: 'user', content: msg });
@@ -764,7 +767,24 @@ Respond in the same language as the user. Be concise. This is a private conversa
                     }
                 } catch(e) { reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Erreur: ' + e.message; }
             }
-            _appendMessage('assistant', reply);
+            _// Strip action tags from display text
+        const displayReply = reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
+        appendMessage('assistant', displayReply || reply);
+        
+        // Parse and execute action if present
+        const action = window.ClaudeActionHandler && window.ClaudeActionHandler.parse(reply);
+        if (action) {
+            setTimeout(() => {
+                window.ClaudeActionHandler.execute(
+                    action,
+                    appendMessage,
+                    itemsData,
+                    saveData,
+                    deleteItem,
+                    loadData
+                );
+            }, 500);
+        }
         } catch(err) {
             loadDiv.remove();
             _appendMessage('assistant', 'Error: ' + err.message);

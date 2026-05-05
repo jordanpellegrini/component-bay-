@@ -6,6 +6,7 @@
     <title>EFS Cylinders - Components Bay V3.3</title>
     <link rel="stylesheet" href="modern-style.css">
     <script type="module" src="supabase-config.js"></script>
+    <script src="claude-action-handler.js"></script>
 
 </head>
 <body>
@@ -1165,7 +1166,24 @@ This is a private conversation.`;
                 }
             }
 
-            appendMessage('assistant', reply);
+            // Strip action tags from display text
+        const displayReply = reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
+        appendMessage('assistant', displayReply || reply);
+        
+        // Parse and execute action if present
+        const action = window.ClaudeActionHandler && window.ClaudeActionHandler.parse(reply);
+        if (action) {
+            setTimeout(() => {
+                window.ClaudeActionHandler.execute(
+                    action,
+                    appendMessage,
+                    efsData,
+                    saveData,
+                    deleteEFS,
+                    loadData
+                );
+            }, 500);
+        }
         } catch(err) {
             loadDiv.remove();
             appendMessage('assistant', 'Error: ' + err.message);
