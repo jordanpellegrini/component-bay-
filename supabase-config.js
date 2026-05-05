@@ -357,4 +357,4 @@ try { localStorage.removeItem('pnMfrCache'); } catch(e) {}
 try { localStorage.removeItem('componentsBayPnManufacturers'); } catch(e) {}
 
 // Clé API Claude — utilisée par les modules avec le bouton 🤖 Ask Claude
-window.CLAUDE_API_KEY = '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';
+window.CLAUDE_API_KEY = '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';
