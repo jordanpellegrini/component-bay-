@@ -1647,6 +1647,46 @@
             localStorage.setItem(_CLAUDE_USER_KEY, JSON.stringify(_claudeHistory));
         }
     }
+    // Load all module data from Supabase for global search
+    async function loadAllModulesData() {
+        if (!window.ComponentsBayDB) return {};
+        try {
+            const [efs, efsCyl, liferafts, maintenance, composite, avionic, engine, rotorbay, iafteaft, pol, tools, troopseats, wheels] = await Promise.all([
+                window.ComponentsBayDB.load('efs'),
+                window.ComponentsBayDB.load('efs_cylinders'),
+                window.ComponentsBayDB.load('liferafts'),
+                window.ComponentsBayDB.load('maintenance'),
+                window.ComponentsBayDB.load('composite'),
+                window.ComponentsBayDB.load('avionic'),
+                window.ComponentsBayDB.load('engine'),
+                window.ComponentsBayDB.load('rotorbay'),
+                window.ComponentsBayDB.load('iafteaft'),
+                window.ComponentsBayDB.load('pol'),
+                window.ComponentsBayDB.load('tools'),
+                window.ComponentsBayDB.load('troopseats'),
+                window.ComponentsBayDB.load('wheels'),
+            ]);
+            return {
+                'EFS Float': { items: efs, url: 'efs.html' },
+                'EFS Cylinders': { items: efsCyl, url: 'efs-cylinders.html' },
+                'Life Raft': { items: liferafts, url: 'liferaft.html' },
+                'Maintenance': { items: maintenance, url: 'maintenance.html' },
+                'Composite': { items: composite, url: 'composite.html' },
+                'Avionic': { items: avionic, url: 'avionic.html' },
+                'Engine': { items: engine, url: 'engine.html' },
+                'Rotor Bay': { items: rotorbay, url: 'rotor-bay.html' },
+                'IAFT/EAFT': { items: iafteaft, url: 'iaft-eaft.html' },
+                'POL': { items: pol, url: 'pol.html' },
+                'Tools': { items: tools, url: 'tools.html' },
+                'Troop Seat': { items: troopseats, url: 'troop-seat.html' },
+                'Wheels': { items: wheels, url: 'wheel.html' },
+            };
+        } catch(e) {
+            console.error('Failed to load all modules:', e);
+            return {};
+        }
+    }
+
     async function sendToClaudeChat() {
         const input = document.getElementById('claudeInput');
         const msg = input.value.trim();
@@ -1657,18 +1697,69 @@
         const displayMsg = msg + (hasAttachment ? (msg ? ' [+' + _claudeAttachment.name + ']' : '[' + _claudeAttachment.name + ']') : '');
         _appendMessage('user', displayMsg);
         const today = new Date().toISOString().split('T')[0];
-        
-        const dataStr = 'No specific module data available.';
-        const totalUS = 0;
-        const totalItems = 0;
-        const systemPrompt = `You are an aircraft maintenance assistant for ASM integrated into the Components Bay module of Components Bay.
-Today: ${today} | Total items: ${totalItems} | Unserviceable: ${totalUS}
-Data: ${dataStr}
-You can READ and MODIFY data. When asked to modify:
-1. Confirm what you understood
-2. Wait for confirmation (oui/yes/ok/confirme)
-3. Respond with: <action>{"type":"update","id":"ITEM_ID","fields":{"field":"value"}}</action>
-Respond in the same language as the user. Be concise. This is a private conversation.`;
+
+        // Load all modules data
+        const loadDiv2 = document.createElement('div');
+        loadDiv2.style.cssText = 'background:#f3f0ff;border-radius:12px;padding:12px 16px;max-width:85%;align-self:flex-start;color:#7c3aed;';
+        loadDiv2.innerHTML = '🔍 <em>Searching all modules...</em>';
+        document.getElementById('claudeMessages').appendChild(loadDiv2);
+        document.getElementById('claudeMessages').scrollTop = 99999;
+
+        const allModules = await loadAllModulesData();
+        loadDiv2.remove();
+
+        // Build data summary for system prompt
+        let totalItems = 0, totalUS = 0;
+        let dataStr = '';
+        for (const [modName, mod] of Object.entries(allModules)) {
+            const items = mod.items || [];
+            totalItems += items.length;
+            const us = items.filter(i => i.serviceability === 'Unserviceable').length;
+            totalUS += us;
+            // Include all items for search (limit to avoid token overflow)
+            const snapshot = items.slice(0, 200).map(i => ({
+                module: modName,
+                url: mod.url,
+                id: i.id,
+                designation: i.designation || '',
+                partNumber: i.partNumber || i.pnWheel || '',
+                serialNumber: i.serialNumber || '',
+                serviceability: i.serviceability || '',
+                nextInspection: i.nextInspection || i.next18M || i.next60M || '',
+                reason: i.reason || '',
+                comments: i.comments || ''
+            }));
+            dataStr += `\n### ${modName} (${items.length} items, ${us} U/S) — URL: ${mod.url}\n`;
+            dataStr += JSON.stringify(snapshot);
+        }
+
+        const systemPrompt = \`You are an aircraft maintenance assistant for ASM with access to ALL Components Bay modules.
+Today: \${today} | Total items: \${totalItems} | Total Unserviceable: \${totalUS}
+
+MODULES DATA (search across all):
+\${dataStr}
+
+MODULE URLs (use these when directing user to a module):
+- EFS Float: efs.html | EFS Cylinders: efs-cylinders.html | Life Raft: liferaft.html
+- Maintenance: maintenance.html | Composite: composite.html | Avionic: avionic.html
+- Engine: engine.html | Rotor Bay: rotor-bay.html | IAFT/EAFT: iaft-eaft.html
+- POL: pol.html | Tools: tools.html | Troop Seat: troop-seat.html | Wheels: wheel.html
+
+When the user searches for a part (P/N, S/N, or designation):
+1. Find the matching item(s) in the data above
+2. Display a clear summary card with all fields
+3. Provide the direct link to the module page like: [Open in Life Raft](liferaft.html)
+
+When displaying a found item, format it like:
+✅ Found in [MODULE]:
+• Designation: ...
+• P/N: ... | S/N: ...
+• Status: ...
+• Next Inspection: ...
+• Reason: ... | Comments: ...
+[🔗 Open module](url)
+
+Respond in the same language as the user. Be concise.\`;
         const messages = _claudeHistory.slice(-20).map(h => ({ role: h.role, content: h.content }));
         messages.push({ role: 'user', content: msg });
         const loadDiv = document.createElement('div');
