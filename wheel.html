@@ -1168,24 +1168,18 @@ Respond in the same language as the user. Be concise. This is a private conversa
                     }
                 } catch(e) { reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Erreur: ' + e.message; }
             }
-            // Strip action tags from display text
-        const displayReply = reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
-        appendMessage('assistant', displayReply || reply);
-        
-        // Parse and execute action if present
-        const action = window.ClaudeActionHandler && window.ClaudeActionHandler.parse(reply);
-        if (action) {
-            setTimeout(() => {
-                window.ClaudeActionHandler.execute(
-                    action,
-                    appendMessage,
-                    wheelData,
-                    saveData,
-                    deleteItem,
-                    loadData
-                );
-            }, 500);
-        }
+                 // Strip action tags from display text
+            const displayReply = reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
+            appendMessage('assistant', displayReply || reply);
+            
+            // Parse and execute action if present
+            const action = window.ClaudeActionHandler && window.ClaudeActionHandler.parse(reply);
+            if (action) {
+                const _cb = appendMessage;
+                setTimeout(() => {
+                    window.ClaudeActionHandler.execute(action, _cb, wheelData, saveData, deleteItem, loadData);
+                }, 500);
+            }
         } catch(err) {
             loadDiv.remove();
             _appendMessage('assistant', 'Error: ' + err.message);
