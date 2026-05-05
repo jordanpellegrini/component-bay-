@@ -250,6 +250,17 @@
     </div>
 
     <script>
+        // Expose Claude chat functions globally (real implementation loaded in second script block)
+        window.openClaudeChat = function() {
+            var modal = document.getElementById('claudeChatModal');
+            if (modal) modal.style.display = 'flex';
+        };
+        window.closeClaudeChat = function() {
+            var modal = document.getElementById('claudeChatModal');
+            if (modal) modal.style.display = 'none';
+        };
+        window.sendToClaudeChat = function() {};
+
         let efsData = [];
         let currentUser = sessionStorage.getItem('componentsBayCurrentUser') || sessionStorage.getItem('currentUser') || 'Unknown User';
         let userRole = localStorage.getItem('componentsBayUserRole') || localStorage.getItem('userRole') || 'user';
