@@ -726,7 +726,7 @@
         input.value = '';
         document.getElementById('claudeSendBtn').disabled = true;
         const displayMsg = msg + (hasAttachment ? (msg ? ' [+' + _claudeAttachment.name + ']' : '[' + _claudeAttachment.name + ']') : '');
-        _appendMessage('user', displayMsg);
+        appendMessage('user', displayMsg);
         const today = new Date().toISOString().split('T')[0];
         
         const dataSnapshot = (typeof polData !== 'undefined' ? polData : []).slice(0, 100).map(i => ({
@@ -801,7 +801,7 @@ Respond in the same language as the user. Be concise. This is a private conversa
                         } else {
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Item non trouvé.';
                         }
-                    } else if (action.type === 'create' && action.fields) {
+                    } else if ((action.type === 'add' || action.type === 'create') && action.fields) {
                         if (!action.fields.partNumber || !action.fields.serialNumber) {
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ P/N et S/N obligatoires pour créer un item.';
                         } else if (window.ComponentsBayDB) {
@@ -820,23 +820,26 @@ Respond in the same language as the user. Be concise. This is a private conversa
                             if (typeof refreshTable === 'function') refreshTable();
                         }
                     }
+                    } else if (action.type === 'delete' && action.id) {
+                        const allData = (typeof polData !== 'undefined' ? polData : []);
+                        const item = allData.find(i => i.id === action.id);
+                        if (item && window.ComponentsBayDB) {
+                            await window.ComponentsBayDB.delete('pol', action.id);
+                            const idx = allData.findIndex(i => i.id === action.id);
+                            if (idx > -1) allData.splice(idx, 1);
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Item supprimé.';
+                            if (typeof updateSummary === 'function') updateSummary();
+                            if (typeof refreshTable === 'function') refreshTable();
+                        } else {
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Item introuvable.';
+                        }
+                    }
                 } catch(e) { reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Erreur: ' + e.message; }
             }
-                 // Strip action tags from display text
-            const displayReply = reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
-            appendMessage('assistant', displayReply || reply);
-            
-            // Parse and execute action if present
-            const action = window.ClaudeActionHandler && window.ClaudeActionHandler.parse(reply);
-            if (action) {
-                const _cb = appendMessage;
-                setTimeout(() => {
-                    window.ClaudeActionHandler.execute(action, _cb, polData, saveData, deleteItem, loadData);
-                }, 500);
-            }
+            appendMessage('assistant', reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim() || reply);
         } catch(err) {
             loadDiv.remove();
-            _appendMessage('assistant', 'Error: ' + err.message);
+            appendMessage('assistant', 'Error: ' + err.message);
         }
         document.getElementById('claudeSendBtn').disabled = false;
         document.getElementById('claudeInput').focus();

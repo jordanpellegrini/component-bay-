@@ -1146,7 +1146,7 @@ This is a private conversation.`;
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim();
                             reply += '\n\n❌ Item non trouvé (ID introuvable).';
                         }
-                    } else if (action.type === 'create' && action.fields) {
+                    } else if ((action.type === 'add' || action.type === 'create') && action.fields) {
                         if (!action.fields.partNumber || !action.fields.serialNumber) {
                             reply = reply.replace(/<action>[\\s\\S]*?<\\/action>/, '').trim();
                             reply += '\\n\\n❌ P/N et S/N obligatoires.';
@@ -1159,25 +1159,24 @@ This is a private conversation.`;
                             updateSummary();
                             if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
                         }
+                    } else if (action.type === 'delete' && action.id) {
+                        const item = efsData.find(i => i.id === action.id);
+                        if (item && window.ComponentsBayDB) {
+                            await window.ComponentsBayDB.delete('efs_cylinders', action.id);
+                            const idx = efsData.findIndex(i => i.id === action.id);
+                            if (idx > -1) efsData.splice(idx, 1);
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Item supprimé.';
+                            updateSummary();
+                        } else {
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Item introuvable.';
+                        }
                     }
                 } catch(e) {
                     reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim();
                     reply += '\n\n❌ Erreur lors de la modification: ' + e.message;
                 }
             }
-
-                 // Strip action tags from display text
-            const displayReply = reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
-            appendMessage('assistant', displayReply || reply);
-            
-            // Parse and execute action if present
-            const action = window.ClaudeActionHandler && window.ClaudeActionHandler.parse(reply);
-            if (action) {
-                const _cb = appendMessage;
-                setTimeout(() => {
-                    window.ClaudeActionHandler.execute(action, _cb, efsData, saveData, deleteEFS, loadData);
-                }, 500);
-            }
+            appendMessage('assistant', reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim() || reply);
         } catch(err) {
             loadDiv.remove();
             appendMessage('assistant', 'Error: ' + err.message);
