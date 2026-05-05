@@ -15,6 +15,20 @@ function Write-Log { param([string]$Msg,[string]$Col="White"); $line="[$(Get-Dat
 New-Item -ItemType Directory -Force -Path $LOG_DIR | Out-Null
 Write-Log "--- Daily Report Started ---" "Cyan"
 
+# ============================================================
+# Verification : mail deja envoye aujourd'hui ?
+# ============================================================
+$todayStr = (Get-Date -Format 'yyyy-MM-dd')
+$alreadySent = $false
+if (Test-Path $LOG_FILE) {
+    $alreadySent = (Get-Content $LOG_FILE -Encoding UTF8 | Where-Object { $_ -match $todayStr -and $_ -match "Email envoye" }) -ne $null
+}
+if ($alreadySent) {
+    Write-Log "Email deja envoye aujourd'hui ($todayStr) — script arrete." "Yellow"
+    exit 0
+}
+Write-Log "Aucun envoi detecte aujourd'hui — on continue." "Green"
+
 $hdrs = @{
     "apikey"        = $SUPABASE_KEY
     "Authorization" = "Bearer $SUPABASE_KEY"
@@ -103,12 +117,7 @@ $allWithin90 = $allWithin90 | Sort-Object DaysLeft
 
 Write-Log "Total: $totalItems items, $($allUS.Count) U/S, $($allWithin90.Count) within 90d" "Green"
 
-# Skip email if nothing to report
-if ($allUS.Count -eq 0 -and $allWithin90.Count -eq 0) {
-    Write-Log "Rien a signaler - email non envoye" "Yellow"
-    Write-Log "--- Daily Report Done ---" "Cyan"
-    exit 0
-}
+# Always send email even if nothing to report
 
 # ============================================================
 # Build HTML email body
@@ -139,7 +148,7 @@ $htmlBody = @"
 
   <!-- Header -->
   <div style='background:linear-gradient(135deg,#1a1a2e,#0f3460);color:white;border-radius:12px;padding:24px 28px;margin-bottom:20px;'>
-    <div style='font-size:22px;font-weight:700;'>📊 Components Bay — Daily Report</div>
+    <div style='font-size:22px;font-weight:700;'>Components Bay Components Bay - Daily Report</div>
     <div style='font-size:13px;opacity:0.7;margin-top:4px;'>$dateStr</div>
   </div>
 
@@ -162,7 +171,7 @@ $htmlBody = @"
   <!-- Unserviceable -->
   $(if ($allUS.Count -gt 0) {
   "<div style='background:white;border-radius:10px;padding:20px;margin-bottom:20px;border:1px solid #e5e7eb;'>
-    <div style='font-size:15px;font-weight:700;color:#dc2626;margin-bottom:14px;'>⚠️ Unserviceable Items ($($allUS.Count))</div>
+    <div style='font-size:15px;font-weight:700;color:#dc2626;margin-bottom:14px;'>!! Unserviceable Items ($($allUS.Count))</div>
     <table style='width:100%;border-collapse:collapse;font-size:13px;'>
       <thead><tr style='background:#fef2f2;'>
         <th style='padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#6b7280;'>Module</th>
@@ -179,7 +188,7 @@ $htmlBody = @"
   <!-- Within 90 Days -->
   $(if ($allWithin90.Count -gt 0) {
   "<div style='background:white;border-radius:10px;padding:20px;margin-bottom:20px;border:1px solid #e5e7eb;'>
-    <div style='font-size:15px;font-weight:700;color:#d97706;margin-bottom:14px;'>⏰ Inspections Due Within 90 Days ($($allWithin90.Count))</div>
+    <div style='font-size:15px;font-weight:700;color:#d97706;margin-bottom:14px;'>>> Inspections Due Within 90 Days ($($allWithin90.Count))</div>
     <table style='width:100%;border-collapse:collapse;font-size:13px;'>
       <thead><tr style='background:#fffbeb;'>
         <th style='padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#6b7280;'>Module</th>
@@ -194,9 +203,14 @@ $htmlBody = @"
   </div>"
   })
 
+  <!-- All Good banner -->
+  $(if ($allUS.Count -eq 0 -and $allWithin90.Count -eq 0) {
+  "<div style='background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:20px;margin-bottom:20px;text-align:center;'><div style='font-size:28px;'>OK</div><div style='font-size:16px;font-weight:700;color:#15803d;margin-top:8px;'>All Good - No issues to report</div><div style='font-size:12px;color:#166534;margin-top:4px;'>All components are serviceable and no inspections due within 90 days</div></div>"
+  })
+
   <!-- Footer -->
   <div style='text-align:center;font-size:11px;color:#94a3b8;padding:10px;'>
-    Components Bay — ASM Maintenance | Generated automatically $(Get-Date -Format 'HH:mm')
+    Components Bay - ASM Maintenance | Generated automatically $(Get-Date -Format 'HH:mm')
   </div>
 
 </div></body></html>
@@ -210,7 +224,8 @@ try {
     $outlook = New-Object -ComObject Outlook.Application
     $mail = $outlook.CreateItem(0)
     $mail.To = $TO_EMAIL
-    $mail.Subject = "Components Bay - Daily Report $(Get-Date -Format 'dd/MM/yyyy') | $($allUS.Count) U/S | $($allWithin90.Count) within 90d"
+    $statusLabel = if ($allUS.Count -eq 0 -and $allWithin90.Count -eq 0) { "OK ALL GOOD" } else { "$($allUS.Count) U/S | $($allWithin90.Count) within 90d" }
+    $mail.Subject = "Components Bay - Daily Report $(Get-Date -Format 'dd/MM/yyyy') | $statusLabel"
     $mail.HTMLBody = $htmlBody
     $mail.Send()
     [System.Runtime.Interopservices.Marshal]::ReleaseComObject($mail) | Out-Null
