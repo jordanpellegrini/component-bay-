@@ -948,7 +948,15 @@
         }
     </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="generate-tag.js"></script>
+<script>
+    // Load generate-tag.js safely — don't block if missing
+    (function() {
+        var s = document.createElement('script');
+        s.src = 'generate-tag.js';
+        s.onerror = function() { console.warn('generate-tag.js not found, skipping.'); };
+        document.head.appendChild(s);
+    })();
+</script>
 
 <!-- Claude Chat Modal -->
 <div id="claudeChatModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
