@@ -677,6 +677,17 @@
     </div>
 
     <script>
+        // Stub global functions early so onclick works even if later scripts fail
+        window.openClaudeChat = function() {
+            var m = document.getElementById('claudeChatModal');
+            if (m) m.style.display = 'flex';
+        };
+        window.closeClaudeChat = function() {
+            var m = document.getElementById('claudeChatModal');
+            if (m) m.style.display = 'none';
+        };
+        window.sendToClaudeChat = function() {};
+
         let currentUser = null;
         let userRole = null;
         let users = [];
