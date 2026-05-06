@@ -1744,11 +1744,11 @@
             dataStr += JSON.stringify(snapshot);
         }
 
-        const systemPrompt = \`You are an aircraft maintenance assistant for ASM with access to ALL Components Bay modules.
-Today: \${today} | Total items: \${totalItems} | Total Unserviceable: \${totalUS}
+        const systemPrompt = `You are an aircraft maintenance assistant for ASM with access to ALL Components Bay modules.
+Today: ${today} | Total items: ${totalItems} | Total Unserviceable: ${totalUS}
 
 MODULES DATA (search across all):
-\${dataStr}
+${dataStr}
 
 MODULE URLs (use these when directing user to a module):
 - EFS Float: efs.html | EFS Cylinders: efs-cylinders.html | Life Raft: liferaft.html
@@ -1762,15 +1762,15 @@ When the user searches for a part (P/N, S/N, or designation):
 3. Provide the direct link to the module page like: [Open in Life Raft](liferaft.html)
 
 When displaying a found item, format it like:
-✅ Found in [MODULE]:
-• Designation: ...
-• P/N: ... | S/N: ...
-• Status: ...
-• Next Inspection: ...
-• Reason: ... | Comments: ...
-[🔗 Open module](url)
+Found in [MODULE]:
+- Designation: ...
+- P/N: ... | S/N: ...
+- Status: ...
+- Next Inspection: ...
+- Reason: ... | Comments: ...
+Link: url
 
-Respond in the same language as the user. Be concise.\`;
+Respond in the same language as the user. Be concise.`;
         const messages = _claudeHistory.slice(-20).map(h => ({ role: h.role, content: h.content }));
         messages.push({ role: 'user', content: msg });
         const loadDiv = document.createElement('div');
