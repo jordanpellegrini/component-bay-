@@ -1649,7 +1649,13 @@
         const isUser = role === 'user';
         const div = document.createElement('div');
         div.style.cssText = `background:${isUser?'#1B2B4B':'#f3f0ff'};border-radius:${isUser?'12px 12px 0 12px':'12px 12px 12px 0'};padding:12px 16px;max-width:85%;align-self:${isUser?'flex-end':'flex-start'};`;
-        div.innerHTML = `<div style="font-weight:600;color:${isUser?'#D4900A':'#7c3aed'};font-size:0.8em;margin-bottom:4px;">${isUser?'👤 You':'🤖 Claude'}</div><div style="color:${isUser?'white':'#1e1b4b'};line-height:1.5;white-space:pre-wrap;">${content}</div>`;
+        // Render markdown: links, bold
+        function renderMd(text) {
+            return text
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#7c3aed;text-decoration:underline;" target="_self">$1</a>');
+        }
+        div.innerHTML = `<div style="font-weight:600;color:${isUser?'#D4900A':'#7c3aed'};font-size:0.8em;margin-bottom:4px;">${isUser?'👤 You':'🤖 Claude'}</div><div style="color:${isUser?'white':'#1e1b4b'};line-height:1.5;white-space:pre-wrap;">${renderMd(content)}</div>`;
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
         if (save) {
