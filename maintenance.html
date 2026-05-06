@@ -115,10 +115,7 @@
                                 <label>Battery S/N</label>
                                 <input type="text" id="batterySN" class="form-control" placeholder="Enter battery serial number">
                             </div>
-                            <div class="form-group" style="margin:0;">
-                                <label>Battery Expiry Date</label>
-                                <input type="date" id="batteryExpiry" class="form-control" oninput="onBatteryExpiryInput(this.value)">
-                            </div>
+                            <div class="form-group" style="margin:0;"></div>
                         </div>
                         <div id="batteryWarning" style="display:none;margin-top:10px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;color:#856404;font-size:0.9em;">
                             ⚠️ Battery expired — comment auto-filled
@@ -434,16 +431,23 @@
                 document.getElementById('installationDate').value = '';
                 document.getElementById('nextInspection').value = '';
                 document.getElementById('batterySN').value = '';
-                document.getElementById('batteryExpiry').value = '';
+
                 document.getElementById('batteryWarning').style.display = 'none';
             }
         }
 
         function onInstallDateInput(dateVal) {
-            if (!dateVal) { document.getElementById('nextInspection').value = ''; return; }
+            if (!dateVal) {
+                document.getElementById('nextInspection').value = '';
+                onBatteryExpiryInput('');
+                return;
+            }
             const d = new Date(dateVal);
             d.setFullYear(d.getFullYear() + 3);
-            document.getElementById('nextInspection').value = d.toISOString().split('T')[0];
+            const expiryDate = d.toISOString().split('T')[0];
+            document.getElementById('nextInspection').value = expiryDate;
+            // Trigger battery expiry check with the calculated date
+            onBatteryExpiryInput(expiryDate);
         }
 
         function onBatteryExpiryInput(dateVal) {
@@ -505,7 +509,7 @@
                 nextInspection: document.getElementById('nextInspection') ? document.getElementById('nextInspection').value : '',
                 batteryPN: document.getElementById('batteryPN') ? document.getElementById('batteryPN').value : '',
                 batterySN: document.getElementById('batterySN') ? document.getElementById('batterySN').value : '',
-                batteryExpiry: document.getElementById('batteryExpiry') ? document.getElementById('batteryExpiry').value : '',
+                batteryExpiry: document.getElementById('nextInspection') ? document.getElementById('nextInspection').value : '',
             };
 
             // Handle missing logcard logic
