@@ -709,6 +709,22 @@
             document.getElementById('removeFromHC').value = editingItem.removeFromHC || '';
             try { document.getElementById('jcnNumber').value = editingItem.jcnNumber || ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = editingItem.jcnBook || ''; } catch(e) {}
+            try { document.getElementById('boxNumber').value = editingItem.boxNumber || ''; } catch(e) {}
+
+            // Life Raft Rack fields
+            if (editingItem.partNumber && editingItem.partNumber.toUpperCase() === LIFE_RAFT_PN.toUpperCase()) {
+                document.getElementById('lifeRaftSection').style.display = 'block';
+                document.getElementById('installationDate').value = editingItem.installationDate || '';
+                document.getElementById('nextInspection').value = editingItem.batteryExpiry || editingItem.nextInspection || '';
+                document.getElementById('batteryPN').value = editingItem.batteryPN || BATTERY_PN;
+                document.getElementById('batterySN').value = editingItem.batterySN || '';
+                // Check if battery expired
+                if (editingItem.batteryExpiry || editingItem.nextInspection) {
+                    onBatteryExpiryInput(editingItem.batteryExpiry || editingItem.nextInspection);
+                }
+            } else {
+                document.getElementById('lifeRaftSection').style.display = 'none';
+            }
 
             document.getElementById('addForm').style.display = 'block';
             document.getElementById('viewAllSection').classList.add('hidden');
