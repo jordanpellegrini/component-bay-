@@ -89,16 +89,21 @@
                         <input type="text" id="serialNumber" class="form-control" placeholder="Enter serial number">
                     </div>
 
+                    <div class="form-group">
+                        <label>Box Number</label>
+                        <input type="text" id="boxNumber" class="form-control" placeholder="Enter box number">
+                    </div>
+
                     <!-- Life Raft Rack fields (shown when P/N = S955M1096105) -->
                     <div id="lifeRaftSection" style="display:none;grid-column:1/-1;background:#f0f7ff;border:1px solid #bdd7f5;border-radius:8px;padding:14px;margin:4px 0;">
                         <div style="font-weight:700;color:#1B2B4B;margin-bottom:10px;">🛟 Life Raft Rack — Auto Fill</div>
                         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                             <div class="form-group" style="margin:0;">
-                                <label>Installation Date</label>
+                                <label>Manufacturer Date</label>
                                 <input type="date" id="installationDate" class="form-control" oninput="onInstallDateInput(this.value)">
                             </div>
                             <div class="form-group" style="margin:0;">
-                                <label>Next Inspection (auto +3Y)</label>
+                                <label>Battery Expiry (auto +3Y)</label>
                                 <input type="date" id="nextInspection" class="form-control" readonly style="background:#e8f4fd;">
                             </div>
                             <div class="form-group" style="margin:0;"></div>
@@ -479,6 +484,7 @@
                 designation: document.getElementById('designation').value.trim(),
                 partNumber: partNumber,
                 serialNumber: document.getElementById('serialNumber').value.trim(),
+                boxNumber: document.getElementById('boxNumber') ? document.getElementById('boxNumber').value.trim() : '',
                 flightHours: document.getElementById('flightHours').value,
                 order: document.getElementById('order').value.trim(),
                 srNumber: document.getElementById('srNumber').value.trim(),
