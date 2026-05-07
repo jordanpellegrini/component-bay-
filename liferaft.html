@@ -419,14 +419,16 @@
             if (checked) {
                 document.getElementById('liferaftServiceability').value = 'Unserviceable';
                 document.getElementById('lifeRaftMissing').checked = false;
-                // Auto-fill comments
+                // Auto-fill comments if empty
                 const commentsEl = document.getElementById('liferaftComments');
                 if (!commentsEl.value) commentsEl.value = 'Log Card Missing';
-                // Auto-fill reason: overdue + log card missing
-                const overdueStr = getOverdueReason();
-                document.getElementById('liferaftReason').value = overdueStr ? overdueStr + ' / Log Card Missing' : 'Log Card Missing';
+                // Auto-fill reason if empty
+                const reasonEl = document.getElementById('liferaftReason');
+                if (!reasonEl.value) {
+                    const overdueStr = getOverdueReason();
+                    reasonEl.value = overdueStr ? overdueStr + ' / Log Card Missing' : 'Log Card Missing';
+                }
             } else {
-                // Clear auto-filled values
                 const commentsEl = document.getElementById('liferaftComments');
                 if (commentsEl.value === 'Log Card Missing') commentsEl.value = '';
                 document.getElementById('liferaftReason').value = '';
@@ -437,12 +439,15 @@
             if (checked) {
                 document.getElementById('liferaftServiceability').value = 'Unserviceable';
                 document.getElementById('logCardMissing').checked = false;
-                // Auto-fill comments
+                // Auto-fill comments if empty
                 const commentsEl = document.getElementById('liferaftComments');
                 if (!commentsEl.value) commentsEl.value = 'Life Raft Missing';
-                // Auto-fill reason: overdue + life raft missing
-                const overdueStr = getOverdueReason();
-                document.getElementById('liferaftReason').value = overdueStr ? overdueStr + ' / Life Raft Missing' : 'Life Raft Missing';
+                // Auto-fill reason if empty
+                const reasonEl = document.getElementById('liferaftReason');
+                if (!reasonEl.value) {
+                    const overdueStr = getOverdueReason();
+                    reasonEl.value = overdueStr ? overdueStr + ' / Life Raft Missing' : 'Life Raft Missing';
+                }
             } else {
                 const commentsEl = document.getElementById('liferaftComments');
                 if (commentsEl.value === 'Life Raft Missing') commentsEl.value = '';
@@ -1084,8 +1089,14 @@
             try { document.getElementById('jcnBook').value = editingLifeRaft.jcnBook || ''; } catch(e) {}
             try { document.getElementById('liferaftServiceability').value = editingLifeRaft.manualServiceability || 'Serviceable'; } catch(e) {}
             try { document.getElementById('liferaftReason').value = editingLifeRaft.manualReason || ''; } catch(e) {}
-            try { document.getElementById('logCardMissing').checked = editingLifeRaft.logCardMissing || false; } catch(e) {}
-            try { document.getElementById('lifeRaftMissing').checked = editingLifeRaft.lifeRaftMissing || false; } catch(e) {}
+            try { 
+                document.getElementById('logCardMissing').checked = editingLifeRaft.logCardMissing || false;
+                if (editingLifeRaft.logCardMissing) onLogCardMissing();
+            } catch(e) {}
+            try { 
+                document.getElementById('lifeRaftMissing').checked = editingLifeRaft.lifeRaftMissing || false;
+                if (editingLifeRaft.lifeRaftMissing) onLifeRaftMissing();
+            } catch(e) {}
             try { document.getElementById('logCardMissing').checked = editingLifeRaft.logCardMissing || false; } catch(e) {}
             try { document.getElementById('lifeRaftMissing').checked = editingLifeRaft.lifeRaftMissing || false; } catch(e) {}
 
