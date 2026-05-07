@@ -49,7 +49,14 @@
             background: #fef5e7 !important;
             color: #dd6b20;
         }
-    </style>
+    
+        /* Sticky header */
+        .main-header {
+            position: sticky !important;
+            top: 0;
+            z-index: 1000;
+        }
+</style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 </head>
@@ -944,6 +951,7 @@
                                 <th>S/N</th>
                                 <th>Next Inspection</th>
                                 <th>Serviceability</th>
+                                <th>Reason</th>
                                 <th>Cylinder S/N</th>
                                 <th>Cylinder Next Insp.</th>
                                 <th>Sub-Items</th>
@@ -968,6 +976,7 @@
                         <td><a href="#" class="clickable" onclick="showLifeRaftDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
                         <td>${item.nextInspection || '-'}</td>
                         <td><span class="status-badge ${statusClass}">${item.serviceability || 'N/A'}</span></td>
+                        <td>${item.reason || '-'}</td>
                         <td>${cylVA.sn}</td>
                         <td>${cylVA.expiry}</td>
                         <td>${expiredCount > 0 ? `<span class="status-badge status-overdue">${expiredCount} expired</span>` : `${item.subItems.length} items`}</td>
