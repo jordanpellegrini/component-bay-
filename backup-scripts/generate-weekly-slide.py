@@ -337,7 +337,7 @@ def main():
 
     build_slide(prs,RED_ACC,"Other Parts","NEED TO BE C/OUT","ALL UNSERVICEABLE ITEMS (ORDERED)",len(s1),["MODULE","DESIGNATION","P/N","S/N","REASON"],s1,cw1)
     build_slide(prs,RED_ACC,"Life Raft","NEED TO BE C/OUT","LIFE RAFT — NEED TO BE C/OUT",len(s2),["P/N","S/N","NEXT INSP.","REASON"],s2,cw2)
-    build_slide(prs,GREEN_ACC,"Life Raft","SERVICEABLE",f"SERVICEABLE LIFE RAFTS — {today}",len(s2b),["P/N","S/N","NEXT INSP.","COMMENTS"],s2b,cw2b)
+    build_slide(prs,GREEN_ACC,"Life Raft","SERVICEABLE",f"SERVICEABLE LIFE RAFTS — {TODAY}",len(s2b),["P/N","S/N","NEXT INSP.","COMMENTS"],s2b,cw2b)
     build_slide(prs,BLUE_ACC,"EFS","DUE WITHIN 90 DAYS","SERVICEABLE EFS — DUE WITHIN 90 DAYS",len(s3),["H/C","DESIGNATION","P/N","S/N","NEXT 18M","NEXT 36M","DAYS LEFT"],s3,cw34,days_col=6)
     build_slide(prs,BLUE_ACC,"EFS Cylinders","DUE WITHIN 90 DAYS","SERVICEABLE EFS CYLINDERS — DUE WITHIN 90 DAYS",len(s4),["H/C","DESIGNATION","P/N","S/N","NEXT 18M","NEXT 60M","DAYS LEFT"],s4,cw34,days_col=6)
 
