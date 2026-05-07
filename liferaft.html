@@ -1205,7 +1205,7 @@
                 [sc('LIFE RAFT SYSTEMS — EXPORT', styleHeader), '', '', '', '', '', '', ''],
                 [sc(`Generated: ${today}`, styleLabelGray), '', '', '', '', '', '', ''],
                 [''],
-                [sc('P/N', styleSubLabel), sc('S/N', styleSubLabel), sc('Serviceability', styleSubLabel), sc('Next Inspection', styleSubLabel), sc('Cylinder S/N', styleSubLabel), sc('Cylinder Next Insp.', styleSubLabel), sc('Log Card Missing', styleSubLabel), sc('Comments', styleSubLabel)],
+                [sc('P/N', styleSubLabel), sc('S/N', styleSubLabel), sc('Serviceability', styleSubLabel), sc('Next Inspection', styleSubLabel), sc('Cylinder S/N', styleSubLabel), sc('Cylinder Next Insp.', styleSubLabel), sc('Comments', styleSubLabel)],
             ];
             liferaftData.forEach(item => {
                 const svcStyle = item.serviceability === 'Unserviceable' ? styleExp : styleOK;
@@ -1213,7 +1213,7 @@
                 const cylItem = (item.subItems || []).find(s => s.item && s.item.toUpperCase().includes('CYLINDER'));
                 const cylSN = cylItem ? (cylItem.serialNumber || cylItem.sn || '') : '';
                 const cylExpiry = cylItem ? (cylItem.expiryDate || '') : '';
-                const logCardFlag = item.logCardMissing ? 'YES' : (item.lifeRaftMissing ? 'MISSING' : '');
+
                 summaryRows.push([
                     sc(item.partNumber || '', styleSubRow0),
                     sc(item.serialNumber || '', styleSubRow0),
@@ -1221,14 +1221,13 @@
                     sc(item.nextInspection || '', styleSubRow0),
                     sc(cylSN, styleSubRow0),
                     sc(cylExpiry, cylExpiry && isExpired(cylExpiry) ? styleExp : styleSubRow0),
-                    sc(logCardFlag, logCardFlag ? styleExp : styleSubRow0),
                     sc(item.comments || '', styleSubRow0),
                 ]);
             });
 
             const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-            wsSummary['!cols'] = [{ wch: 20 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 14 }, { wch: 30 }];
-            wsSummary['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+            wsSummary['!cols'] = [{ wch: 20 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 30 }];
+            wsSummary['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }];
             XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
 
             // ── One sheet per life raft ────────────────────────────────────
