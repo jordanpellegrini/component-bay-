@@ -23,9 +23,8 @@ if (fs.existsSync(BG_PATH)) {
   console.warn("Warning: asm_slide_bg.png not found, using plain background.");
 }
 
-let OUTPUT_DIR = "C:\\Users\\jpellegrini\\Desktop\\APP 5.5";
-if (!fs.existsSync(OUTPUT_DIR)) OUTPUT_DIR = "C:\\ComponentsBay_Logs";
-if (!fs.existsSync(OUTPUT_DIR)) OUTPUT_DIR = path.join(__dirname, ".");
+let OUTPUT_DIR = "C:\\Componentbay\\weekly slide report";
+if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, {recursive: true});
 const OUTPUT = path.join(OUTPUT_DIR, `Component_Bay_Slide_${today}.pptx`);
 
 // ─── Design ─────────────────────────────────────────────────────────────────
@@ -139,7 +138,7 @@ async function main() {
     for(const it of items)if(it.serviceability==="Unserviceable"){const pn=it.pnWheel||it.partNumber||"";s1.push([mod,trunc(it.designation||"",28),trunc(pn,18),it.serialNumber||"",trunc(it.reason||"Unserviceable",28)]);}
   }
   const s2=[];
-  for(const it of liferafts)if(it.serviceability==="Unserviceable")s2.push([it.partNumber||"",it.serialNumber||"",trunc(it.reason||"Unserviceable",36)]);
+  for(const it of liferafts)if(it.serviceability==="Unserviceable")s2.push([it.partNumber||"",it.serialNumber||"",it.nextInspection||"",trunc(it.reason||"Unserviceable",36)]);
 
   const s3=[];
   for(const it of efs){if(it.serviceability==="Unserviceable")continue;let best=999;for(const f of["next18M","next36M"]){const d=daysLeft(it[f]);if(d!==null&&d>=0&&d<=90&&d<best)best=d;}if(best<999)s3.push([it.hc||"",trunc(it.designation||"",22),it.partNumber||"",it.serialNumber||"",it.next18M||"",it.next36M||"",`${best}d`]);}
@@ -155,7 +154,7 @@ async function main() {
   console.log(`  Slide 4 — EFS Cylinders due <90d:  ${s4.length} items`);
 
   const cw1=[1.30,2.20,1.95,0.90,3.61];
-  const cw2=[1.85,3.22,4.89];
+  const cw2=[1.85,2.80,1.55,3.76];
   const cw34=[1.30,2.05,1.90,0.78,1.35,1.35,1.23];
 
   const prs=new pptxgen();
@@ -164,7 +163,7 @@ async function main() {
   prs.author="ASM";
 
   buildSlide(prs,{accent:"C0392B",title:"Other Parts",subtitle:"NEED TO BE C/OUT",headerLabel:"ALL UNSERVICEABLE ITEMS (ORDERED)",count:s1.length,headers:["MODULE","DESIGNATION","P/N","S/N","REASON"],rows:s1,colW:cw1});
-  buildSlide(prs,{accent:"C0392B",title:"Life Raft",subtitle:"NEED TO BE C/OUT",headerLabel:"LIFE RAFT — NEED TO BE C/OUT",count:s2.length,headers:["P/N","S/N","REASON"],rows:s2,colW:cw2});
+  buildSlide(prs,{accent:"C0392B",title:"Life Raft",subtitle:"NEED TO BE C/OUT",headerLabel:"LIFE RAFT — NEED TO BE C/OUT",count:s2.length,headers:["P/N","S/N","NEXT INSP.","REASON"],rows:s2,colW:cw2});
   buildSlide(prs,{accent:"1E6BB5",title:"EFS",subtitle:"DUE WITHIN 90 DAYS",headerLabel:"SERVICEABLE EFS — DUE WITHIN 90 DAYS",count:s3.length,headers:["H/C","DESIGNATION","P/N","S/N","NEXT 18M","NEXT 36M","DAYS LEFT"],rows:s3,colW:cw34,daysCol:6});
   buildSlide(prs,{accent:"1E6BB5",title:"EFS Cylinders",subtitle:"DUE WITHIN 90 DAYS",headerLabel:"SERVICEABLE EFS CYLINDERS — DUE WITHIN 90 DAYS",count:s4.length,headers:["H/C","DESIGNATION","P/N","S/N","NEXT 18M","NEXT 60M","DAYS LEFT"],rows:s4,colW:cw34,daysCol:6});
 

@@ -23,11 +23,8 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BG_IMAGE   = os.path.join(SCRIPT_DIR, "asm_slide_bg.png")
 
-OUTPUT_DIR = r"C:\Users\jpellegrini\Desktop\APP 5.5"
-if not os.path.exists(OUTPUT_DIR):
-    OUTPUT_DIR = r"C:\ComponentsBay_Logs"
-if not os.path.exists(OUTPUT_DIR):
-    OUTPUT_DIR = SCRIPT_DIR
+OUTPUT_DIR = r"C:\Componentbay\weekly slide report"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 TODAY  = datetime.now().strftime('%Y-%m-%d')
 OUTPUT = os.path.join(OUTPUT_DIR, f"Component_Bay_Slide_{TODAY}.pptx")
@@ -36,7 +33,7 @@ OUTPUT = os.path.join(OUTPUT_DIR, f"Component_Bay_Slide_{TODAY}.pptx")
 def rgb(h): return RGBColor(int(h[0:2],16), int(h[2:4],16), int(h[4:6],16))
 NAVY    = rgb("1B2B4B"); WHITE   = rgb("FFFFFF"); ROW_ALT = rgb("EEF2F7")
 BORDER  = rgb("C8D5E3"); TEXT    = rgb("1E293B"); SUBTEXT = rgb("5A7A99")
-AMBER   = rgb("D4900A"); RED_ACC = rgb("C0392B"); BLUE_ACC= rgb("1E6BB5")
+AMBER   = rgb("D4900A"); RED_ACC = rgb("C0392B"); BLUE_ACC= rgb("1E6BB5"); GREEN_ACC= rgb("15803D")
 CRIMSON = rgb("991B1B"); ORANGE  = rgb("B45309"); GREEN   = rgb("15803D")
 MASK_BG = rgb("F2F0EE"); MASK_DK = rgb("1B2A3E")
 
@@ -179,7 +176,7 @@ def build_slide(prs, accent, title, subtitle, header_label,
     # Mask template text
     add_rect(slide, i(0),    i(0.60), i(6.5),  i(0.55), MASK_BG)
     add_rect(slide, i(12.5), i(7.10), i(0.85), i(0.40), MASK_DK)
-    add_rect(slide, TTX,     TY,      TTW,      H-TY-i(0.20), MASK_BG)
+
 
     # Sidebar
     sb_h = H - TY - i(0.68)
@@ -192,6 +189,17 @@ def build_slide(prs, accent, title, subtitle, header_label,
     add_rect(slide, SB_X+i(0.2), PY, SB_W-i(0.4), i(0.52), accent)
     add_text(slide, subtitle, SB_X+i(0.2), PY, SB_W-i(0.4), i(0.52), p(10), bold=True, color=WHITE, align=PP_ALIGN.CENTER)
     add_text(slide, TODAY, SB_X, H-i(0.88), SB_W, i(0.22), p(7.5), color=SUBTEXT, align=PP_ALIGN.CENTER)
+
+    # Pre-calculate table height so we can draw panel behind everything
+    _BH_pre   = i(0.40)
+    _TBL_Y_pre = TY + _BH_pre
+    _MAX_H_pre = H - _TBL_Y_pre - i(0.75)
+    _n_rows_pre = max(len(rows), 1)
+    _avail_pre  = _MAX_H_pre - i(0.26)
+    _data_rh_pre = min(int(_avail_pre / _n_rows_pre), i(0.26))
+    _TBL_H_pre  = i(0.26) + _data_rh_pre * _n_rows_pre
+    _panel_h    = _BH_pre + _TBL_H_pre + i(0.12)
+    add_rect(slide, TTX, TY, TTW, _panel_h, MASK_BG)
 
     # Header bar
     BH = i(0.40)
@@ -246,7 +254,7 @@ def build_slide(prs, accent, title, subtitle, header_label,
                 fg = day_color(txt); bold = True
             style_cell(tbl.cell(ri+1, ci), txt, font_sz, bold=bold, fg=fg, bg=bg)
 
-    # Bottom accent line — fixed at bottom of table area
+    # Bottom accent line — sits right below table
     add_rect(slide, TTX, TBL_Y+TBL_H-i(0.03), TTW, i(0.025), accent)
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
@@ -276,10 +284,16 @@ def main():
                            it.get('serialNumber',''),trunc(it.get('reason','Unserviceable'),28)])
 
     s2=[]
+    s2b=[]  # Serviceable life rafts
     for it in liferafts:
         if it.get('serviceability')=='Unserviceable':
             s2.append([it.get('partNumber',''),it.get('serialNumber',''),
+                       it.get('nextInspection',''),
                        trunc(it.get('reason','Unserviceable'),36)])
+        else:
+            s2b.append([it.get('partNumber',''),it.get('serialNumber',''),
+                        it.get('nextInspection',''),
+                        it.get('comments','')[:40] if it.get('comments') else ''])
 
     s3=[]
     for it in efs:
@@ -317,11 +331,13 @@ def main():
     prs.slide_width=W; prs.slide_height=H
 
     cw1=[1.30,2.20,1.95,0.90,3.61]
-    cw2=[1.85,3.22,4.89]
+    cw2=[1.85,2.80,1.55,3.76]
+    cw2b=[1.85,2.80,1.55,3.76]
     cw34=[1.30,2.05,1.90,0.78,1.35,1.35,1.23]
 
     build_slide(prs,RED_ACC,"Other Parts","NEED TO BE C/OUT","ALL UNSERVICEABLE ITEMS (ORDERED)",len(s1),["MODULE","DESIGNATION","P/N","S/N","REASON"],s1,cw1)
-    build_slide(prs,RED_ACC,"Life Raft","NEED TO BE C/OUT","LIFE RAFT — NEED TO BE C/OUT",len(s2),["P/N","S/N","REASON"],s2,cw2)
+    build_slide(prs,RED_ACC,"Life Raft","NEED TO BE C/OUT","LIFE RAFT — NEED TO BE C/OUT",len(s2),["P/N","S/N","NEXT INSP.","REASON"],s2,cw2)
+    build_slide(prs,GREEN_ACC,"Life Raft","SERVICEABLE",f"SERVICEABLE LIFE RAFTS — {today}",len(s2b),["P/N","S/N","NEXT INSP.","COMMENTS"],s2b,cw2b)
     build_slide(prs,BLUE_ACC,"EFS","DUE WITHIN 90 DAYS","SERVICEABLE EFS — DUE WITHIN 90 DAYS",len(s3),["H/C","DESIGNATION","P/N","S/N","NEXT 18M","NEXT 36M","DAYS LEFT"],s3,cw34,days_col=6)
     build_slide(prs,BLUE_ACC,"EFS Cylinders","DUE WITHIN 90 DAYS","SERVICEABLE EFS CYLINDERS — DUE WITHIN 90 DAYS",len(s4),["H/C","DESIGNATION","P/N","S/N","NEXT 18M","NEXT 60M","DAYS LEFT"],s4,cw34,days_col=6)
 

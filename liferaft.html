@@ -406,16 +406,47 @@
 
 
         // ── Log Card Missing / Life Raft Missing ────────────────────────────────
+        function getOverdueReason() {
+            // Check if next inspection is overdue
+            const nextInsp = document.getElementById('nextInspection') ? document.getElementById('nextInspection').value : '';
+            if (!nextInsp) return '';
+            const daysLeft = Math.ceil((new Date(nextInsp) - new Date()) / 86400000);
+            return daysLeft < 0 ? '12M Overdue' : '';
+        }
+
         function onLogCardMissing() {
-            if (document.getElementById('logCardMissing').checked) {
+            const checked = document.getElementById('logCardMissing').checked;
+            if (checked) {
                 document.getElementById('liferaftServiceability').value = 'Unserviceable';
                 document.getElementById('lifeRaftMissing').checked = false;
+                // Auto-fill comments
+                const commentsEl = document.getElementById('liferaftComments');
+                if (!commentsEl.value) commentsEl.value = 'Log Card Missing';
+                // Auto-fill reason: overdue + log card missing
+                const overdueStr = getOverdueReason();
+                document.getElementById('liferaftReason').value = overdueStr ? overdueStr + ' / Log Card Missing' : 'Log Card Missing';
+            } else {
+                // Clear auto-filled values
+                const commentsEl = document.getElementById('liferaftComments');
+                if (commentsEl.value === 'Log Card Missing') commentsEl.value = '';
+                document.getElementById('liferaftReason').value = '';
             }
         }
         function onLifeRaftMissing() {
-            if (document.getElementById('lifeRaftMissing').checked) {
+            const checked = document.getElementById('lifeRaftMissing').checked;
+            if (checked) {
                 document.getElementById('liferaftServiceability').value = 'Unserviceable';
                 document.getElementById('logCardMissing').checked = false;
+                // Auto-fill comments
+                const commentsEl = document.getElementById('liferaftComments');
+                if (!commentsEl.value) commentsEl.value = 'Life Raft Missing';
+                // Auto-fill reason: overdue + life raft missing
+                const overdueStr = getOverdueReason();
+                document.getElementById('liferaftReason').value = overdueStr ? overdueStr + ' / Life Raft Missing' : 'Life Raft Missing';
+            } else {
+                const commentsEl = document.getElementById('liferaftComments');
+                if (commentsEl.value === 'Life Raft Missing') commentsEl.value = '';
+                document.getElementById('liferaftReason').value = '';
             }
         }
         function onSvcChange() {
@@ -1171,26 +1202,33 @@
 
             // ── Summary sheet ──────────────────────────────────────────────
             const summaryRows = [
-                [sc('LIFE RAFT SYSTEMS — EXPORT', styleHeader), '', '', '', '', ''],
-                [sc(`Generated: ${today}`, styleLabelGray), '', '', '', '', ''],
+                [sc('LIFE RAFT SYSTEMS — EXPORT', styleHeader), '', '', '', '', '', '', ''],
+                [sc(`Generated: ${today}`, styleLabelGray), '', '', '', '', '', '', ''],
                 [''],
-                [sc('P/N', styleSubLabel), sc('S/N', styleSubLabel), sc('Serviceability', styleSubLabel), sc('Next Inspection', styleSubLabel), sc('Comments', styleSubLabel)],
+                [sc('P/N', styleSubLabel), sc('S/N', styleSubLabel), sc('Serviceability', styleSubLabel), sc('Next Inspection', styleSubLabel), sc('Cylinder S/N', styleSubLabel), sc('Cylinder Next Insp.', styleSubLabel), sc('Log Card Missing', styleSubLabel), sc('Comments', styleSubLabel)],
             ];
             liferaftData.forEach(item => {
-                const expiredCount = (item.subItems || []).filter(s => isExpired(s.expiryDate)).length;
                 const svcStyle = item.serviceability === 'Unserviceable' ? styleExp : styleOK;
+                // Get cylinder subitem
+                const cylItem = (item.subItems || []).find(s => s.item && s.item.toUpperCase().includes('CYLINDER'));
+                const cylSN = cylItem ? (cylItem.serialNumber || cylItem.sn || '') : '';
+                const cylExpiry = cylItem ? (cylItem.expiryDate || '') : '';
+                const logCardFlag = item.logCardMissing ? 'YES' : (item.lifeRaftMissing ? 'MISSING' : '');
                 summaryRows.push([
                     sc(item.partNumber || '', styleSubRow0),
                     sc(item.serialNumber || '', styleSubRow0),
                     sc(item.serviceability || '', svcStyle),
                     sc(item.nextInspection || '', styleSubRow0),
+                    sc(cylSN, styleSubRow0),
+                    sc(cylExpiry, cylExpiry && isExpired(cylExpiry) ? styleExp : styleSubRow0),
+                    sc(logCardFlag, logCardFlag ? styleExp : styleSubRow0),
                     sc(item.comments || '', styleSubRow0),
                 ]);
             });
 
             const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-            wsSummary['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 30 }];
-            wsSummary['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }];
+            wsSummary['!cols'] = [{ wch: 20 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 14 }, { wch: 30 }];
+            wsSummary['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
             XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
 
             // ── One sheet per life raft ────────────────────────────────────
