@@ -280,7 +280,7 @@
             const liferaftData = await loadModule('liferafts', 'componentsBayLifeRafts');
             trackModule('Life Raft', liferaftData);
             liferaftData.forEach(item => {
-                if (item.serviceability === 'Unserviceable') {
+                if (item.serviceability === 'Unserviceable' && !item.lifeRaftMissing) {
                     allUnserviceableItems.push({
                         id: item.id || Date.now() + Math.random(),
                         module: 'Life Raft',

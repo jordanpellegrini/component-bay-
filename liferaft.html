@@ -205,10 +205,21 @@
                         
                         <div class="form-group">
                             <label>Serviceability</label>
-                            <select id="liferaftServiceability" class="form-control">
+                            <select id="liferaftServiceability" class="form-control" onchange="onSvcChange()">
                                 <option value="Serviceable">✅ Serviceable</option>
                                 <option value="Unserviceable">❌ Unserviceable</option>
                             </select>
+                        </div>
+
+                        <div class="form-group" style="display:flex;flex-direction:column;gap:10px;justify-content:center;">
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                <input type="checkbox" id="logCardMissing" onchange="onLogCardMissing()">
+                                <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                <input type="checkbox" id="lifeRaftMissing" onchange="onLifeRaftMissing()">
+                                <span style="font-weight:600;color:#8e44ad;">🔍 Life Raft Missing</span>
+                            </label>
                         </div>
 
                         <div class="form-group">
@@ -393,6 +404,39 @@
             }
         }
 
+
+        // ── Log Card Missing / Life Raft Missing ────────────────────────────────
+        function onLogCardMissing() {
+            if (document.getElementById('logCardMissing').checked) {
+                document.getElementById('liferaftServiceability').value = 'Unserviceable';
+                document.getElementById('lifeRaftMissing').checked = false;
+            }
+        }
+        function onLifeRaftMissing() {
+            if (document.getElementById('lifeRaftMissing').checked) {
+                document.getElementById('liferaftServiceability').value = 'Unserviceable';
+                document.getElementById('logCardMissing').checked = false;
+            }
+        }
+        function onSvcChange() {
+            if (document.getElementById('liferaftServiceability').value === 'Serviceable') {
+                document.getElementById('logCardMissing').checked = false;
+                document.getElementById('lifeRaftMissing').checked = false;
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
+        // Helper: get cylinder subitem from a life raft item
+        function getCylinderInfo(item) {
+            if (!item.subItems || !item.subItems.length) return { sn: '-', expiry: '-' };
+            const cyl = item.subItems.find(s => s.item && s.item.toUpperCase().includes('CYLINDER'));
+            if (!cyl) return { sn: '-', expiry: '-' };
+            return {
+                sn: cyl.serialNumber || cyl.sn || '-',
+                expiry: cyl.expiryDate || '-'
+            };
+        }
+
         function updateSummary() {
             checkOverdueItems();
             
@@ -443,11 +487,12 @@
                 return;
             }
 
-            let html = '<table class="data-table"><thead><tr><th>P/N</th><th>S/N</th><th>Next Inspection</th><th>Days Left ↑</th></tr></thead><tbody>';
+            let html = '<table class="data-table"><thead><tr><th>P/N</th><th>S/N</th><th>Next Inspection</th><th>Days Left ↑</th><th>Cylinder S/N</th><th>Cylinder Next Insp.</th></tr></thead><tbody>';
             upcoming.forEach(item => {
                 const daysLeft = Math.ceil((new Date(item.nextInspection) - today) / 86400000);
                 const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
-                html += `<tr><td>${item.partNumber||'-'}</td><td>${item.serialNumber||'-'}</td><td>${item.nextInspection}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+                const cylW90 = getCylinderInfo(item);
+                html += `<tr><td>${item.partNumber||'-'}</td><td>${item.serialNumber||'-'}</td><td>${item.nextInspection}</td><td style="${urgency}">${daysLeft} days</td><td>${cylW90.sn}</td><td>${cylW90.expiry}</td></tr>`;
             });
             html += '</tbody></table>';
             container.innerHTML = html;
@@ -518,7 +563,7 @@
 
         function updateUnserviceableSection() {
             const search = (document.getElementById('filterUnsvc')?.value || '').toLowerCase();
-            let items = liferaftData.filter(item => item.serviceability === 'Unserviceable');
+            let items = liferaftData.filter(item => item.serviceability === 'Unserviceable' && !item.lifeRaftMissing);
 
             // Sort by S/N ascending
             items.sort((a, b) => (a.serialNumber || '').localeCompare(b.serialNumber || '', undefined, { numeric: true }));
@@ -552,6 +597,8 @@
                                 <th>Designation</th>
                                 <th>P/N</th>
                                 <th>S/N ↑</th>
+                                <th>Cylinder S/N</th>
+                                <th>Cylinder Next Insp.</th>
                                 <th>Reason</th>
                                 <th>Actions</th>
                             </tr>
@@ -562,11 +609,14 @@
             items.forEach(item => {
                 const reasonText = item.reason || 'Unserviceable';
                 const reasonClass = item.reason && item.reason.includes('Expired') ? 'status-overdue' : 'status-unserviceable';
+                const cylUS = getCylinderInfo(item);
                 tableHTML += `
                     <tr>
                         <td>${item.designation}</td>
                         <td>${item.partNumber}</td>
                         <td><a href="#" class="clickable" onclick="showLifeRaftDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td>${cylUS.sn}</td>
+                        <td>${cylUS.expiry}</td>
                         <td><span class="status-badge ${reasonClass}">${reasonText}</span></td>
                         <td>
                             <button class="btn" onclick="editLifeRaft('${item.id}')" style="padding:6px 12px;font-size:12px;">✏️ Edit</button>
@@ -732,6 +782,8 @@
                 subItems: subItemsData,
                 serviceability: (document.getElementById('liferaftServiceability').value === 'Unserviceable' || expiryCheck.hasExpired) ? 'Unserviceable' : 'Serviceable',
                 reason: document.getElementById('liferaftServiceability').value === 'Unserviceable' && document.getElementById('liferaftReason').value.trim() ? document.getElementById('liferaftReason').value.trim() : (expiryCheck.hasExpired ? `Expired items: ${expiryCheck.expiredItems.join(', ')}` : ''),
+                logCardMissing: document.getElementById('logCardMissing') ? document.getElementById('logCardMissing').checked : false,
+                lifeRaftMissing: document.getElementById('lifeRaftMissing') ? document.getElementById('lifeRaftMissing').checked : false,
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser
             };
@@ -771,6 +823,8 @@
             try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             try { document.getElementById('liferaftServiceability').value = 'Serviceable'; } catch(e) {}
             try { document.getElementById('liferaftReason').value = ''; } catch(e) {}
+            try { document.getElementById('logCardMissing').checked = false; } catch(e) {}
+            try { document.getElementById('lifeRaftMissing').checked = false; } catch(e) {}
             document.getElementById('editLifeRaftId').value = '';
             // Don't reset editingLifeRaft here - it should only be reset after successful save
             
@@ -854,6 +908,8 @@
                                 <th>S/N</th>
                                 <th>Next Inspection</th>
                                 <th>Serviceability</th>
+                                <th>Cylinder S/N</th>
+                                <th>Cylinder Next Insp.</th>
                                 <th>Sub-Items</th>
                                 <th>Actions</th>
                             </tr>
@@ -867,6 +923,7 @@
                     if (!sub.expiryDate) return false;
                     return new Date(sub.expiryDate) < new Date();
                 }).length;
+                const cylVA = getCylinderInfo(item);
                 
                 tableHTML += `
                     <tr>
@@ -875,6 +932,8 @@
                         <td><a href="#" class="clickable" onclick="showLifeRaftDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
                         <td>${item.nextInspection || '-'}</td>
                         <td><span class="status-badge ${statusClass}">${item.serviceability || 'N/A'}</span></td>
+                        <td>${cylVA.sn}</td>
+                        <td>${cylVA.expiry}</td>
                         <td>${expiredCount > 0 ? `<span class="status-badge status-overdue">${expiredCount} expired</span>` : `${item.subItems.length} items`}</td>
                         <td>
                             <button class="btn" onclick="editLifeRaft('${item.id}')" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;">✏️</button>
@@ -994,6 +1053,10 @@
             try { document.getElementById('jcnBook').value = editingLifeRaft.jcnBook || ''; } catch(e) {}
             try { document.getElementById('liferaftServiceability').value = editingLifeRaft.manualServiceability || 'Serviceable'; } catch(e) {}
             try { document.getElementById('liferaftReason').value = editingLifeRaft.manualReason || ''; } catch(e) {}
+            try { document.getElementById('logCardMissing').checked = editingLifeRaft.logCardMissing || false; } catch(e) {}
+            try { document.getElementById('lifeRaftMissing').checked = editingLifeRaft.lifeRaftMissing || false; } catch(e) {}
+            try { document.getElementById('logCardMissing').checked = editingLifeRaft.logCardMissing || false; } catch(e) {}
+            try { document.getElementById('lifeRaftMissing').checked = editingLifeRaft.lifeRaftMissing || false; } catch(e) {}
 
             // Fill sub-items
             editingLifeRaft.subItems.forEach((sub, index) => {
