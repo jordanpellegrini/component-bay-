@@ -335,6 +335,12 @@
                             <label>Comments</label>
                             <textarea id="consoleComments" class="form-control" placeholder="Enter detailed comments about the console..."></textarea>
                         </div>
+                        <div class="form-group" style="grid-column: 1 / -1; display:flex; align-items:center; gap:10px;">
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                                <input type="checkbox" id="logCardMissing_avionic" onchange="onLogCardMissing_avionic()">
+                                <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
                 
@@ -1109,6 +1115,7 @@
                 partNumber: partNumber,
                 serialNumber: document.getElementById('consoleSerialNumber').value.trim(),
                 comments: document.getElementById('consoleComments').value.trim(),
+                logCardMissing: document.getElementById('logCardMissing_avionic') ? document.getElementById('logCardMissing_avionic').checked : false,
                 components: components,
                 serviceability: hasMissing ? 'Unserviceable' : 'Serviceable',
                 reason: hasMissing ? `Missing part: ${missingParts.join(', ')}` : '',
@@ -1139,7 +1146,35 @@
             }
         }
 
+
+        // ── Log Card Missing (Avionic) ────────────────────────────────────────────
+        function onLogCardMissing_avionic() {
+            const checked = document.getElementById('logCardMissing_avionic').checked;
+            const commentsEl = document.getElementById('consoleComments');
+            if (checked) {
+                const existing = commentsEl ? commentsEl.value.trim() : '';
+                if (existing && !existing.includes('Missing log card')) {
+                    commentsEl.value = existing + ' / Missing log card';
+                } else if (!existing) {
+                    commentsEl.value = 'Missing log card';
+                }
+                // Force Unserviceable by setting a flag
+                window._logCardMissingAvionic = true;
+            } else {
+                if (commentsEl) {
+                    commentsEl.value = commentsEl.value
+                        .replace(' / Missing log card', '')
+                        .replace('Missing log card / ', '')
+                        .replace('Missing log card', '')
+                        .trim();
+                }
+                window._logCardMissingAvionic = false;
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────────
+
         function resetForm() {
+            if (document.getElementById('logCardMissing_avionic')) document.getElementById('logCardMissing_avionic').checked = false;
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
@@ -1429,6 +1464,7 @@
                 document.getElementById('consolePartNumber').value = itemToEdit.partNumber || '';
                 document.getElementById('consoleSerialNumber').value = itemToEdit.serialNumber || '';
                 document.getElementById('consoleComments').value = itemToEdit.comments || '';
+                if (document.getElementById('logCardMissing_avionic')) document.getElementById('logCardMissing_avionic').checked = itemToEdit.logCardMissing || false;
 
                 // Fill sub-components - wait for form to be visible first
                 setTimeout(() => {
