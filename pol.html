@@ -450,6 +450,7 @@
                 brand: document.getElementById('brand').value.trim(),
                 orderRef: document.getElementById('orderRef').value.trim(),
                 comments: document.getElementById('comments').value.trim(),
+                logCardMissing: document.getElementById('logCardMissing_pol') ? document.getElementById('logCardMissing_pol').checked : false,
                 flightHours: document.getElementById('flightHours').value.trim(),
                 dateOfRemoval: document.getElementById('dateOfRemoval').value,
                 removeFromHC: document.getElementById('removeFromHC').value.trim(),
@@ -560,6 +561,7 @@
             document.getElementById('brand').value = editingItem.brand || '';
             document.getElementById('orderRef').value = editingItem.orderRef || '';
             document.getElementById('comments').value = editingItem.comments || '';
+            if (document.getElementById('logCardMissing_pol')) document.getElementById('logCardMissing_pol').checked = editingItem.logCardMissing || false;
             document.getElementById('flightHours').value = editingItem.flightHours || '';
             document.getElementById('dateOfRemoval').value = editingItem.dateOfRemoval || '';
             document.getElementById('removeFromHC').value = editingItem.removeFromHC || '';
@@ -597,7 +599,39 @@
             resetForm();
         }
 
+
+        // ── Log Card Missing ─────────────────────────────────────────────────────
+        function onLogCardMissing_pol() {
+            const checked = document.getElementById('logCardMissing_pol').checked;
+            const svcEl = document.getElementById('serviceability');
+            const commentsEl = document.getElementById('comments');
+            if (checked) {
+                if (svcEl) svcEl.value = 'Unserviceable';
+                // Append to existing comments
+                const existing = commentsEl ? commentsEl.value.trim() : '';
+                if (existing && !existing.includes('Missing log card')) {
+                    commentsEl.value = existing + ' / Missing log card';
+                } else if (!existing) {
+                    commentsEl.value = 'Missing log card';
+                }
+            } else {
+                if (commentsEl) {
+                    commentsEl.value = commentsEl.value
+                        .replace(' / Missing log card', '')
+                        .replace('Missing log card / ', '')
+                        .replace('Missing log card', '')
+                        .trim();
+                }
+            }
+        }
+        function resetLogCardMissing_pol() {
+            const cb = document.getElementById('logCardMissing_pol');
+            if (cb) cb.checked = false;
+        }
+        // ─────────────────────────────────────────────────────────────────────────
+
         function resetForm() {
+            resetLogCardMissing_pol();
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}

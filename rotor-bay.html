@@ -168,6 +168,12 @@
                             <option value="Unserviceable">Unserviceable</option>
                         </select>
                     </div>
+                    <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:8px;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="logCardMissing_rotor_bay" onchange="onLogCardMissing_rotor_bay()">
+                            <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
+                        </label>
+                    </div>
 
                     <div class="form-group">
                         <label>Order</label>
@@ -518,6 +524,7 @@
                 orderRef: document.getElementById('orderRef').value.trim(),
                 workInProgress: document.getElementById('workInProgress').checked,
                 comments: document.getElementById('comments').value.trim(),
+                logCardMissing: document.getElementById('logCardMissing_rotor_bay') ? document.getElementById('logCardMissing_rotor_bay').checked : false,
                 flightHours: document.getElementById('flightHours').value.trim(),
                 dateOfRemoval: document.getElementById('dateOfRemoval').value,
                 removeFromHC: document.getElementById('removeFromHC').value.trim(),
@@ -554,7 +561,39 @@
             if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
         }
 
+
+        // ── Log Card Missing ─────────────────────────────────────────────────────
+        function onLogCardMissing_rotor_bay() {
+            const checked = document.getElementById('logCardMissing_rotor_bay').checked;
+            const svcEl = document.getElementById('serviceability');
+            const commentsEl = document.getElementById('comments');
+            if (checked) {
+                if (svcEl) svcEl.value = 'Unserviceable';
+                // Append to existing comments
+                const existing = commentsEl ? commentsEl.value.trim() : '';
+                if (existing && !existing.includes('Missing log card')) {
+                    commentsEl.value = existing + ' / Missing log card';
+                } else if (!existing) {
+                    commentsEl.value = 'Missing log card';
+                }
+            } else {
+                if (commentsEl) {
+                    commentsEl.value = commentsEl.value
+                        .replace(' / Missing log card', '')
+                        .replace('Missing log card / ', '')
+                        .replace('Missing log card', '')
+                        .trim();
+                }
+            }
+        }
+        function resetLogCardMissing_rotor_bay() {
+            const cb = document.getElementById('logCardMissing_rotor_bay');
+            if (cb) cb.checked = false;
+        }
+        // ─────────────────────────────────────────────────────────────────────────
+
         function resetForm() {
+            resetLogCardMissing_rotor_bay();
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
@@ -636,6 +675,7 @@
             document.getElementById('orderRef').value = editingItem.orderRef || '';
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('comments').value = editingItem.comments || '';
+            if (document.getElementById('logCardMissing_rotor_bay')) document.getElementById('logCardMissing_rotor_bay').checked = editingItem.logCardMissing || false;
             document.getElementById('flightHours').value = editingItem.flightHours || '';
             document.getElementById('dateOfRemoval').value = editingItem.dateOfRemoval || '';
             document.getElementById('removeFromHC').value = editingItem.removeFromHC || '';

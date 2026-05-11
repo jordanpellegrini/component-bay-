@@ -179,6 +179,12 @@
                             <option value="Unserviceable">Unserviceable</option>
                         </select>
                     </div>
+                    <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:8px;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="logCardMissing_wheel" onchange="onLogCardMissing_wheel()">
+                            <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
+                        </label>
+                    </div>
                     
                     <div class="form-group">
                         <label>Order</label>
@@ -563,6 +569,7 @@
                 workInProgress: document.getElementById('workInProgress').checked,
                 eddyCurrentCout: document.getElementById('eddyCurrentCout').checked,
                 comments: document.getElementById('comments').value.trim(),
+                logCardMissing: document.getElementById('logCardMissing_wheel') ? document.getElementById('logCardMissing_wheel').checked : false,
                 reason: '',
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser
@@ -595,7 +602,39 @@
             }
         }
 
+
+        // ── Log Card Missing ─────────────────────────────────────────────────────
+        function onLogCardMissing_wheel() {
+            const checked = document.getElementById('logCardMissing_wheel').checked;
+            const svcEl = document.getElementById('serviceability');
+            const commentsEl = document.getElementById('comments');
+            if (checked) {
+                if (svcEl) svcEl.value = 'Unserviceable';
+                // Append to existing comments
+                const existing = commentsEl ? commentsEl.value.trim() : '';
+                if (existing && !existing.includes('Missing log card')) {
+                    commentsEl.value = existing + ' / Missing log card';
+                } else if (!existing) {
+                    commentsEl.value = 'Missing log card';
+                }
+            } else {
+                if (commentsEl) {
+                    commentsEl.value = commentsEl.value
+                        .replace(' / Missing log card', '')
+                        .replace('Missing log card / ', '')
+                        .replace('Missing log card', '')
+                        .trim();
+                }
+            }
+        }
+        function resetLogCardMissing_wheel() {
+            const cb = document.getElementById('logCardMissing_wheel');
+            if (cb) cb.checked = false;
+        }
+        // ─────────────────────────────────────────────────────────────────────────
+
         function resetForm() {
+            resetLogCardMissing_wheel();
             document.getElementById('wheelForm').reset();
             editingItem = null;
             document.getElementById('editId').value = '';
@@ -768,6 +807,7 @@
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('eddyCurrentCout').checked = editingItem.eddyCurrentCout || false;
             document.getElementById('comments').value = editingItem.comments || '';
+            if (document.getElementById('logCardMissing_wheel')) document.getElementById('logCardMissing_wheel').checked = editingItem.logCardMissing || false;
 
             hideAllForms();
             document.getElementById('addForm').classList.remove('hidden');

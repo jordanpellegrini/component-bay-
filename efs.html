@@ -122,6 +122,12 @@
                             <option value="Unserviceable">Unserviceable</option>
                         </select>
                     </div>
+                    <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:8px;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="logCardMissing_efs" onchange="onLogCardMissing_efs()">
+                            <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
+                        </label>
+                    </div>
                     
                     <div class="form-group">
                         <label style="display: flex; align-items: center; gap: 8px;">
@@ -549,6 +555,7 @@
                 next18M: document.getElementById('next18M').value,
                 next36M: document.getElementById('next36M').value,
                 comments: document.getElementById('efsComments').value.trim(),
+                logCardMissing: document.getElementById('logCardMissing_efs') ? document.getElementById('logCardMissing_efs').checked : false,
                 flightHours: document.getElementById('flightHours').value.trim(),
                 dateOfRemoval: document.getElementById('dateOfRemoval').value,
                 removeFromHC: document.getElementById('removeFromHC').value.trim(),
@@ -579,7 +586,39 @@
             }
         }
 
+
+        // ── Log Card Missing ─────────────────────────────────────────────────────
+        function onLogCardMissing_efs() {
+            const checked = document.getElementById('logCardMissing_efs').checked;
+            const svcEl = document.getElementById('efsServiceability');
+            const commentsEl = document.getElementById('efsComments');
+            if (checked) {
+                if (svcEl) svcEl.value = 'Unserviceable';
+                // Append to existing comments
+                const existing = commentsEl ? commentsEl.value.trim() : '';
+                if (existing && !existing.includes('Missing log card')) {
+                    commentsEl.value = existing + ' / Missing log card';
+                } else if (!existing) {
+                    commentsEl.value = 'Missing log card';
+                }
+            } else {
+                if (commentsEl) {
+                    commentsEl.value = commentsEl.value
+                        .replace(' / Missing log card', '')
+                        .replace('Missing log card / ', '')
+                        .replace('Missing log card', '')
+                        .trim();
+                }
+            }
+        }
+        function resetLogCardMissing_efs() {
+            const cb = document.getElementById('logCardMissing_efs');
+            if (cb) cb.checked = false;
+        }
+        // ─────────────────────────────────────────────────────────────────────────
+
         function resetForm() {
+            if (document.getElementById('logCardMissing_efs')) document.getElementById('logCardMissing_efs').checked = false;
             document.getElementById('efsDesignation').value = '';
             document.getElementById('efsHC').value = '';
             document.getElementById('efsPartNumber').value = '';
@@ -778,6 +817,7 @@
             document.getElementById('next36M').value = editingEFS.next36M || '';
             
             document.getElementById('efsComments').value = editingEFS.comments || '';
+            if (document.getElementById('logCardMissing_efs')) document.getElementById('logCardMissing_efs').checked = editingEFS.logCardMissing || false;
             document.getElementById('flightHours').value = editingEFS.flightHours || '';
             document.getElementById('dateOfRemoval').value = editingEFS.dateOfRemoval || '';
             document.getElementById('removeFromHC').value = editingEFS.removeFromHC || '';
