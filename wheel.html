@@ -420,7 +420,7 @@
                 tableHTML += `
                     <tr>
                         <td>${item.designation || '-'}</td>
-                        <td>${item.pnTire || '-'}</td>
+                        <td>${item.pnWheel || '-'}</td>
                         <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
                         <td><span class="status-badge ${positionClass}">${item.position || '-'}</span></td>
                         <td><span class="status-badge ${reasonClass}">${reasonText}</span></td>
@@ -647,7 +647,7 @@
                 tableHTML += `
                     <tr>
                         <td>${item.designation || '-'}</td>
-                        <td>${item.pnTire || '-'}</td>
+                        <td>${item.pnWheel || '-'}</td>
                         <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
                         <td>${item.pnWheel || '-'}</td>
                         <td>${item.type || '-'}</td>
