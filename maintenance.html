@@ -81,45 +81,12 @@
                     
                     <div class="form-group required">
                         <label>Part Number (P/N)</label>
-                        <input type="text" id="partNumber" class="form-control" placeholder="Enter part number" required oninput="onPartNumberInput(this.value)">
+                        <input type="text" id="partNumber" class="form-control" placeholder="Enter part number" required>
                     </div>
                     
                     <div class="form-group">
                         <label>Serial Number (S/N)</label>
                         <input type="text" id="serialNumber" class="form-control" placeholder="Enter serial number">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Box Number</label>
-                        <input type="text" id="boxNumber" class="form-control" placeholder="Enter box number">
-                    </div>
-
-                    <!-- Life Raft Rack fields (shown when P/N = S955M1096105) -->
-                    <div id="lifeRaftSection" style="display:none;grid-column:1/-1;background:#f0f7ff;border:1px solid #bdd7f5;border-radius:8px;padding:14px;margin:4px 0;">
-                        <div style="font-weight:700;color:#1B2B4B;margin-bottom:10px;">🛟 Life Raft Rack — Auto Fill</div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-                            <div class="form-group" style="margin:0;">
-                                <label>Manufacturer Date</label>
-                                <input type="date" id="installationDate" class="form-control" oninput="onInstallDateInput(this.value)">
-                            </div>
-                            <div class="form-group" style="margin:0;">
-                                <label>Battery Expiry (auto +3Y)</label>
-                                <input type="date" id="nextInspection" class="form-control" readonly style="background:#e8f4fd;">
-                            </div>
-                            <div class="form-group" style="margin:0;"></div>
-                            <div class="form-group" style="margin:0;">
-                                <label>Battery P/N</label>
-                                <input type="text" id="batteryPN" class="form-control" value="S882A4822102" readonly style="background:#e8f4fd;">
-                            </div>
-                            <div class="form-group" style="margin:0;">
-                                <label>Battery S/N</label>
-                                <input type="text" id="batterySN" class="form-control" placeholder="Enter battery serial number">
-                            </div>
-                            <div class="form-group" style="margin:0;"></div>
-                        </div>
-                        <div id="batteryWarning" style="display:none;margin-top:10px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;color:#856404;font-size:0.9em;">
-                            ⚠️ Battery expired — comment auto-filled
-                        </div>
                     </div>
                     
                     <!-- Row 2: Flight Hours, Order, SR Number -->
@@ -413,67 +380,6 @@
             }
         }
 
-        // ── Life Raft Rack Auto-Fill ────────────────────────────────────────────
-        const LIFE_RAFT_PN = 'S955M1096105';
-        const BATTERY_PN   = 'S882A4822102';
-        const BATTERY_COMMENT = 'Battery expired, need to be replace, Limitation to be open a the installation';
-
-        function onPartNumberInput(val) {
-            const section = document.getElementById('lifeRaftSection');
-            if (val.trim().toUpperCase() === LIFE_RAFT_PN.toUpperCase()) {
-                // Auto-fill designation
-                document.getElementById('designation').value = 'Life Raft Rack';
-                document.getElementById('batteryPN').value = BATTERY_PN;
-                section.style.display = 'block';
-            } else {
-                section.style.display = 'none';
-                // Clear life raft fields if PN changed
-                document.getElementById('installationDate').value = '';
-                document.getElementById('nextInspection').value = '';
-                document.getElementById('batterySN').value = '';
-
-                document.getElementById('batteryWarning').style.display = 'none';
-            }
-        }
-
-        function onInstallDateInput(dateVal) {
-            if (!dateVal) {
-                document.getElementById('nextInspection').value = '';
-                onBatteryExpiryInput('');
-                return;
-            }
-            const d = new Date(dateVal);
-            d.setFullYear(d.getFullYear() + 3);
-            const expiryDate = d.toISOString().split('T')[0];
-            document.getElementById('nextInspection').value = expiryDate;
-            // Trigger battery expiry check with the calculated date
-            onBatteryExpiryInput(expiryDate);
-        }
-
-        function onBatteryExpiryInput(dateVal) {
-            const warning = document.getElementById('batteryWarning');
-            const commentsField = document.getElementById('comments');
-            if (!dateVal) { warning.style.display = 'none'; return; }
-            const expiry = new Date(dateVal);
-            const today = new Date(); today.setHours(0,0,0,0);
-            if (expiry < today) {
-                warning.style.display = 'block';
-                // Set comment if not already there
-                if (!commentsField.value.includes('Battery expired')) {
-                    commentsField.value = BATTERY_COMMENT;
-                }
-                // Keep serviceable
-                document.getElementById('serviceability').value = 'Serviceable';
-            } else {
-                warning.style.display = 'none';
-                // Remove battery comment if present
-                if (commentsField.value === BATTERY_COMMENT) {
-                    commentsField.value = '';
-                }
-            }
-        }
-        // ─────────────────────────────────────────────────────────────────────
-
         function handleFormSubmit(event) {
             event.preventDefault();
             
@@ -488,7 +394,6 @@
                 designation: document.getElementById('designation').value.trim(),
                 partNumber: partNumber,
                 serialNumber: document.getElementById('serialNumber').value.trim(),
-                boxNumber: document.getElementById('boxNumber') ? document.getElementById('boxNumber').value.trim() : '',
                 flightHours: document.getElementById('flightHours').value,
                 order: document.getElementById('order').value.trim(),
                 srNumber: document.getElementById('srNumber').value.trim(),
@@ -503,13 +408,7 @@
                 jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
                 reason: '',
                 lastModified: new Date().toISOString(),
-                modifiedBy: currentUser,
-                // Life Raft Rack specific fields
-                installationDate: document.getElementById('installationDate') ? document.getElementById('installationDate').value : '',
-                nextInspection: document.getElementById('nextInspection') ? document.getElementById('nextInspection').value : '',
-                batteryPN: document.getElementById('batteryPN') ? document.getElementById('batteryPN').value : '',
-                batterySN: document.getElementById('batterySN') ? document.getElementById('batterySN').value : '',
-                batteryExpiry: document.getElementById('nextInspection') ? document.getElementById('nextInspection').value : '',
+                modifiedBy: currentUser
             };
 
             // Handle missing logcard logic
@@ -547,8 +446,6 @@
             try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             document.getElementById('maintenanceForm').reset();
-            document.getElementById('lifeRaftSection').style.display = 'none';
-            document.getElementById('batteryWarning').style.display = 'none';
             // Don't reset editingItem here - it should only be reset after successful save
             document.getElementById('editId').value = '';
             document.getElementById('missingLogcardWarning').classList.add('hidden');
@@ -709,22 +606,6 @@
             document.getElementById('removeFromHC').value = editingItem.removeFromHC || '';
             try { document.getElementById('jcnNumber').value = editingItem.jcnNumber || ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = editingItem.jcnBook || ''; } catch(e) {}
-            try { document.getElementById('boxNumber').value = editingItem.boxNumber || ''; } catch(e) {}
-
-            // Life Raft Rack fields
-            if (editingItem.partNumber && editingItem.partNumber.toUpperCase() === LIFE_RAFT_PN.toUpperCase()) {
-                document.getElementById('lifeRaftSection').style.display = 'block';
-                document.getElementById('installationDate').value = editingItem.installationDate || '';
-                document.getElementById('nextInspection').value = editingItem.batteryExpiry || editingItem.nextInspection || '';
-                document.getElementById('batteryPN').value = editingItem.batteryPN || BATTERY_PN;
-                document.getElementById('batterySN').value = editingItem.batterySN || '';
-                // Check if battery expired
-                if (editingItem.batteryExpiry || editingItem.nextInspection) {
-                    onBatteryExpiryInput(editingItem.batteryExpiry || editingItem.nextInspection);
-                }
-            } else {
-                document.getElementById('lifeRaftSection').style.display = 'none';
-            }
 
             document.getElementById('addForm').style.display = 'block';
             document.getElementById('viewAllSection').classList.add('hidden');

@@ -233,7 +233,7 @@
 
         .top-toolbar {
             position: fixed;
-            top: 30px;
+            top: 80px;
             right: 30px;
             display: flex;
             gap: 0;
@@ -306,7 +306,34 @@
         .alert-ok-btn:hover { background: #27ae60; }
         .alert-nothing { text-align: center; color: #27ae60; font-weight: 600; font-size: 1.1em; padding: 20px 0; }
         @keyframes alertPopIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    </style>
+    
+        /* ── Mobile Responsive ─────────────────────────────────────────── */
+        @media (max-width: 768px) {
+            body { font-size: 13px; }
+            .main-header { padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
+            .header-actions { flex-wrap: wrap; gap: 6px; }
+            .header-actions .btn { padding: 6px 10px; font-size: 12px; }
+            .container, .main-container, .content-wrapper {
+                padding: 8px !important; max-width: 100% !important;
+            }
+            .panel, .summary-cards, .grid-2col, .grid-cols-2 {
+                grid-template-columns: 1fr !important;
+            }
+            .data-table, table {
+                display: block; overflow-x: auto;
+                white-space: nowrap; font-size: 12px;
+            }
+            .form-grid, .form-row { grid-template-columns: 1fr !important; }
+            .modal-content {
+                width: 98vw !important; max-width: 98vw !important;
+                margin: 4px auto !important; border-radius: 8px !important;
+            }
+            .summary-card { min-width: unset !important; }
+            .btn { font-size: 12px !important; padding: 6px 10px !important; }
+            .right-panel, .sidebar-right { display: none !important; }
+            .nav-links, .header-nav { flex-wrap: wrap; gap: 4px; }
+        }
+</style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <!-- PWA -->
