@@ -83,9 +83,9 @@
                         <label>P/N Tire</label>
                         <select id="pnTire" class="form-control" onchange="handleTireSelection()">
                             <option value="">Select P/N Tire</option>
-                            <option value="S322F1021200">S322F1021200</option>
-                            <option value="S322F1022200">S322F1022200</option>
-                            <option value="S322F1023200">S322F1023200</option>
+                            <option value="S324F1021200">S324F1021200</option>
+                            <option value="S324F1022200">S324F1022200</option>
+                            <option value="S324F1023200">S324F1023200</option>
                             <option value="S324F1121200">S324F1121200</option>
                         </select>
                     </div>
@@ -309,9 +309,9 @@
 
         // Tire to wheel mapping with designation
         const tireMapping = {
-            'S322F1021200': { pnWheel: 'S324F1851855', type: 'TTH', position: 'MLG', designation: 'MLG Wheel TTH' },
-            'S322F1022200': { pnWheel: 'S324F1851856', type: 'NFH', position: 'MLG', designation: 'MLG Wheel NFH' },
-            'S322F1023200': { pnWheel: 'S324F1851861', type: 'TTH', position: 'MLG', designation: 'MLG Wheel TTH' },
+            'S324F1021200': { pnWheel: 'S324F1851855', type: 'TTH', position: 'MLG', designation: 'MLG Wheel TTH' },
+            'S324F1022200': { pnWheel: 'S324F1851856', type: 'NFH', position: 'MLG', designation: 'MLG Wheel NFH' },
+            'S324F1023200': { pnWheel: 'S324F1851861', type: 'TTH', position: 'MLG', designation: 'MLG Wheel TTH' },
             'S324F1121200': { pnWheel: 'S324F1852853', type: 'TTH/NFH', position: 'NLG', designation: 'NLG Wheel TTH/NFH' }
         };
 
@@ -871,7 +871,16 @@
             // Fill form with existing data
             // pnTire: set select value then restore all dependent fields manually
             // (handleTireSelection would overwrite them with mapping defaults)
-            document.getElementById('pnTire').value = editingItem.pnTire || '';
+            const pnTireEl = document.getElementById('pnTire');
+            const savedPnTire = editingItem.pnTire || '';
+            // If saved value not in options, add it temporarily
+            if (savedPnTire && !Array.from(pnTireEl.options).some(o => o.value === savedPnTire)) {
+                const opt = document.createElement('option');
+                opt.value = savedPnTire;
+                opt.textContent = savedPnTire;
+                pnTireEl.appendChild(opt);
+            }
+            pnTireEl.value = savedPnTire;
             document.getElementById('designation').value = editingItem.designation || '';
             document.getElementById('pnWheel').value = editingItem.pnWheel || '';
             document.getElementById('type').value = editingItem.type || '';
@@ -879,7 +888,10 @@
 
             document.getElementById('serialNumber').value = editingItem.serialNumber || '';
             document.getElementById('numberTireChange').value = editingItem.numberTireChange || '';
-            document.getElementById('flightHours').value = editingItem.flightHours || '';
+            // Force flightHours after a tick to avoid any reset interference
+            const fh = editingItem.flightHours || '';
+            document.getElementById('flightHours').value = fh;
+            setTimeout(() => { document.getElementById('flightHours').value = fh; }, 0);
             document.getElementById('dateOfRemoval').value = editingItem.dateOfRemoval || '';
             if (document.getElementById('installedOnHC')) document.getElementById('installedOnHC').value = editingItem.installedOnHC || '';
             document.getElementById('removeFromHC').value = editingItem.removeFromHC || '';
