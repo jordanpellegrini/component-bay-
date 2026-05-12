@@ -240,12 +240,7 @@
                 <span>📋 All Wheel Items</span>
                 <span class="badge" id="tableCount">0</span>
                 <div style="display:flex;align-items:center;gap:12px;margin-left:auto;">
-                    <select id="filterPosition" onchange="refreshTable()" style="font-size:12px;padding:3px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:white;">
-                        <option value="">All Positions</option>
-                        <option value="MLG">MLG only</option>
-                        <option value="NLG">NLG only</option>
-                    </select>
-                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:white;">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:#222;background:rgba(255,255,255,0.85);padding:3px 10px;border-radius:4px;">
                         <input type="checkbox" id="filterNoHC" checked onchange="refreshTable()">
                         <span>🔍 Spare/Stock only</span>
                     </label>
@@ -256,6 +251,11 @@
                     <input type="text" id="filterSN" class="form-control" placeholder="🔎 S/N..." style="flex:1;min-width:120px;" oninput="refreshTable()">
                     <input type="text" id="filterPNWheel" class="form-control" placeholder="🔎 P/N Wheel..." style="flex:1;min-width:140px;" oninput="refreshTable()">
                     <input type="text" id="filterAC" class="form-control" placeholder="🔎 A/C..." style="flex:1;min-width:120px;" oninput="refreshTable()">
+                    <select id="filterPosition" class="form-control" style="flex:1;min-width:130px;" onchange="refreshTable()">
+                        <option value="">All Positions</option>
+                        <option value="MLG">MLG only</option>
+                        <option value="NLG">NLG only</option>
+                    </select>
                     <select id="filterServiceability" class="form-control" style="flex:1;min-width:150px;" onchange="refreshTable()">
                         <option value="">All Serviceability</option>
                         <option value="Serviceable">Serviceable</option>
