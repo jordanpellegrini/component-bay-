@@ -252,6 +252,17 @@
                 </div>
             </div>
             <div class="panel-body">
+                <div class="filter-bar" style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;align-items:center;">
+                    <input type="text" id="filterSN" class="form-control" placeholder="🔎 S/N..." style="flex:1;min-width:120px;" oninput="refreshTable()">
+                    <input type="text" id="filterPNWheel" class="form-control" placeholder="🔎 P/N Wheel..." style="flex:1;min-width:140px;" oninput="refreshTable()">
+                    <input type="text" id="filterAC" class="form-control" placeholder="🔎 A/C..." style="flex:1;min-width:120px;" oninput="refreshTable()">
+                    <select id="filterServiceability" class="form-control" style="flex:1;min-width:150px;" onchange="refreshTable()">
+                        <option value="">All Serviceability</option>
+                        <option value="Serviceable">Serviceable</option>
+                        <option value="Unserviceable">Unserviceable</option>
+                    </select>
+                    <button onclick="clearFilters()" class="btn" style="padding:8px 14px;font-size:12px;background:#6c757d;color:white;white-space:nowrap;">✖ Clear</button>
+                </div>
                 <div id="wheelTable"></div>
             </div>
         </div>
@@ -686,16 +697,32 @@
             hideMessage();
         }
 
+        function clearFilters() {
+            ['filterSN','filterPNWheel','filterAC'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+            const fs = document.getElementById('filterServiceability'); if(fs) fs.value = '';
+            const fp = document.getElementById('filterPosition'); if(fp) fp.value = '';
+            const fn = document.getElementById('filterNoHC'); if(fn) fn.checked = false;
+            refreshTable();
+        }
+
         function refreshTable() {
             const tableContainer = document.getElementById('wheelTable');
-            // Apply H/C filter
+            // Apply all filters
             const filterNoHC = document.getElementById('filterNoHC');
             const filterPos = document.getElementById('filterPosition');
             const posVal = filterPos ? filterPos.value : '';
+            const snVal = (document.getElementById('filterSN')?.value || '').toLowerCase().trim();
+            const pnWheelVal = (document.getElementById('filterPNWheel')?.value || '').toLowerCase().trim();
+            const acVal = (document.getElementById('filterAC')?.value || '').toLowerCase().trim();
+            const servVal = document.getElementById('filterServiceability')?.value || '';
             const displayData = wheelData.filter(item => {
                 const noHCOk = (!filterNoHC || !filterNoHC.checked) || (!item.installedOnHC || item.installedOnHC.trim() === '');
                 const posOk = !posVal || (item.position || '') === posVal;
-                return noHCOk && posOk;
+                const snOk = !snVal || (item.serialNumber || '').toLowerCase().includes(snVal);
+                const pnWheelOk = !pnWheelVal || (item.pnWheel || '').toLowerCase().includes(pnWheelVal);
+                const acOk = !acVal || (item.installedOnHC || '').toLowerCase().includes(acVal);
+                const servOk = !servVal || (item.serviceability || '') === servVal;
+                return noHCOk && posOk && snOk && pnWheelOk && acOk && servOk;
             });
             document.getElementById('tableCount').textContent = displayData.length + '/' + wheelData.length;
 
@@ -842,12 +869,15 @@
             if (!editingItem) return;
 
             // Fill form with existing data
-            document.getElementById('designation').value = editingItem.designation || '';
+            // pnTire: set select value then restore all dependent fields manually
+            // (handleTireSelection would overwrite them with mapping defaults)
             document.getElementById('pnTire').value = editingItem.pnTire || '';
-            document.getElementById('serialNumber').value = editingItem.serialNumber || '';
+            document.getElementById('designation').value = editingItem.designation || '';
             document.getElementById('pnWheel').value = editingItem.pnWheel || '';
             document.getElementById('type').value = editingItem.type || '';
             document.getElementById('position').value = editingItem.position || '';
+
+            document.getElementById('serialNumber').value = editingItem.serialNumber || '';
             document.getElementById('numberTireChange').value = editingItem.numberTireChange || '';
             document.getElementById('flightHours').value = editingItem.flightHours || '';
             document.getElementById('dateOfRemoval').value = editingItem.dateOfRemoval || '';
