@@ -149,7 +149,11 @@
                         <input type="date" id="dateOfRemoval" class="form-control">
                     </div>
                     
-                    <!-- Row 4: Remove from H/C, Serviceability, Order -->
+                    <!-- Row 4: Installed on H/C, Remove from H/C -->
+                    <div class="form-group">
+                        <label>Installed on H/C</label>
+                        <input type="text" id="installedOnHC" class="form-control" placeholder="e.g. QA250" oninput="onHCInput(this.value)">
+                    </div>
                     <div class="form-group">
                         <label>Remove from H/C</label>
                         <input type="text" id="removeFromHC" class="form-control" placeholder="Enter H/C registration">
@@ -235,6 +239,10 @@
             <div class="panel-header module-wheel">
                 <span>📋 All Wheel Items</span>
                 <span class="badge" id="tableCount">0</span>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:white;margin-left:auto;">
+                    <input type="checkbox" id="filterNoHC" checked onchange="refreshTable()">
+                    <span>🔍 Spare/Stock only</span>
+                </label>
             </div>
             <div class="panel-body">
                 <div id="wheelTable"></div>
@@ -561,6 +569,7 @@
                 numberTireChange: document.getElementById('numberTireChange').value,
                 flightHours: document.getElementById('flightHours').value,
                 dateOfRemoval: document.getElementById('dateOfRemoval').value,
+                installedOnHC: document.getElementById('installedOnHC') ? document.getElementById('installedOnHC').value.trim() : '',
                 removeFromHC: document.getElementById('removeFromHC').value.trim(),
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
                 jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
@@ -633,6 +642,31 @@
         }
         // ─────────────────────────────────────────────────────────────────────────
 
+
+        // ── H/C Auto-fill P/N Tire ───────────────────────────────────────────────
+        function getAcNumber(hc) {
+            // Extract number from H/C (e.g. "QA250" -> 250, "QA266" -> 266)
+            const m = String(hc).toUpperCase().match(/QA(\d+)/);
+            return m ? parseInt(m[1]) : null;
+        }
+
+        function onHCInput(hc) {
+            const num = getAcNumber(hc);
+            if (num === null) return;
+            const pnTireEl = document.getElementById('pnTire');
+            if (!pnTireEl) return;
+
+            if (num >= 250 && num <= 265) {
+                pnTireEl.value = 'S324F1023200';
+                handleTireSelection(); // trigger existing auto-fill
+            } else if (num >= 266 && num <= 277) {
+                pnTireEl.value = 'S324F1022200';
+                handleTireSelection();
+            }
+            // NLG stays unchanged (user selects manually or from position)
+        }
+        // ─────────────────────────────────────────────────────────────────────────
+
         function resetForm() {
             resetLogCardMissing_wheel();
             document.getElementById('wheelForm').reset();
@@ -647,7 +681,12 @@
 
         function refreshTable() {
             const tableContainer = document.getElementById('wheelTable');
-            document.getElementById('tableCount').textContent = wheelData.length;
+            // Apply H/C filter
+            const filterNoHC = document.getElementById('filterNoHC');
+            const displayData = (filterNoHC && filterNoHC.checked)
+                ? wheelData.filter(item => !item.installedOnHC || item.installedOnHC.trim() === '')
+                : wheelData;
+            document.getElementById('tableCount').textContent = displayData.length + '/' + wheelData.length;
 
             if (wheelData.length === 0) {
                 tableContainer.innerHTML = `
@@ -679,7 +718,7 @@
                         <tbody>
             `;
 
-            wheelData.forEach(item => {
+            displayData.forEach(item => {
                 const statusClass = item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable';
                 const positionClass = item.position === 'MLG' ? 'position-mlg' : 'position-nlg';
                 
@@ -799,6 +838,7 @@
             document.getElementById('numberTireChange').value = editingItem.numberTireChange || '';
             document.getElementById('flightHours').value = editingItem.flightHours || '';
             document.getElementById('dateOfRemoval').value = editingItem.dateOfRemoval || '';
+            if (document.getElementById('installedOnHC')) document.getElementById('installedOnHC').value = editingItem.installedOnHC || '';
             document.getElementById('removeFromHC').value = editingItem.removeFromHC || '';
             try { document.getElementById('jcnNumber').value = editingItem.jcnNumber || ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = editingItem.jcnBook || ''; } catch(e) {}
