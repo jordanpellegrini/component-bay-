@@ -1135,6 +1135,7 @@
                 <button onclick="clearAttachment()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;">✕</button>
             </div>
             <!-- Input row -->
+            <div id="claudeAttachmentPreview" style="display:none;background:#f3f0ff;border-radius:8px;padding:6px 10px;font-size:12px;color:#7c3aed;margin-bottom:4px;"></div>
             <div style="display:flex;gap:8px;align-items:flex-end;">
                 <!-- Photo button -->
                 <label title="Upload photo" style="cursor:pointer;background:#f3f0ff;border:none;border-radius:10px;padding:10px 12px;color:#7c3aed;font-size:18px;align-self:stretch;display:flex;align-items:center;">
@@ -1163,6 +1164,22 @@
         _claudeAttachment = null;
         var preview = document.getElementById('claudeAttachmentPreview');
         if (preview) preview.style.display = 'none';
+    }
+
+    function handlePhotoAttach(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64 = e.target.result.split(',')[1];
+            _claudeAttachment = { type: 'image', name: file.name, mimeType: file.type, data: base64 };
+            var preview = document.getElementById('claudeAttachmentPreview');
+            if (preview) {
+                preview.innerHTML = '📷 ' + file.name + ' <span onclick="clearAttachment();document.getElementById(\'claudePhotoInput\').value=\'\'" style="cursor:pointer;color:#ef4444;font-weight:bold;margin-left:6px;">✕</span>';
+                preview.style.display = 'block';
+            }
+        };
+        reader.readAsDataURL(file);
     }
 
     function openClaudeChat() {

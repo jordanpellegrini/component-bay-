@@ -977,6 +977,22 @@
         if (preview) preview.style.display = 'none';
     }
 
+    function handlePhotoAttach(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64 = e.target.result.split(',')[1];
+            _claudeAttachment = { type: 'image', name: file.name, mimeType: file.type, data: base64 };
+            var preview = document.getElementById('claudeAttachmentPreview');
+            if (preview) {
+                preview.innerHTML = '📷 ' + file.name + ' <span onclick="clearAttachment();document.getElementById(\'claudePhotoInput\').value=\'\';" style="cursor:pointer;color:#ef4444;font-weight:bold;margin-left:6px;">✕</span>';
+                preview.style.display = 'block';
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+
     function openClaudeChat() {
         document.getElementById('claudeChatModal').style.display = 'flex';
         try { _claudeHistory = JSON.parse(localStorage.getItem(_CLAUDE_USER_KEY) || '[]'); } catch(e) { _claudeHistory = []; }
