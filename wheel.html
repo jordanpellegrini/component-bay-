@@ -315,6 +315,23 @@
             'S324F1121200': { pnWheel: 'S324F1852853', type: 'TTH/NFH', position: 'NLG', designation: 'NLG Wheel TTH/NFH' }
         };
 
+        const designationMapping = {
+            'MLG Wheel TTH': { pnTire: 'S324F1023200', pnWheel: 'S324F1851861', type: 'TTH', position: 'MLG' },
+            'MLG Wheel NFH': { pnTire: 'S324F1022200', pnWheel: 'S324F1851856', type: 'NFH', position: 'MLG' },
+            'NLG Wheel TTH/NFH': { pnTire: 'S324F1121200', pnWheel: 'S324F1852853', type: 'TTH/NFH', position: 'NLG' }
+        };
+
+        function applyDesignationMapping(fields) {
+            if (!fields.designation) return fields;
+            const map = designationMapping[fields.designation.trim()];
+            if (!map) return fields;
+            if (!fields.pnTire)   fields.pnTire   = map.pnTire;
+            if (!fields.pnWheel)  fields.pnWheel  = map.pnWheel;
+            if (!fields.type)     fields.type     = map.type;
+            if (!fields.position) fields.position = map.position;
+            return fields;
+        }
+
         // Eddy current tire change numbers
         const eddyCurrentNumbers = ['5', '8', '10', '12', '14', '16', '17', '18', '19', '20'];
 
@@ -1135,6 +1152,7 @@
                 <button onclick="clearAttachment()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;">✕</button>
             </div>
             <!-- Input row -->
+            <div id="claudeAttachmentPreview" style="display:none;background:#f3f0ff;border-radius:8px;padding:6px 10px;font-size:12px;color:#7c3aed;margin-bottom:4px;"></div>
             <div style="display:flex;gap:8px;align-items:flex-end;">
                 <!-- Photo button -->
                 <label title="Upload photo" style="cursor:pointer;background:#f3f0ff;border:none;border-radius:10px;padding:10px 12px;color:#7c3aed;font-size:18px;align-self:stretch;display:flex;align-items:center;">
@@ -1163,6 +1181,22 @@
         _claudeAttachment = null;
         var preview = document.getElementById('claudeAttachmentPreview');
         if (preview) preview.style.display = 'none';
+    }
+
+    function handlePhotoAttach(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64 = e.target.result.split(',')[1];
+            _claudeAttachment = { type: 'image', name: file.name, mimeType: file.type, data: base64 };
+            var preview = document.getElementById('claudeAttachmentPreview');
+            if (preview) {
+                preview.innerHTML = '📷 ' + file.name + ' <span onclick="clearAttachment();document.getElementById(\'claudePhotoInput\').value=\'\'" style="cursor:pointer;color:#ef4444;font-weight:bold;margin-left:6px;">✕</span>';
+                preview.style.display = 'block';
+            }
+        };
+        reader.readAsDataURL(file);
     }
 
     function openClaudeChat() {
@@ -1283,7 +1317,7 @@ Respond in the same language as the user. Be concise.`;
                         const allData = (typeof wheelData !== 'undefined' ? wheelData : []);
                         const item = allData.find(i => i.id === action.id);
                         if (item && window.ComponentsBayDB) {
-                            Object.assign(item, action.fields);
+                            Object.assign(item, applyDesignationMapping(action.fields));
                             item.lastModified = new Date().toISOString();
                             item.modifiedBy = localStorage.getItem('componentsBayCurrentUser') || 'unknown';
                             await window.ComponentsBayDB.save('wheels', {...item});
@@ -1302,7 +1336,7 @@ Respond in the same language as the user. Be concise.`;
                                 createdAt: new Date().toISOString(),
                                 createdBy: localStorage.getItem('componentsBayCurrentUser') || 'unknown',
                                 lastModified: new Date().toISOString(),
-                                ...action.fields
+                                ...applyDesignationMapping(action.fields)
                             };
                             await window.ComponentsBayDB.save('wheels', newItem);
                             if (typeof wheelData !== 'undefined') wheelData.push(newItem);
