@@ -239,10 +239,17 @@
             <div class="panel-header module-wheel">
                 <span>📋 All Wheel Items</span>
                 <span class="badge" id="tableCount">0</span>
-                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:white;margin-left:auto;">
-                    <input type="checkbox" id="filterNoHC" checked onchange="refreshTable()">
-                    <span>🔍 Spare/Stock only</span>
-                </label>
+                <div style="display:flex;align-items:center;gap:12px;margin-left:auto;">
+                    <select id="filterPosition" onchange="refreshTable()" style="font-size:12px;padding:3px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:white;">
+                        <option value="">All Positions</option>
+                        <option value="MLG">MLG only</option>
+                        <option value="NLG">NLG only</option>
+                    </select>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:white;">
+                        <input type="checkbox" id="filterNoHC" checked onchange="refreshTable()">
+                        <span>🔍 Spare/Stock only</span>
+                    </label>
+                </div>
             </div>
             <div class="panel-body">
                 <div id="wheelTable"></div>
@@ -683,9 +690,13 @@
             const tableContainer = document.getElementById('wheelTable');
             // Apply H/C filter
             const filterNoHC = document.getElementById('filterNoHC');
-            const displayData = (filterNoHC && filterNoHC.checked)
-                ? wheelData.filter(item => !item.installedOnHC || item.installedOnHC.trim() === '')
-                : wheelData;
+            const filterPos = document.getElementById('filterPosition');
+            const posVal = filterPos ? filterPos.value : '';
+            const displayData = wheelData.filter(item => {
+                const noHCOk = (!filterNoHC || !filterNoHC.checked) || (!item.installedOnHC || item.installedOnHC.trim() === '');
+                const posOk = !posVal || (item.position || '') === posVal;
+                return noHCOk && posOk;
+            });
             document.getElementById('tableCount').textContent = displayData.length + '/' + wheelData.length;
 
             if (wheelData.length === 0) {
@@ -707,6 +718,7 @@
                                 <th>Designation</th>
                                 <th>P/N Wheel</th>
                                 <th>S/N</th>
+                                <th>A/C</th>
                                 <th>P/N Tire</th>
                                 <th>Type</th>
                                 <th>Position</th>
@@ -727,6 +739,7 @@
                         <td>${item.designation || '-'}</td>
                         <td>${item.pnWheel || '-'}</td>
                         <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td>${item.installedOnHC || '-'}</td>
                         <td>${item.pnTire || '-'}</td>
                         <td>${item.type || '-'}</td>
                         <td><span class="${positionClass}">${item.position || '-'}</span></td>

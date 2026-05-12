@@ -20,8 +20,9 @@ from lxml import etree
 SUPABASE_URL = "https://nwidtkiteamvnomewjux.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im53aWR0a2l0ZWFtdm5vbWV3anV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMTM3MDAsImV4cCI6MjA4Njg4OTcwMH0.fvKwq5B8Bdr2Hv67yvB6JRKA2Gu3xTIEgPmcmJj0nvI"
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-BG_IMAGE   = os.path.join(SCRIPT_DIR, "asm_slide_bg.png")
+SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
+BG_IMAGE     = os.path.join(SCRIPT_DIR, "asm_slide_bg.png")
+TEMPLATE_PPT = os.path.join(SCRIPT_DIR, "template_ppt.pptx")
 
 OUTPUT_DIR = r"C:\Componentbay\weekly slide report"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -167,15 +168,8 @@ def add_text(slide, text, x, y, w, h, size, bold=False, color=None, align=PP_ALI
 def build_slide(prs, accent, title, subtitle, header_label,
                 count, headers, rows, col_w_in, days_col=-1):
 
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-
-    # Background
-    if os.path.exists(BG_IMAGE):
-        slide.shapes.add_picture(BG_IMAGE, i(0), i(0), W, H)
-
-    # Mask template text
-    add_rect(slide, i(0),    i(0.60), i(6.5),  i(0.55), MASK_BG)
-    add_rect(slide, i(12.5), i(7.10), i(0.85), i(0.40), MASK_DK)
+    # Use template layout (layout index 0 = the ASM template)
+    slide = prs.slides.add_slide(prs.slide_layouts[0])
 
 
     # Sidebar
@@ -204,7 +198,7 @@ def build_slide(prs, accent, title, subtitle, header_label,
     # Header bar
     BH = i(0.40)
     add_rect(slide, TTX, TY, TTW, BH, accent)
-    add_text(slide, f"!  {header_label}", TTX+i(0.12), TY, TTW-i(1.6), BH, p(9.5), bold=True, color=WHITE, align=PP_ALIGN.LEFT)
+    add_text(slide, f"{header_label}", TTX+i(0.12), TY, TTW-i(1.6), BH, p(9.5), bold=True, color=WHITE, align=PP_ALIGN.LEFT)
     add_rect(slide, TTX+TTW-i(1.1), TY+i(0.06), i(0.95), BH-i(0.12), WHITE, WHITE)
     add_text(slide, str(count), TTX+TTW-i(1.1), TY+i(0.06), i(0.95), BH-i(0.12), p(13), bold=True, color=accent, align=PP_ALIGN.CENTER)
 
@@ -275,8 +269,9 @@ def main():
     s1=[]
     for mod, items in [("Maintenance",maint),("Composite",comp),("Avionic",avio),
                         ("Engine",eng),("Rotor Bay",rotor),("IAFT/EAFT",iaft),
-                        ("POL",pol),("Tools",tools),("Troop Seat",troop),
+                        ("Troop Seat",troop),
                         ("EFS Float",efs),("EFS Cyl.",efs_cyl)]:
+                        # POL and Tools excluded from U/S slide
         for it in items:
             if it.get('serviceability')=='Unserviceable':
                 pn=it.get('pnWheel') or it.get('partNumber','')
@@ -311,15 +306,13 @@ def main():
     s4=[]
     for it in efs_cyl:
         if it.get('serviceability')=='Unserviceable': continue
-        best=999
-        for f in ['next18M','next60M']:
-            d=days_left(it.get(f))
-            if d is not None and 0<=d<=90 and d<best: best=d
-        if best<999:
+        # Only check next60M (not next18M) per requirement
+        d=days_left(it.get('next60M'))
+        if d is not None and 0<=d<=180:  # 6 months = ~180 days
             s4.append([it.get('hc',''),trunc(it.get('designation',''),22),
                        it.get('partNumber',''),it.get('serialNumber',''),
-                       it.get('next18M',''),it.get('next60M',''),f"{best}d"])
-    s4.sort(key=lambda r:int(r[6].replace('d','')))
+                       it.get('next60M',''),f"{d}d"])
+    s4.sort(key=lambda r:int(r[5].replace('d','')))
 
     print(f"  Slide 1 — Other Parts U/S:        {len(s1)}")
     print(f"  Slide 2 — Life Raft U/S:           {len(s2)}")
@@ -327,19 +320,36 @@ def main():
     print(f"  Slide 4 — EFS Cylinders <90d:      {len(s4)}")
     print("\nGeneration PPTX...")
 
-    prs = Presentation()
-    prs.slide_width=W; prs.slide_height=H
+    # Load template for proper ASM branding
+    if os.path.exists(TEMPLATE_PPT):
+        prs = Presentation(TEMPLATE_PPT)
+        # Remove the template slide (we only need the layouts)
+        from pptx.oxml.ns import qn as _qn
+        rId = prs.slides._sldIdLst[0].get('r:id') if len(prs.slides) > 0 else None
+        if rId:
+            prs.part.drop_rel(rId)
+            del prs.slides._sldIdLst[0]
+    else:
+        prs = Presentation()
+        prs.slide_width=W; prs.slide_height=H
 
     cw1=[1.30,2.20,1.95,0.90,3.61]
     cw2=[1.85,2.80,1.55,3.76]
     cw2b=[1.85,2.80,1.55,3.76]
-    cw34=[1.30,2.05,1.90,0.78,1.35,1.35,1.23]
+    cw34=[1.30,2.05,1.90,0.78,1.60,1.33]  # EFS Cyl: H/C, Desig, P/N, S/N, Next60M, Days
 
-    build_slide(prs,RED_ACC,"Other Parts","NEED TO BE C/OUT","ALL UNSERVICEABLE ITEMS (ORDERED)",len(s1),["MODULE","DESIGNATION","P/N","S/N","REASON"],s1,cw1)
-    build_slide(prs,RED_ACC,"Life Raft","NEED TO BE C/OUT","LIFE RAFT — NEED TO BE C/OUT",len(s2),["P/N","S/N","NEXT INSP.","REASON"],s2,cw2)
-    build_slide(prs,GREEN_ACC,"Life Raft","SERVICEABLE",f"SERVICEABLE LIFE RAFTS — {TODAY}",len(s2b),["P/N","S/N","NEXT INSP.","COMMENTS"],s2b,cw2b)
-    build_slide(prs,BLUE_ACC,"EFS","DUE WITHIN 90 DAYS","SERVICEABLE EFS — DUE WITHIN 90 DAYS",len(s3),["H/C","DESIGNATION","P/N","S/N","NEXT 18M","NEXT 36M","DAYS LEFT"],s3,cw34,days_col=6)
-    build_slide(prs,BLUE_ACC,"EFS Cylinders","DUE WITHIN 90 DAYS","SERVICEABLE EFS CYLINDERS — DUE WITHIN 90 DAYS",len(s4),["H/C","DESIGNATION","P/N","S/N","NEXT 18M","NEXT 60M","DAYS LEFT"],s4,cw34,days_col=6)
+    def paginate(prs, accent, title, subtitle, header_label, data, headers, col_widths, days_col=-1, page_size=22):
+        total = len(data)
+        pages = [data[i:i+page_size] for i in range(0, max(len(data),1), page_size)]
+        for pi, page in enumerate(pages):
+            suffix = f" ({pi+1}/{len(pages)})" if len(pages) > 1 else ""
+            build_slide(prs, accent, title, subtitle, header_label+suffix, total, headers, page, col_widths, days_col=days_col)
+
+    paginate(prs, RED_ACC,   "Other Parts",   "NEED TO BE C/OUT",  "ALL UNSERVICEABLE ITEMS (ORDERED)",              s1,  ["MODULE","DESIGNATION","P/N","S/N","REASON"],                   cw1)
+    paginate(prs, RED_ACC,   "Life Raft",     "NEED TO BE C/OUT",  "LIFE RAFT — NEED TO BE C/OUT",                   s2,  ["P/N","S/N","NEXT INSP.","REASON"],                             cw2)
+    paginate(prs, GREEN_ACC, "Life Raft",     "SERVICEABLE",       "SERVICEABLE LIFE RAFTS",                         s2b, ["P/N","S/N","NEXT INSP.","COMMENTS"],                           cw2b)
+    paginate(prs, BLUE_ACC,  "EFS",           "DUE WITHIN 90 DAYS","SERVICEABLE EFS — DUE WITHIN 90 DAYS",           s3,  ["H/C","DESIGNATION","P/N","S/N","NEXT 18M","NEXT 36M","DAYS LEFT"], cw34, days_col=6)
+    paginate(prs, BLUE_ACC,  "EFS Cylinders", "DUE WITHIN 6M",     "SERVICEABLE EFS CYLINDERS — DUE WITHIN 6M",  s4,  ["H/C","DESIGNATION","P/N","S/N","NEXT 60M","DAYS LEFT"],        cw34, days_col=5)
 
     prs.save(OUTPUT)
     print(f"\n✅  {OUTPUT}")
