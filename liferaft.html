@@ -797,9 +797,10 @@
                             ${noExpiry ? `disabled style="${greyStyle}border:1px solid #ddd;width:100%;box-sizing:border-box;"` : `onchange="checkExpiryDates()" style="width:100%;box-sizing:border-box;"`}>
                     </td>
                     <td>
-                        <input type="number" id="subitem_qty_${index}" min="0" placeholder="QTY"
+                        ${item.item.toUpperCase().includes('CYLINDER') ? '<span style="color:#aaa;font-size:11px;">—</span>' :
+                        `<input type="number" id="subitem_qty_${index}" min="0" placeholder="QTY"
                             style="width:60px;text-align:center;"
-                            onchange="checkQty(${index})">
+                            onchange="checkQty(${index})">`}
                     </td>
                     <td id="subitem_status_${index}" style="text-align:center;font-size:13px;">✓ OK</td>
                 `;
@@ -809,38 +810,42 @@
 
         function checkQty(index) {
             const item = subItems[index];
+            if (item.item.toUpperCase().includes('CYLINDER')) return; // No QTY for cylinder
             const qtyInput = document.getElementById(`subitem_qty_${index}`);
             const statusCell = document.getElementById(`subitem_status_${index}`);
+            if (!qtyInput) return;
             const entered = parseInt(qtyInput.value);
             if (isNaN(entered) || qtyInput.value === '') {
                 statusCell.textContent = '✓ OK';
-                statusCell.style.color = '';
                 return;
             }
-            if (entered !== item.qtyTheoric) {
+            if (entered < item.qtyTheoric) {
                 statusCell.innerHTML = `<span style="color:#dc2626;font-weight:bold;">⚠ ${entered}/${item.qtyTheoric}</span>`;
                 showQtyMismatchAlert(item, entered);
             } else {
-                statusCell.innerHTML = '<span style="color:#16a34a;font-weight:bold;">✓ OK</span>';
+                if (entered > item.qtyTheoric) {
+                    statusCell.innerHTML = `<span style="color:#f59e0b;font-weight:bold;">↑ ${entered}/${item.qtyTheoric}</span>`;
+                } else {
+                    statusCell.innerHTML = '<span style="color:#16a34a;font-weight:bold;">✓ OK</span>';
+                }
             }
             checkQtyServiceability();
         }
 
         function showQtyMismatchAlert(item, entered) {
-            const msg = `⚠️ QTY MISMATCH\n\n${item.item}\nQuantité saisie : ${entered}\nQuantité théorique : ${item.qtyTheoric}\n\nLe Life Raft sera marqué UNSERVICEABLE jusqu'à correction.`;
+            const msg = `⚠️ QTY BELOW MINIMUM\n\n${item.item}\nEntered: ${entered}\nMinimum required: ${item.qtyTheoric}\n\nThe Life Raft will be marked UNSERVICEABLE until corrected.`;
             alert(msg);
         }
 
         function checkQtyServiceability() {
-            // Check if any qty mismatch exists
             let hasMismatch = false;
             subItems.forEach((item, index) => {
+                if (item.item.toUpperCase().includes('CYLINDER')) return;
                 const qtyInput = document.getElementById(`subitem_qty_${index}`);
                 if (!qtyInput || qtyInput.value === '') return;
                 const entered = parseInt(qtyInput.value);
-                if (!isNaN(entered) && entered !== item.qtyTheoric) hasMismatch = true;
+                if (!isNaN(entered) && entered < item.qtyTheoric) hasMismatch = true;
             });
-            // Store for use in form submit
             window._qtyMismatch = hasMismatch;
         }
 
@@ -1417,12 +1422,13 @@
                     const noExpiry = def.intervalMonths === 'NA';
                     const intervalDisplay = noMfg || noExpiry ? 'N/A' : (def.intervalMonths ? def.intervalMonths + ' M' : sub.interval || '');
 
-                    // QTY mismatch check
+                    // QTY check — cylinder has no qty, others: below min = warning
                     const qty = sub.qty || '';
+                    const isCylinder = (sub.item || '').toUpperCase().includes('CYLINDER');
                     const qtyTheoric = def.qtyTheoric;
-                    let qtyDisplay = qty;
+                    let qtyDisplay = isCylinder ? '—' : qty;
                     let qtyStyle = rowStyle;
-                    if (qty !== '' && qtyTheoric !== undefined && parseInt(qty) !== qtyTheoric) {
+                    if (!isCylinder && qty !== '' && qtyTheoric !== undefined && parseInt(qty) < qtyTheoric) {
                         qtyDisplay = `${qty}/${qtyTheoric} ⚠`;
                         qtyStyle = styleExp;
                     }
