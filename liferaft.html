@@ -308,6 +308,8 @@
                                 <th>Manufacturer Date</th>
                                 <th>Interval</th>
                                 <th>Expiry Date</th>
+                                <th style="width:70px;">QTY</th>
+                                <th style="width:70px;">Status</th>
                             </tr>
                         </thead>
                         <tbody id="subItemsTableBody">
@@ -379,28 +381,34 @@
         let editingLifeRaft = null;
         let currentLifeRaftId = null;
 
+        // mfgMode: 'no' = greyed out (N/A), 'yes' = date entry allowed
+        // intervalMonths: number = auto-calc expiry; 'NA' = no expiry; null = manual
+        // qtyTheoric: theoretical quantity (hidden from user, used for validation)
         const subItems = [
-            { item: 'SLEEVE, RATIONS', partNumber: '05829010' },
-            { item: 'CARD, EMERGENCY PACK CONTENTS', partNumber: '05804018' },
-            { item: 'SACHET, WATER 500 ML', partNumber: '05163009' },
-            { item: 'SIGNAL DAY/NIGHT MK 8', partNumber: '11605009' },
-            { item: 'PUMP, HAND (MIRADA)', partNumber: '11731009' },
-            { item: 'LEAFLET, IMM. ACTION HELICRAFT', partNumber: '04935009' },
-            { item: 'HELIOGRAPH 50 MM', partNumber: '05020001' },
-            { item: 'STOPPER, LEAK NO. 1', partNumber: '40318001' },
-            { item: 'STOPPER, LEAK NO. 3', partNumber: '05720019' },
-            { item: 'STOPPER, LEAK NO. 5', partNumber: '05720023' },
-            { item: 'SPONGE, VISCOSE', partNumber: '05720017' },
-            { item: 'BALER, 6 PT', partNumber: '05720050' },
-            { item: 'KIT, FIRST AID PACK NO. 2', partNumber: '06568001' },
-            { item: 'TORCH', partNumber: '11140009' },
-            { item: 'MINIFLARE PACK MK 8', partNumber: '11588009' },
-            { item: 'TABLET, ANTI-SEASICKNESS (QTY 60)', partNumber: '01174009' },
-            { item: 'BLANKET, THERMAL RESCUE', partNumber: '03817009' },
-            { item: 'WHISTLE', partNumber: '05090005' },
-            { item: 'REVERSE OSMOSIS PUMP', partNumber: '11125009' },
-            { item: 'BAG, PLASTIC, MINIGRIP', partNumber: '11020009' },
-            { item: 'CYLINDER', partNumber: '51668001' }
+            { item: 'SLEEVE, RATIONS',                  partNumber: '05829010',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 1 },
+            { item: 'CARD, EMERGENCY PACK CONTENTS',    partNumber: '05804018',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 1 },
+            { item: 'SACHET, WATER 500 ML',             partNumber: '05163009',  mfgMode: 'yes', intervalMonths: 66,   qtyTheoric: 1 },
+            { item: 'SIGNAL DAY/NIGHT MK 8',            partNumber: '11605009',  mfgMode: 'yes', intervalMonths: 42,   qtyTheoric: 2 },
+            { item: 'PUMP, HAND (MIRADA)',               partNumber: '11731009',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 1 },
+            { item: 'LEAFLET, IMM. ACTION HELICRAFT',   partNumber: '04935009',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 1 },
+            { item: 'HELIOGRAPH 50 MM',                 partNumber: '05020001',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 1 },
+            { item: 'STOPPER, LEAK NO. 1',              partNumber: '40318001',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 1 },
+            { item: 'STOPPER, LEAK NO. 3',              partNumber: '05720019',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 1 },
+            { item: 'STOPPER, LEAK NO. 5',              partNumber: '05720023',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 1 },
+            { item: 'SPONGE, VISCOSE',                  partNumber: '05720017',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 2 },
+            { item: 'BALER, 6 PT',                      partNumber: '05720050',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 1 },
+            { item: 'KIT, FIRST AID PACK NO. 2',        partNumber: '06568001',  mfgMode: 'yes', intervalMonths: 43,   qtyTheoric: 1 },
+            { item: 'TORCH',                            partNumber: '11140009',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 1 },
+            { item: 'MINIFLARE PACK MK 8',              partNumber: '11588009',  mfgMode: 'yes', intervalMonths: 42,   qtyTheoric: 1 },
+            { item: 'TABLET, ANTI-SEASICKNESS (QTY 60)',partNumber: '01174009',  mfgMode: 'yes', intervalMonths: 64,   qtyTheoric: 1 },
+            { item: 'BLANKET, THERMAL RESCUE',          partNumber: '03817009',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 12 },
+            { item: 'WHISTLE',                          partNumber: '05090005',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 1 },
+            { item: 'REVERSE OSMOSIS PUMP',             partNumber: '11125009',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 1 },
+            { item: 'BAG, PLASTIC, MINIGRIP',           partNumber: '11020009',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 4 },
+            { item: 'CYLINDER',                         partNumber: '51668001',  mfgMode: 'yes', intervalMonths: 60,   qtyTheoric: 1 },
+            { item: 'RB2 BATTERY PACK',                 partNumber: 'A0696',     mfgMode: 'yes', intervalMonths: 59,   qtyTheoric: 1 },
+            { item: 'BATTERY TORCH X2',                 partNumber: 'LR06',      mfgMode: 'yes', intervalMonths: 129,  qtyTheoric: 2 },
+            { item: 'PADDLE GLOVE',                     partNumber: '39993001',  mfgMode: 'no',  intervalMonths: 'NA', qtyTheoric: 2 }
         ];
 
         // Wait for ComponentsBayDB to be available (loaded as module)
@@ -746,13 +754,15 @@
         }
 
         function calcExpiryFromInterval(index) {
-            const mfgVal = document.getElementById(`subitem_mfg_${index}`).value;
-            const interval = document.getElementById(`subitem_interval_${index}`).value;
+            const item = subItems[index];
+            const mfgInput = document.getElementById(`subitem_mfg_${index}`);
             const expiryInput = document.getElementById(`subitem_expiry_${index}`);
-            if (mfgVal && interval) {
+            if (!mfgInput || !expiryInput) return;
+            const mfgVal = mfgInput.value;
+            if (!mfgVal || item.mfgMode === 'no' || item.intervalMonths === 'NA') return;
+            if (typeof item.intervalMonths === 'number') {
                 const mfg = new Date(mfgVal);
-                const years = parseInt(interval.replace('Y',''));
-                mfg.setFullYear(mfg.getFullYear() + years);
+                mfg.setMonth(mfg.getMonth() + item.intervalMonths);
                 expiryInput.value = mfg.toISOString().split('T')[0];
                 checkExpiryDates();
             }
@@ -761,25 +771,77 @@
         function generateSubItemsTable() {
             const tbody = document.getElementById('subItemsTableBody');
             tbody.innerHTML = '';
-            const intervals = ['','1Y','2Y','3Y','4Y','5Y','6Y','7Y','8Y','9Y','10Y'];
-            
+
             subItems.forEach((item, index) => {
-                const opts = intervals.map(v => `<option value="${v}">${v || '—'}</option>`).join('');
+                const noMfg = item.mfgMode === 'no';
+                const noExpiry = item.intervalMonths === 'NA';
+                const greyStyle = 'background:#e8e8e8;color:#aaa;pointer-events:none;';
+
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td style="font-weight:600;">${item.item}</td>
                     <td style="background:#f0f0f0;color:#666;">${item.partNumber}</td>
-                    <td><input type="text" id="subitem_sn_${index}" placeholder="S/N or Batch N°"></td>
-                    <td><input type="date" id="subitem_mfg_${index}" onchange="calcExpiryFromInterval(${index})"></td>
+                    <td><input type="text" id="subitem_sn_${index}" placeholder="S/N or Batch N°" style="width:100%;box-sizing:border-box;"></td>
                     <td>
-                        <select id="subitem_interval_${index}" onchange="calcExpiryFromInterval(${index})" style="width:100%;padding:4px;">
-                            ${opts}
-                        </select>
+                        <input type="date" id="subitem_mfg_${index}"
+                            ${noMfg ? `value="" disabled style="${greyStyle}border:1px solid #ddd;width:100%;box-sizing:border-box;"` : `onchange="calcExpiryFromInterval(${index})" style="width:100%;box-sizing:border-box;"`}>
                     </td>
-                    <td><input type="date" id="subitem_expiry_${index}" onchange="checkExpiryDates()"></td>
+                    <td style="text-align:center;">
+                        <span id="subitem_interval_${index}" style="display:inline-block;padding:4px 8px;border-radius:4px;font-size:12px;font-weight:600;
+                            ${noMfg || noExpiry ? 'background:#e8e8e8;color:#aaa;' : 'background:#e8f4e8;color:#2d6a2d;'}">
+                            ${noMfg || noExpiry ? 'N/A' : (item.intervalMonths + ' M')}
+                        </span>
+                    </td>
+                    <td>
+                        <input type="date" id="subitem_expiry_${index}"
+                            ${noExpiry ? `disabled style="${greyStyle}border:1px solid #ddd;width:100%;box-sizing:border-box;"` : `onchange="checkExpiryDates()" style="width:100%;box-sizing:border-box;"`}>
+                    </td>
+                    <td>
+                        <input type="number" id="subitem_qty_${index}" min="0" placeholder="QTY"
+                            style="width:60px;text-align:center;"
+                            onchange="checkQty(${index})">
+                    </td>
+                    <td id="subitem_status_${index}" style="text-align:center;font-size:13px;">✓ OK</td>
                 `;
                 tbody.appendChild(row);
             });
+        }
+
+        function checkQty(index) {
+            const item = subItems[index];
+            const qtyInput = document.getElementById(`subitem_qty_${index}`);
+            const statusCell = document.getElementById(`subitem_status_${index}`);
+            const entered = parseInt(qtyInput.value);
+            if (isNaN(entered) || qtyInput.value === '') {
+                statusCell.textContent = '✓ OK';
+                statusCell.style.color = '';
+                return;
+            }
+            if (entered !== item.qtyTheoric) {
+                statusCell.innerHTML = `<span style="color:#dc2626;font-weight:bold;">⚠ ${entered}/${item.qtyTheoric}</span>`;
+                showQtyMismatchAlert(item, entered);
+            } else {
+                statusCell.innerHTML = '<span style="color:#16a34a;font-weight:bold;">✓ OK</span>';
+            }
+            checkQtyServiceability();
+        }
+
+        function showQtyMismatchAlert(item, entered) {
+            const msg = `⚠️ QTY MISMATCH\n\n${item.item}\nQuantité saisie : ${entered}\nQuantité théorique : ${item.qtyTheoric}\n\nLe Life Raft sera marqué UNSERVICEABLE jusqu'à correction.`;
+            alert(msg);
+        }
+
+        function checkQtyServiceability() {
+            // Check if any qty mismatch exists
+            let hasMismatch = false;
+            subItems.forEach((item, index) => {
+                const qtyInput = document.getElementById(`subitem_qty_${index}`);
+                if (!qtyInput || qtyInput.value === '') return;
+                const entered = parseInt(qtyInput.value);
+                if (!isNaN(entered) && entered !== item.qtyTheoric) hasMismatch = true;
+            });
+            // Store for use in form submit
+            window._qtyMismatch = hasMismatch;
         }
 
         function checkExpiryDates() {
@@ -845,17 +907,22 @@
             
             subItems.forEach((item, index) => {
                 const sn = document.getElementById(`subitem_sn_${index}`).value.trim();
-                const mfg = document.getElementById(`subitem_mfg_${index}`)?.value || '';
-                const interval = document.getElementById(`subitem_interval_${index}`)?.value || '';
-                const expiry = document.getElementById(`subitem_expiry_${index}`).value;
+                const mfgEl = document.getElementById(`subitem_mfg_${index}`);
+                const mfg = (mfgEl && !mfgEl.disabled) ? (mfgEl.value || '') : '';
+                const interval = item.intervalMonths === 'NA' ? 'N/A' : (typeof item.intervalMonths === 'number' ? item.intervalMonths + 'M' : '');
+                const expiryEl = document.getElementById(`subitem_expiry_${index}`);
+                const expiry = (expiryEl && !expiryEl.disabled) ? (expiryEl.value || '') : '';
                 
+                const qtyEl = document.getElementById(`subitem_qty_${index}`);
+                const qty = qtyEl ? qtyEl.value.trim() : '';
                 subItemsData.push({
                     item: item.item,
                     partNumber: item.partNumber,
                     serialNumber: sn,
                     manufacturerDate: mfg,
                     interval: interval,
-                    expiryDate: expiry
+                    expiryDate: expiry,
+                    qty: qty
                 });
             });
 
@@ -876,7 +943,7 @@
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
                 jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
                 subItems: subItemsData,
-                serviceability: (document.getElementById('liferaftServiceability').value === 'Unserviceable' || expiryCheck.hasExpired) ? 'Unserviceable' : 'Serviceable',
+                serviceability: (document.getElementById('liferaftServiceability').value === 'Unserviceable' || expiryCheck.hasExpired || window._qtyMismatch) ? 'Unserviceable' : 'Serviceable',
                 reason: document.getElementById('liferaftServiceability').value === 'Unserviceable' && document.getElementById('liferaftReason').value.trim() ? document.getElementById('liferaftReason').value.trim() : (expiryCheck.hasExpired ? `Expired items: ${expiryCheck.expiredItems.join(', ')}` : ''),
                 logCardMissing: document.getElementById('logCardMissing') ? document.getElementById('logCardMissing').checked : false,
                 lifeRaftMissing: document.getElementById('lifeRaftMissing') ? document.getElementById('lifeRaftMissing').checked : false,
@@ -927,12 +994,16 @@
             // Reset sub-items
             subItems.forEach((item, index) => {
                 document.getElementById(`subitem_sn_${index}`).value = '';
-                document.getElementById(`subitem_mfg_${index}`).value = '';
-                const sel = document.getElementById(`subitem_interval_${index}`);
-                if (sel) sel.value = '';
-                document.getElementById(`subitem_expiry_${index}`).value = '';
-                document.getElementById(`subitem_expiry_${index}`).classList.remove('expired-date', 'expiring-soon');
+                const mfgEl = document.getElementById(`subitem_mfg_${index}`);
+                if (mfgEl && !mfgEl.disabled) mfgEl.value = '';
+                const expiryEl = document.getElementById(`subitem_expiry_${index}`);
+                if (expiryEl && !expiryEl.disabled) { expiryEl.value = ''; expiryEl.classList.remove('expired-date', 'expiring-soon'); }
+                const qtyEl = document.getElementById(`subitem_qty_${index}`);
+                if (qtyEl) qtyEl.value = '';
+                const statusEl = document.getElementById(`subitem_status_${index}`);
+                if (statusEl) statusEl.textContent = '✓ OK';
             });
+            window._qtyMismatch = false;
             
             checkExpiryDates();
             hideMessage();
@@ -1164,11 +1235,14 @@
 
             // Fill sub-items
             editingLifeRaft.subItems.forEach((sub, index) => {
-                document.getElementById(`subitem_sn_${index}`).value = sub.serialNumber || '';
-                document.getElementById(`subitem_mfg_${index}`).value = sub.manufacturerDate || '';
-                const selEl = document.getElementById(`subitem_interval_${index}`);
-                if (selEl) selEl.value = sub.interval || '';
-                document.getElementById(`subitem_expiry_${index}`).value = sub.expiryDate || '';
+                const snEl = document.getElementById(`subitem_sn_${index}`);
+                if (snEl) snEl.value = sub.serialNumber || '';
+                const mfgEl = document.getElementById(`subitem_mfg_${index}`);
+                if (mfgEl && !mfgEl.disabled) mfgEl.value = sub.manufacturerDate || '';
+                const expiryEl = document.getElementById(`subitem_expiry_${index}`);
+                if (expiryEl && !expiryEl.disabled) expiryEl.value = sub.expiryDate || '';
+                const qtyEl = document.getElementById(`subitem_qty_${index}`);
+                if (qtyEl) { qtyEl.value = sub.qty || ''; checkQty(index); }
             });
 
             showAddLifeRaft();
@@ -1327,7 +1401,7 @@
                     [''],
                     // Sub-components header
                     [sc(`SUB-COMPONENTS (${savedSubs.length} items — ${expiredCount} expired)`, styleSubHeader), '', '', '', ''],
-                    [sc('Item', styleSubLabel), sc('Part Number', styleSubLabel), sc('S/N / Batch N°', styleSubLabel), sc('Manufacturer Date', styleSubLabel), sc('Interval', styleSubLabel), sc('Expiry Date', styleSubLabel), sc('Status', styleSubLabel)],
+                    [sc('Item', styleSubLabel), sc('Part Number', styleSubLabel), sc('S/N / Batch N°', styleSubLabel), sc('Manufacturer Date', styleSubLabel), sc('Interval', styleSubLabel), sc('Expiry Date', styleSubLabel), sc('QTY', styleSubLabel), sc('Status', styleSubLabel)],
                 ];
 
                 // Sub-components rows
@@ -1335,13 +1409,32 @@
                     const expired = isExpired(sub.expiryDate);
                     const rowStyle = idx % 2 === 0 ? styleSubRow0 : styleSubRow1;
                     const statusStyle = expired ? styleExp : styleOK;
+                    const styleNA = { ...rowStyle, font: { ...rowStyle.font, color: { rgb: 'AAAAAA' } }, fill: { fgColor: { rgb: 'E8E8E8' } } };
+
+                    // Find matching subItem definition for metadata
+                    const def = subItems.find(s => s.partNumber === sub.partNumber) || {};
+                    const noMfg = def.mfgMode === 'no';
+                    const noExpiry = def.intervalMonths === 'NA';
+                    const intervalDisplay = noMfg || noExpiry ? 'N/A' : (def.intervalMonths ? def.intervalMonths + ' M' : sub.interval || '');
+
+                    // QTY mismatch check
+                    const qty = sub.qty || '';
+                    const qtyTheoric = def.qtyTheoric;
+                    let qtyDisplay = qty;
+                    let qtyStyle = rowStyle;
+                    if (qty !== '' && qtyTheoric !== undefined && parseInt(qty) !== qtyTheoric) {
+                        qtyDisplay = `${qty}/${qtyTheoric} ⚠`;
+                        qtyStyle = styleExp;
+                    }
+
                     rows.push([
                         sc(sub.item || '', rowStyle),
                         sc(sub.partNumber || '', rowStyle),
                         sc(sub.serialNumber || sub.batchNumber || '', rowStyle),
-                        sc(sub.manufacturerDate || '', rowStyle),
-                        sc(sub.interval || '', rowStyle),
-                        sc(sub.expiryDate || '', rowStyle),
+                        sc(noMfg ? 'N/A' : (sub.manufacturerDate || ''), noMfg ? styleNA : rowStyle),
+                        sc(intervalDisplay, noMfg || noExpiry ? styleNA : rowStyle),
+                        sc(noExpiry ? 'N/A' : (sub.expiryDate || ''), noExpiry ? styleNA : (expired ? { ...styleExp, fill: rowStyle.fill } : rowStyle)),
+                        sc(String(qtyDisplay), qtyStyle),
                         sc(expired ? '⚠ EXPIRED' : '✓ OK', statusStyle),
                     ]);
                 });
@@ -1349,7 +1442,7 @@
                 const ws = XLSX.utils.aoa_to_sheet(rows);
 
                 // Column widths
-                ws['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 12 }];
+                ws['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 8 }, { wch: 12 }];
 
                 // Row heights
                 ws['!rows'] = rows.map((_, i) => {
