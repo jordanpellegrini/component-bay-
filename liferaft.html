@@ -785,7 +785,7 @@
                         </span>
                     </td>
                     <td><input type="date" id="subitem_expiry_${index}"
-                        ${noExpiry ? `disabled style="${greyStyle}"` : `onchange="checkExpiryDates()" style="width:100%;box-sizing:border-box;"`}></td>
+                        ${noExpiry ? `disabled style="${greyStyle}"` : `onchange="calcMfgFromExpiry(${index});checkExpiryDates();" style="width:100%;box-sizing:border-box;"`}></td>
                     <td>${isCyl ? '<span style="color:#aaa;font-size:11px;">—</span>' :
                         `<input type="number" id="subitem_qty_${index}" min="0" placeholder="QTY"
                             style="width:55px;text-align:center;" onchange="checkQty(${index})">`}</td>
@@ -807,6 +807,20 @@
                 expiryEl.value = d.toISOString().split('T')[0];
                 checkExpiryDates();
             }
+        }
+
+        function calcMfgFromExpiry(index) {
+            const item = subItems[index];
+            if (item.mfgMode === 'no' || item.intervalMonths === 'NA') return;
+            if (typeof item.intervalMonths !== 'number') return;
+            const expiryEl = document.getElementById(`subitem_expiry_${index}`);
+            const mfgEl = document.getElementById(`subitem_mfg_${index}`);
+            if (!expiryEl || !mfgEl || !expiryEl.value) return;
+            // Only back-fill mfg if it's empty
+            if (mfgEl.value) return;
+            const d = new Date(expiryEl.value);
+            d.setMonth(d.getMonth() - item.intervalMonths);
+            mfgEl.value = d.toISOString().split('T')[0];
         }
 
         function checkQty(index) {
