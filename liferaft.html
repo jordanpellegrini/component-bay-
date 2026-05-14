@@ -1947,62 +1947,48 @@ Respond in the same language as the user. Be concise.`;
                 const H1 = 11, H2 = 12, H3 = 12;
                 const TOTAL_HDR = H1+H2+H3;
 
-                // Draw all 3 header rows as one outer rect, then draw internal dividers as lines
+                // ── Header: draw lines FIRST, then text on top ──────────
+                // Outer border
                 rect(ML, Y, CW, TOTAL_HDR, BLK);
 
-                // -- Text labels --
-                // A/ ITEM DATA (col 0, all 3 rows)
-                ctrLines(['A/ ITEM DATA'], CX[0], Y, colW[0], H1, 5, BOLD);
-                ctrLines(['ITEM DESIGNATION &', 'PART NUMBER'], CX[0], Y+H1, colW[0], H2+H3, 4.5, BOLD);
-
-                // B/ INSTALLATION label (row 1, cols 2-5)
-                ctrLines(['B/ INSTALLATION'], CX[2], Y, colW[2]+colW[3]+colW[4]+colW[5], H1, 5, BOLD);
-
-                // C/ REMOVAL label (row 1, cols 6-9)
-                ctrLines(['C/ REMOVAL'], CX[6], Y, colW[6]+colW[7]+colW[8]+colW[9], H1, 5, BOLD);
-
-                // D/ SIGNIFICANT (col 10, all 3 rows)
-                ctrLines(['D/ SIGNIFICANT', 'ATA', 'STAMP DATE'], CX[10], Y, CW-(CX[10]-ML), TOTAL_HDR, 4.5, BOLD);
-
-                // SERIAL NUMBER (col 1, rows 2+3)
-                ctrLines(['SERIAL', 'NUMBER'], CX[1], Y+H1, colW[1], H2+H3, 4.5, BOLD);
-
-                // B: ASSY (col 2, rows 2+3)
-                ctrLines(['ASSY', 'OPERATING', 'TIME OR', 'UNITS'], CX[2], Y+H1, colW[2], H2+H3, 4, BOLD);
-                // B: ITEM LIFE (cols 3+4, row 2)
-                ctrLines(['ITEM LIFE'], CX[3], Y+H1, colW[3]+colW[4], H2, 4.5, BOLD);
-                // B: INSPECTION STAMP DATE (col 5, rows 2+3)
-                ctrLines(['INSPECTION', 'STAMP', 'DATE'], CX[5], Y+H1, colW[5], H2+H3, 4, BOLD);
-                // B: TIME OR UNITS sub-labels (row 3)
-                ctrLines(['TIME OR UNITS', 'SINCE 0/HOURS'], CX[3], Y+H1+H2, colW[3], H3, 3.5, BOLD);
-                ctrLines(['TIME OR UNITS', 'SINCE OVERHAUL'], CX[4], Y+H1+H2, colW[4], H3, 3.5, BOLD);
-
-                // C: ASSY (col 6, rows 2+3)
-                ctrLines(['ASSY', 'OPERATING', 'TIME OR', 'UNITS'], CX[6], Y+H1, colW[6], H2+H3, 4, BOLD);
-                // C: ITEM LIFE (cols 7+8, row 2)
-                ctrLines(['ITEM LIFE'], CX[7], Y+H1, colW[7]+colW[8], H2, 4.5, BOLD);
-                // C: INSPECTION STAMP DATE (col 9, rows 2+3)
-                ctrLines(['INSPECTION', 'STAMP', 'DATE'], CX[9], Y+H1, colW[9], H2+H3, 4, BOLD);
-                // C: TIME OR UNITS sub-labels (row 3)
-                ctrLines(['TIME OR UNITS', 'SINCE 0/HOURS'], CX[7], Y+H1+H2, colW[7], H3, 3.5, BOLD);
-                ctrLines(['TIME OR UNITS', 'SINCE OVERHAUL'], CX[8], Y+H1+H2, colW[8], H3, 3.5, BOLD);
-
-                // -- Internal vertical dividers (full height) --
-                function vline(x) {
-                    page.drawLine({ start:{x, y:py(Y+TOTAL_HDR)}, end:{x, y:py(Y)}, thickness:0.4, color:BLK });
+                // Vertical dividers (full height through all 3 rows)
+                for (let ci = 1; ci <= 10; ci++) {
+                    page.drawLine({ start:{x:CX[ci], y:py(Y+TOTAL_HDR)}, end:{x:CX[ci], y:py(Y)}, thickness:0.4, color:BLK });
                 }
-                // Between col0 and col1, col1 and col2, ..., col9 and col10
-                for (let ci = 1; ci <= 10; ci++) vline(CX[ci]);
 
-                // -- Internal horizontal dividers --
+                // Horizontal divider row1/row2: only col1 to col2, and col5 to col6, and col9 to col10
+                // (B/ label spans col2-5 so no hline there; C/ label spans col6-9 so no hline there)
                 function hline(x1, x2, hy) {
                     page.drawLine({ start:{x:x1, y:py(hy)}, end:{x:x2, y:py(hy)}, thickness:0.4, color:BLK });
                 }
-                // Row1/Row2 separator: full width except col0 and col10
-                hline(CX[1], CX[10], Y+H1);
-                // Row2/Row3 separator: only under ITEM LIFE cols (3,4 for B and 7,8 for C)
+                hline(CX[1], CX[2], Y+H1);       // SERIAL | B/ group
+                hline(CX[5], CX[6], Y+H1);       // STAMP_B | C/ group  
+                hline(CX[9], CX[10], Y+H1);      // STAMP_C | D/SIG
+                // Row2/row3 separator under ITEM LIFE only
                 hline(CX[3], CX[5], Y+H1+H2);
                 hline(CX[7], CX[9], Y+H1+H2);
+
+                // ── Text labels (drawn after lines so text is on top) ──
+                // Row1: group labels
+                ctrLines(['A/ ITEM DATA'], CX[0], Y, colW[0], H1, 5, BOLD);
+                ctrLines(['B/ INSTALLATION'], CX[2], Y, colW[2]+colW[3]+colW[4]+colW[5], H1, 5, BOLD);
+                ctrLines(['C/ REMOVAL'], CX[6], Y, colW[6]+colW[7]+colW[8]+colW[9], H1, 5, BOLD);
+                ctrLines(['D/ SIGNIFICANT', 'ATA', 'STAMP DATE'], CX[10], Y, CW-(CX[10]-ML), TOTAL_HDR, 4.5, BOLD);
+
+                // Rows 2+3: column labels
+                ctrLines(['ITEM DESIGNATION &', 'PART NUMBER'], CX[0], Y+H1, colW[0], H2+H3, 4.5, BOLD);
+                ctrLines(['SERIAL', 'NUMBER'], CX[1], Y+H1, colW[1], H2+H3, 4.5, BOLD);
+                ctrLines(['ASSY', 'OPERATING', 'TIME OR', 'UNITS'], CX[2], Y+H1, colW[2], H2+H3, 4, BOLD);
+                ctrLines(['ITEM LIFE'], CX[3], Y+H1, colW[3]+colW[4], H2, 4.5, BOLD);
+                ctrLines(['INSPECTION', 'STAMP', 'DATE'], CX[5], Y+H1, colW[5], H2+H3, 4, BOLD);
+                ctrLines(['TIME OR UNITS', 'SINCE 0/HOURS'], CX[3], Y+H1+H2, colW[3], H3, 3.5, BOLD);
+                ctrLines(['TIME OR UNITS', 'SINCE OVERHAUL'], CX[4], Y+H1+H2, colW[4], H3, 3.5, BOLD);
+
+                ctrLines(['ASSY', 'OPERATING', 'TIME OR', 'UNITS'], CX[6], Y+H1, colW[6], H2+H3, 4, BOLD);
+                ctrLines(['ITEM LIFE'], CX[7], Y+H1, colW[7]+colW[8], H2, 4.5, BOLD);
+                ctrLines(['INSPECTION', 'STAMP', 'DATE'], CX[9], Y+H1, colW[9], H2+H3, 4, BOLD);
+                ctrLines(['TIME OR UNITS', 'SINCE 0/HOURS'], CX[7], Y+H1+H2, colW[7], H3, 3.5, BOLD);
+                ctrLines(['TIME OR UNITS', 'SINCE OVERHAUL'], CX[8], Y+H1+H2, colW[8], H3, 3.5, BOLD);
 
                 Y += TOTAL_HDR;
 
