@@ -1937,9 +1937,21 @@ ${pagesHtml}
 <script>window.onload=function(){window.print();}<\/script>
 </body></html>`;
 
-            const win = window.open('', '_blank', 'width=1280,height=900');
-            win.document.write(html);
-            win.document.close();
+            // Open in hidden iframe, print to PDF automatically
+            const iframe = document.createElement('iframe');
+            iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+            document.body.appendChild(iframe);
+            iframe.contentDocument.open();
+            iframe.contentDocument.write(html);
+            iframe.contentDocument.close();
+            iframe.onload = function() {
+                setTimeout(() => {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                    setTimeout(() => document.body.removeChild(iframe), 2000);
+                }, 300);
+            };
+            showMessage('Log Card ready — save as PDF in the print dialog', 'success', 'liferaftMessage');
         }
         </script>
 
