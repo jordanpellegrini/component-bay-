@@ -1901,23 +1901,27 @@ Respond in the same language as the user. Be concise.`;
 
             const pagesHtml = pages.map((pageItems, pi) => `
                 <div class="page">
-                    <div style="border:1px solid #555;border-bottom:none;padding:2px 8px;text-align:center;font-size:8pt;">
-                        15/ RECORD OF ASSOCIATED EQUIPMENT
+                    <div class="page-header">
+                        <div style="border:1px solid #555;border-bottom:none;padding:2px 8px;text-align:center;font-size:8pt;">
+                            15/ RECORD OF ASSOCIATED EQUIPMENT
+                        </div>
                     </div>
-                    <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
-                        <colgroup>
-                            <col style="width:16%"><col style="width:8%"><col style="width:7%">
-                            <col style="width:8%"><col style="width:8%"><col style="width:9%">
-                            <col style="width:7%"><col style="width:8%"><col style="width:8%">
-                            <col style="width:9%"><col style="width:10%">
-                        </colgroup>
-                        ${thead}
-                        <tbody>
-                            ${rowsHtml(pageItems)}
-                            ${emptyRows(ROWS_PER_PAGE - pageItems.length)}
-                        </tbody>
-                    </table>
-                    ${footer}
+                    <div class="page-table">
+                        <table>
+                            <colgroup>
+                                <col style="width:16%"><col style="width:8%"><col style="width:7%">
+                                <col style="width:8%"><col style="width:8%"><col style="width:9%">
+                                <col style="width:7%"><col style="width:8%"><col style="width:8%">
+                                <col style="width:9%"><col style="width:10%">
+                            </colgroup>
+                            ${thead}
+                            <tbody>
+                                ${rowsHtml(pageItems)}
+                                ${emptyRows(ROWS_PER_PAGE - pageItems.length)}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="page-footer">${footer}</div>
                 </div>
             `).join('');
 
@@ -1926,7 +1930,11 @@ Respond in the same language as the user. Be concise.`;
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
 body { font-family:Arial,sans-serif; background:#fff; }
-.page { width:297mm; min-height:210mm; padding:6mm; background:white; margin:0 auto; display:flex; flex-direction:column; justify-content:space-between; }
+.page { width:100%; height:210mm; padding:5mm 6mm; background:white; display:flex; flex-direction:column; }
+.page-table { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.page-table table { width:100%; border-collapse:collapse; table-layout:fixed; flex:1; height:100%; }
+.page-table tbody tr { height:1px; }
+.page-table tbody td { height:inherit; }
 @media print {
     .page { margin:0; padding:0; page-break-after:always; min-height:0; }
     @page { size:A4 landscape; margin:5mm 6mm 5mm 6mm; }
