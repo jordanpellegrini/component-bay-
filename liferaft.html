@@ -1882,7 +1882,7 @@ Respond in the same language as the user. Be concise.`;
 
             // 11 columns matching the document exactly
             // A/ITEM(16%) | S/N(8%) | ASSY(7%) | TIME0H(8%) | OVERHAUL(8%) | STAMP(9%) | ASSY_R(7%) | TIME0H_R(8%) | OVERHAUL_R(8%) | STAMP_R(9%) | D/SIG(10%)
-            const COLS = [0.16, 0.08, 0.07, 0.08, 0.08, 0.09, 0.07, 0.08, 0.08, 0.09, 0.10];
+            const COLS = [0.16, 0.08, 0.07, 0.08, 0.08, 0.09, 0.07, 0.08, 0.08, 0.09, 0.12];
             const CX = []; // cumulative x positions
             let acc = ML;
             COLS.forEach(c => { CX.push(acc); acc += c * CW; });
@@ -1945,72 +1945,66 @@ Respond in the same language as the user. Be concise.`;
 
                 // ── Sub-header row 1: group labels ───────────────────────────
                 const H1 = 11, H2 = 12, H3 = 12;
-                // A/ITEM DATA (spans col 0+1)
-                rect(CX[0], Y, colW[0]+colW[1], H1+H2+H3, BLK);
-                ctrLines(['A/ ITEM DATA'], CX[0], Y, colW[0]+colW[1], H1, 5, BOLD);
-                ctrLines(['ITEM DESIGNATION &', 'PART NUMBER'], CX[0], Y+H1, colW[0]+colW[1], H2+H3, 4.5, BOLD);
+                const TOTAL_HDR = H1+H2+H3;
 
-                // SERIAL NUMBER (col 1 is separate serial number column)
-                // Wait — per the document, col structure is:
-                // [ITEM DESIG & PN] [SERIAL] [ASSY] [TIME0H] [OVERHAUL] [STAMP] [ASSY_R] [TIME0H_R] [OVERHAUL_R] [STAMP_R] [D/SIG]
-                // So col[0]=item+PN, col[1]=serial, col[2]=assy, col[3]=time0h, col[4]=overhaul, col[5]=stamp
-                // col[6]=assy_r, col[7]=time0h_r, col[8]=overhaul_r, col[9]=stamp_r, col[10]=dsig
+                // Draw all 3 header rows as one outer rect, then draw internal dividers as lines
+                rect(ML, Y, CW, TOTAL_HDR, BLK);
 
-                // B/ INSTALLATION (spans col 2+3+4+5)
-                rect(CX[2], Y, colW[2]+colW[3]+colW[4]+colW[5], H1, BLK);
+                // -- Text labels --
+                // A/ ITEM DATA (col 0, all 3 rows)
+                ctrLines(['A/ ITEM DATA'], CX[0], Y, colW[0], H1, 5, BOLD);
+                ctrLines(['ITEM DESIGNATION &', 'PART NUMBER'], CX[0], Y+H1, colW[0], H2+H3, 4.5, BOLD);
+
+                // B/ INSTALLATION label (row 1, cols 2-5)
                 ctrLines(['B/ INSTALLATION'], CX[2], Y, colW[2]+colW[3]+colW[4]+colW[5], H1, 5, BOLD);
 
-                // C/ REMOVAL (spans col 6+7+8+9)
-                rect(CX[6], Y, colW[6]+colW[7]+colW[8]+colW[9], H1, BLK);
+                // C/ REMOVAL label (row 1, cols 6-9)
                 ctrLines(['C/ REMOVAL'], CX[6], Y, colW[6]+colW[7]+colW[8]+colW[9], H1, 5, BOLD);
 
-                // D/ SIGNIFICANT (col 10, spans all 3 rows)
-                rect(CX[10], Y, colW[10], H1+H2+H3, BLK);
-                ctrLines(['D/ SIGNIFICANT', 'ATA', 'STAMP DATE'], CX[10], Y, colW[10], H1+H2+H3, 4.5, BOLD);
+                // D/ SIGNIFICANT (col 10, all 3 rows)
+                ctrLines(['D/ SIGNIFICANT', 'ATA', 'STAMP DATE'], CX[10], Y, CW-(CX[10]-ML), TOTAL_HDR, 4.5, BOLD);
 
-                Y += H1;
+                // SERIAL NUMBER (col 1, rows 2+3)
+                ctrLines(['SERIAL', 'NUMBER'], CX[1], Y+H1, colW[1], H2+H3, 4.5, BOLD);
 
-                // ── Sub-header row 2 ─────────────────────────────────────────
-                // SERIAL NUMBER (col 1, spans rows 2+3)
-                rect(CX[1], Y, colW[1], H2+H3, BLK);
-                ctrLines(['SERIAL', 'NUMBER'], CX[1], Y, colW[1], H2+H3, 4.5, BOLD);
+                // B: ASSY (col 2, rows 2+3)
+                ctrLines(['ASSY', 'OPERATING', 'TIME OR', 'UNITS'], CX[2], Y+H1, colW[2], H2+H3, 4, BOLD);
+                // B: ITEM LIFE (cols 3+4, row 2)
+                ctrLines(['ITEM LIFE'], CX[3], Y+H1, colW[3]+colW[4], H2, 4.5, BOLD);
+                // B: INSPECTION STAMP DATE (col 5, rows 2+3)
+                ctrLines(['INSPECTION', 'STAMP', 'DATE'], CX[5], Y+H1, colW[5], H2+H3, 4, BOLD);
+                // B: TIME OR UNITS sub-labels (row 3)
+                ctrLines(['TIME OR UNITS', 'SINCE 0/HOURS'], CX[3], Y+H1+H2, colW[3], H3, 3.5, BOLD);
+                ctrLines(['TIME OR UNITS', 'SINCE OVERHAUL'], CX[4], Y+H1+H2, colW[4], H3, 3.5, BOLD);
 
-                // B cols: ASSY(spans 2+3), ITEM LIFE header, STAMP(spans 2+3)
-                rect(CX[2], Y, colW[2], H2+H3, BLK);
-                ctrLines(['ASSY', 'OPERATING', 'TIME OR', 'UNITS'], CX[2], Y, colW[2], H2+H3, 4, BOLD);
+                // C: ASSY (col 6, rows 2+3)
+                ctrLines(['ASSY', 'OPERATING', 'TIME OR', 'UNITS'], CX[6], Y+H1, colW[6], H2+H3, 4, BOLD);
+                // C: ITEM LIFE (cols 7+8, row 2)
+                ctrLines(['ITEM LIFE'], CX[7], Y+H1, colW[7]+colW[8], H2, 4.5, BOLD);
+                // C: INSPECTION STAMP DATE (col 9, rows 2+3)
+                ctrLines(['INSPECTION', 'STAMP', 'DATE'], CX[9], Y+H1, colW[9], H2+H3, 4, BOLD);
+                // C: TIME OR UNITS sub-labels (row 3)
+                ctrLines(['TIME OR UNITS', 'SINCE 0/HOURS'], CX[7], Y+H1+H2, colW[7], H3, 3.5, BOLD);
+                ctrLines(['TIME OR UNITS', 'SINCE OVERHAUL'], CX[8], Y+H1+H2, colW[8], H3, 3.5, BOLD);
 
-                rect(CX[3], Y, colW[3]+colW[4], H2, BLK);
-                ctrLines(['ITEM LIFE'], CX[3], Y, colW[3]+colW[4], H2, 4.5, BOLD);
+                // -- Internal vertical dividers (full height) --
+                function vline(x) {
+                    page.drawLine({ start:{x, y:py(Y+TOTAL_HDR)}, end:{x, y:py(Y)}, thickness:0.4, color:BLK });
+                }
+                // Between col0 and col1, col1 and col2, ..., col9 and col10
+                for (let ci = 1; ci <= 10; ci++) vline(CX[ci]);
 
-                rect(CX[5], Y, colW[5], H2+H3, BLK);
-                ctrLines(['INSPECTION', 'STAMP', 'DATE'], CX[5], Y, colW[5], H2+H3, 4, BOLD);
+                // -- Internal horizontal dividers --
+                function hline(x1, x2, hy) {
+                    page.drawLine({ start:{x:x1, y:py(hy)}, end:{x:x2, y:py(hy)}, thickness:0.4, color:BLK });
+                }
+                // Row1/Row2 separator: full width except col0 and col10
+                hline(CX[1], CX[10], Y+H1);
+                // Row2/Row3 separator: only under ITEM LIFE cols (3,4 for B and 7,8 for C)
+                hline(CX[3], CX[5], Y+H1+H2);
+                hline(CX[7], CX[9], Y+H1+H2);
 
-                // C cols
-                rect(CX[6], Y, colW[6], H2+H3, BLK);
-                ctrLines(['ASSY', 'OPERATING', 'TIME OR', 'UNITS'], CX[6], Y, colW[6], H2+H3, 4, BOLD);
-
-                rect(CX[7], Y, colW[7]+colW[8], H2, BLK);
-                ctrLines(['ITEM LIFE'], CX[7], Y, colW[7]+colW[8], H2, 4.5, BOLD);
-
-                rect(CX[9], Y, colW[9], H2+H3, BLK);
-                ctrLines(['INSPECTION', 'STAMP', 'DATE'], CX[9], Y, colW[9], H2+H3, 4, BOLD);
-
-                Y += H2;
-
-                // ── Sub-header row 3: TIME OR UNITS sub-labels ───────────────
-                rect(CX[3], Y, colW[3], H3, BLK);
-                ctrLines(['TIME OR UNITS', 'SINCE 0/HOURS'], CX[3], Y, colW[3], H3, 3.5, BOLD);
-
-                rect(CX[4], Y, colW[4], H3, BLK);
-                ctrLines(['TIME OR UNITS', 'SINCE OVERHAUL'], CX[4], Y, colW[4], H3, 3.5, BOLD);
-
-                rect(CX[7], Y, colW[7], H3, BLK);
-                ctrLines(['TIME OR UNITS', 'SINCE 0/HOURS'], CX[7], Y, colW[7], H3, 3.5, BOLD);
-
-                rect(CX[8], Y, colW[8], H3, BLK);
-                ctrLines(['TIME OR UNITS', 'SINCE OVERHAUL'], CX[8], Y, colW[8], H3, 3.5, BOLD);
-
-                Y += H3;
+                Y += TOTAL_HDR;
 
                 // ── Data rows ────────────────────────────────────────────────
                 const footerH = 12 + 20;
@@ -2021,7 +2015,8 @@ Respond in the same language as the user. Be concise.`;
                 for (let ri = 0; ri < ROWS_PER_PAGE; ri++) {
                     const r = pageRows[ri] || null;
                     // Draw all cell borders
-                    for (let ci = 0; ci < 11; ci++) rect(CX[ci], Y, colW[ci], rowH, BLK);
+                    for (let ci = 0; ci < 10; ci++) rect(CX[ci], Y, colW[ci], rowH, BLK);
+                    rect(CX[10], Y, ML + CW - CX[10], rowH, BLK);
 
                     if (r) {
                         const p = 1.5;
@@ -2045,10 +2040,11 @@ Respond in the same language as the user. Be concise.`;
                             ctr(r.removalDate, CX[9], Y, colW[9], rowH, 4.5, REG);
                         }
                         // Col 10: MFD + EXP
+                        const dSigWd = ML + CW - CX[10];
                         const mfdTxt = r.mfgDate ? 'MFD: '+fmt(r.mfgDate) : '';
                         const expTxt = r.expiryDate ? 'EXP: '+fmt(r.expiryDate) : '';
-                        if (mfdTxt) txt(mfdTxt, CX[10]+p, Y+fs+p+1, 4, REG, BLK, colW[10]-p*2);
-                        if (expTxt) txt(expTxt, CX[10]+p, Y+fs*2+p+3, 4, REG, BLK, colW[10]-p*2);
+                        if (mfdTxt) txt(mfdTxt, CX[10]+p, Y+fs+p+1, 4, REG, BLK, dSigWd-p*2);
+                        if (expTxt) txt(expTxt, CX[10]+p, Y+fs*2+p+3, 4, REG, BLK, dSigWd-p*2);
                     }
                     Y += rowH;
                 }
