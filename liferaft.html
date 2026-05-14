@@ -792,31 +792,29 @@
 
         function calcExpiryFromInterval(index) {
             const item = subItems[index];
-            const mfgEl = document.getElementById(`subitem_mfg_${index}`);
-            const expiryEl = document.getElementById(`subitem_expiry_${index}`);
-            if (!mfgEl || !expiryEl || !mfgEl.value) return;
             if (item.mfgMode === 'no' || item.intervalMonths === 'NA') return;
-            mfgEl.value = fixYear(mfgEl.value);
-            if (typeof item.intervalMonths === 'number') {
-                const d = new Date(mfgEl.value);
-                d.setMonth(d.getMonth() + item.intervalMonths);
-                expiryEl.value = d.toISOString().split('T')[0];
-                checkExpiryDates();
-            }
+            if (typeof item.intervalMonths !== 'number') return;
+            const mfgISO = getDateFromParts(index, 'mfg');
+            if (!mfgISO) return;
+            const d = new Date(mfgISO);
+            if (isNaN(d)) return;
+            d.setMonth(d.getMonth() + item.intervalMonths);
+            setDateToParts(index, 'exp', d.toISOString().split('T')[0]);
+            checkExpiryDates();
         }
 
         function calcMfgFromExpiry(index) {
             const item = subItems[index];
             if (item.mfgMode === 'no' || item.intervalMonths === 'NA') return;
             if (typeof item.intervalMonths !== 'number') return;
-            const expiryEl = document.getElementById(`subitem_expiry_${index}`);
-            const mfgEl = document.getElementById(`subitem_mfg_${index}`);
-            if (!expiryEl || !mfgEl || !expiryEl.value) return;
-            expiryEl.value = fixYear(expiryEl.value);
-            if (mfgEl.value) return;
-            const d = new Date(expiryEl.value);
+            const expISO = getDateFromParts(index, 'exp');
+            if (!expISO) return;
+            const mfgISO = getDateFromParts(index, 'mfg');
+            if (mfgISO) return; // already filled
+            const d = new Date(expISO);
+            if (isNaN(d)) return;
             d.setMonth(d.getMonth() - item.intervalMonths);
-            mfgEl.value = d.toISOString().split('T')[0];
+            setDateToParts(index, 'mfg', d.toISOString().split('T')[0]);
         }
 
         function checkQtyServiceability() {
@@ -850,29 +848,87 @@
             checkQtyServiceability();
         }
 
+        // Convert DD/MM/YYYY or DD/MM/YY parts to ISO YYYY-MM-DD
+        function partsToISO(dd, mm, yyyy) {
+            const d = parseInt(dd), m = parseInt(mm);
+            let y = parseInt(yyyy);
+            if (isNaN(d)||isNaN(m)||isNaN(y)) return '';
+            if (y < 100) y += 2000;
+            return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        }
+        function isoToParts(iso) {
+            if (!iso) return ['','',''];
+            const p = iso.split('-');
+            if (p.length !== 3) return ['','',''];
+            return [p[2], p[1], p[0]]; // dd, mm, yyyy
+        }
+        function getDateFromParts(index, prefix) {
+            const dd = document.getElementById(`${prefix}_dd_${index}`)?.value || '';
+            const mm = document.getElementById(`${prefix}_mm_${index}`)?.value || '';
+            const yy = document.getElementById(`${prefix}_yy_${index}`)?.value || '';
+            if (!dd && !mm && !yy) return '';
+            return partsToISO(dd, mm, yy);
+        }
+        function setDateToParts(index, prefix, iso) {
+            const [dd,mm,yy] = isoToParts(iso);
+            const ddEl = document.getElementById(`${prefix}_dd_${index}`);
+            const mmEl = document.getElementById(`${prefix}_mm_${index}`);
+            const yyEl = document.getElementById(`${prefix}_yy_${index}`);
+            if(ddEl) ddEl.value = dd;
+            if(mmEl) mmEl.value = mm;
+            if(yyEl) yyEl.value = yy;
+        }
+        function datePartChanged(index, prefix, isExpiry) {
+            if (isExpiry) {
+                calcMfgFromExpiry(index);
+                checkExpiryDates();
+            } else {
+                calcExpiryFromInterval(index);
+            }
+        }
+
+        function makeDateInputs(index, prefix, disabled, isExpiry) {
+            const gs = 'background:#e8e8e8;color:#aaa;pointer-events:none;';
+            const s = 'text-align:center;width:32px;border:1px solid #ccc;border-radius:3px;padding:2px;font-size:11px;';
+            const onChange = `onchange="datePartChanged(${index},'${prefix}',${isExpiry})"`;
+            if (disabled) {
+                return `<div style="display:flex;gap:2px;align-items:center;">
+                    <input style="${s}${gs}" disabled placeholder="DD">
+                    <span style="color:#aaa;font-size:10px;">/</span>
+                    <input style="${s}${gs}" disabled placeholder="MM">
+                    <span style="color:#aaa;font-size:10px;">/</span>
+                    <input style="text-align:center;width:40px;border:1px solid #ccc;border-radius:3px;padding:2px;font-size:11px;${gs}" disabled placeholder="YYYY">
+                </div>`;
+            }
+            return `<div style="display:flex;gap:2px;align-items:center;">
+                <input type="number" id="${prefix}_dd_${index}" min="1" max="31" placeholder="DD" style="${s}" ${onChange}>
+                <span style="color:#666;font-size:10px;">/</span>
+                <input type="number" id="${prefix}_mm_${index}" min="1" max="12" placeholder="MM" style="${s}" ${onChange}>
+                <span style="color:#666;font-size:10px;">/</span>
+                <input type="number" id="${prefix}_yy_${index}" min="1900" max="2100" placeholder="YYYY" style="text-align:center;width:42px;border:1px solid #ccc;border-radius:3px;padding:2px;font-size:11px;" ${onChange}>
+            </div>`;
+        }
+
         function generateSubItemsTable() {
             const tbody = document.getElementById('subItemsTableBody');
             tbody.innerHTML = '';
-            const greyStyle = 'background:#e8e8e8;color:#aaa;pointer-events:none;border:1px solid #ddd;width:100%;box-sizing:border-box;';
             subItems.forEach((item, index) => {
                 const noMfg    = item.mfgMode === 'no';
                 const noExpiry = item.intervalMonths === 'NA';
                 const isCyl    = item.item.toUpperCase().includes('CYLINDER');
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td style="font-weight:600;">${item.item}</td>
-                    <td style="background:#f0f0f0;color:#666;font-size:11px;">${item.partNumber}</td>
-                    <td><input type="text" id="subitem_sn_${index}" placeholder="S/N or Batch N°" style="width:100%;box-sizing:border-box;"></td>
-                    <td><input type="date" id="subitem_mfg_${index}"
-                        ${noMfg ? `disabled style="${greyStyle}"` : `onchange="fixDateInput(this);calcExpiryFromInterval(${index})" onblur="fixDateInput(this);calcExpiryFromInterval(${index})" style="width:100%;box-sizing:border-box;"`}></td>
+                    <td style="font-weight:600;font-size:12px;">${item.item}</td>
+                    <td style="background:#f0f0f0;color:#666;font-size:10px;">${item.partNumber}</td>
+                    <td><input type="text" id="subitem_sn_${index}" placeholder="S/N or Batch N°" style="width:100%;box-sizing:border-box;font-size:12px;"></td>
+                    <td>${makeDateInputs(index,'mfg',noMfg,false)}</td>
                     <td style="text-align:center;">
                         <span style="display:inline-block;padding:3px 7px;border-radius:4px;font-size:11px;font-weight:600;
                             ${noMfg||noExpiry ? 'background:#e8e8e8;color:#aaa;' : 'background:#e8f4e8;color:#2d6a2d;'}">
                             ${noMfg||noExpiry ? 'N/A' : item.intervalMonths+' M'}
                         </span>
                     </td>
-                    <td><input type="date" id="subitem_expiry_${index}"
-                        ${noExpiry ? `disabled style="${greyStyle}"` : `onchange="fixDateInput(this);calcMfgFromExpiry(${index});checkExpiryDates();" onblur="fixDateInput(this);calcMfgFromExpiry(${index});checkExpiryDates();" style="width:100%;box-sizing:border-box;"`}></td>
+                    <td>${makeDateInputs(index,'exp',noExpiry,true)}</td>
                     <td>${isCyl ? '<span style="color:#aaa;font-size:11px;">—</span>' :
                         `<input type="number" id="subitem_qty_${index}" min="0" placeholder="QTY"
                             style="width:55px;text-align:center;" onchange="checkQty(${index})">`}</td>
@@ -945,11 +1001,9 @@
             
             subItems.forEach((item, index) => {
                 const sn = document.getElementById(`subitem_sn_${index}`).value.trim();
-                const mfgEl2 = document.getElementById(`subitem_mfg_${index}`);
-                const mfg = (mfgEl2 && !mfgEl2.disabled) ? (mfgEl2.value || '') : '';
+                const mfg = item.mfgMode === 'no' ? '' : (getDateFromParts(index,'mfg') || '');
                 const interval = item.intervalMonths === 'NA' ? 'N/A' : (typeof item.intervalMonths === 'number' ? item.intervalMonths+'M' : '');
-                const expiryEl2 = document.getElementById(`subitem_expiry_${index}`);
-                const expiry = (expiryEl2 && !expiryEl2.disabled) ? (expiryEl2.value || '') : '';
+                const expiry = item.intervalMonths === 'NA' ? '' : (getDateFromParts(index,'exp') || '');
                 const qtyEl2 = document.getElementById(`subitem_qty_${index}`);
                 const qty = qtyEl2 ? qtyEl2.value.trim() : '';
                 subItemsData.push({
@@ -1027,10 +1081,10 @@
             // Reset sub-items
             subItems.forEach((item, index) => {
                 document.getElementById(`subitem_sn_${index}`).value = '';
-                const mfgR = document.getElementById(`subitem_mfg_${index}`);
-                if (mfgR && !mfgR.disabled) mfgR.value = '';
-                const expR = document.getElementById(`subitem_expiry_${index}`);
-                if (expR && !expR.disabled) { expR.value = ''; expR.classList.remove('expired-date','expiring-soon'); }
+                ['mfg_dd','mfg_mm','mfg_yy','exp_dd','exp_mm','exp_yy'].forEach(p => {
+                    const el = document.getElementById(`${p}_${index}`);
+                    if (el) el.value = '';
+                });
                 const qtyR = document.getElementById(`subitem_qty_${index}`);
                 if (qtyR) qtyR.value = '';
                 const stR = document.getElementById(`subitem_status_${index}`);
@@ -1270,10 +1324,8 @@
             editingLifeRaft.subItems.forEach((sub, index) => {
                 const snE = document.getElementById(`subitem_sn_${index}`);
                 if (snE) snE.value = sub.serialNumber || '';
-                const mfgE = document.getElementById(`subitem_mfg_${index}`);
-                if (mfgE && !mfgE.disabled) mfgE.value = sub.manufacturerDate || '';
-                const expE = document.getElementById(`subitem_expiry_${index}`);
-                if (expE && !expE.disabled) expE.value = sub.expiryDate || '';
+                if (sub.manufacturerDate) setDateToParts(index, 'mfg', sub.manufacturerDate);
+                if (sub.expiryDate) setDateToParts(index, 'exp', sub.expiryDate);
                 const qtyE = document.getElementById(`subitem_qty_${index}`);
                 if (qtyE) { qtyE.value = sub.qty || ''; if (sub.qty) checkQty(index); }
             });
