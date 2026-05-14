@@ -385,7 +385,7 @@
         let editingLifeRaft = null;
         let currentLifeRaftId = null;
 
-        // mfgMode:'no'=greyed(N/A) | intervalMonths:number=auto-calc months | 'NA'=no expiry | qtyTheoric=minimum qty
+        // mfgMode:'no'=greyed | intervalMonths:number=months | 'NA'=no expiry | qtyTheoric=minimum
         const subItems = [
             { item: 'SLEEVE, RATIONS',                   partNumber: '05829010',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
             { item: 'CARD, EMERGENCY PACK CONTENTS',     partNumber: '05804018',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
@@ -409,7 +409,7 @@
             { item: 'BAG, PLASTIC, MINIGRIP',            partNumber: '11020009',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:4  },
             { item: 'CYLINDER',                          partNumber: '51668001',           mfgMode:'yes', intervalMonths:60,   qtyTheoric:1  },
             { item: 'RB2 BATTERY PACK',                  partNumber: 'A0696',              mfgMode:'yes', intervalMonths:59,   qtyTheoric:1  },
-            { item: 'BATTERY TORCH X2',                  partNumber: 'LR06',              mfgMode:'yes', intervalMonths:129,  qtyTheoric:2  },
+            { item: 'BATTERY TORCH X2',                  partNumber: 'LR06',               mfgMode:'yes', intervalMonths:129,  qtyTheoric:2  },
             { item: 'PADDLE GLOVE',                      partNumber: '39993001',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:2  }
         ];
 
@@ -760,13 +760,82 @@
             refreshTable();
         }
 
+        function fixYear(dateStr) {
+            if (!dateStr) return dateStr;
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                let yr = parseInt(parts[0]);
+                if (yr < 100) yr += 2000;
+                parts[0] = String(yr).padStart(4, '0');
+                return parts.join('-');
+            }
+            return dateStr;
+        }
 
+        function calcExpiryFromInterval(index) {
+            const item = subItems[index];
+            const mfgEl = document.getElementById(`subitem_mfg_${index}`);
+            const expiryEl = document.getElementById(`subitem_expiry_${index}`);
+            if (!mfgEl || !expiryEl || !mfgEl.value) return;
+            if (item.mfgMode === 'no' || item.intervalMonths === 'NA') return;
+            mfgEl.value = fixYear(mfgEl.value);
+            if (typeof item.intervalMonths === 'number') {
+                const d = new Date(mfgEl.value);
+                d.setMonth(d.getMonth() + item.intervalMonths);
+                expiryEl.value = d.toISOString().split('T')[0];
+                checkExpiryDates();
+            }
+        }
+
+        function calcMfgFromExpiry(index) {
+            const item = subItems[index];
+            if (item.mfgMode === 'no' || item.intervalMonths === 'NA') return;
+            if (typeof item.intervalMonths !== 'number') return;
+            const expiryEl = document.getElementById(`subitem_expiry_${index}`);
+            const mfgEl = document.getElementById(`subitem_mfg_${index}`);
+            if (!expiryEl || !mfgEl || !expiryEl.value) return;
+            expiryEl.value = fixYear(expiryEl.value);
+            if (mfgEl.value) return;
+            const d = new Date(expiryEl.value);
+            d.setMonth(d.getMonth() - item.intervalMonths);
+            mfgEl.value = d.toISOString().split('T')[0];
+        }
+
+        function checkQtyServiceability() {
+            let hasMismatch = false;
+            subItems.forEach((item, index) => {
+                if (item.item.toUpperCase().includes('CYLINDER')) return;
+                const el = document.getElementById(`subitem_qty_${index}`);
+                if (!el || el.value === '') return;
+                const v = parseInt(el.value);
+                if (!isNaN(v) && v < item.qtyTheoric) hasMismatch = true;
+            });
+            window._qtyMismatch = hasMismatch;
+        }
+
+        function checkQty(index) {
+            const item = subItems[index];
+            if (item.item.toUpperCase().includes('CYLINDER')) return;
+            const qtyInput = document.getElementById(`subitem_qty_${index}`);
+            const statusCell = document.getElementById(`subitem_status_${index}`);
+            if (!qtyInput) return;
+            const entered = parseInt(qtyInput.value);
+            if (isNaN(entered) || qtyInput.value === '') { statusCell.innerHTML = '<span style="color:#16a34a;font-weight:bold;">✓ OK</span>'; return; }
+            if (entered < item.qtyTheoric) {
+                statusCell.innerHTML = `<span style="color:#dc2626;font-weight:bold;">⚠ ${entered}/${item.qtyTheoric}</span>`;
+                alert(`⚠️ QTY BELOW MINIMUM\n\n${item.item}\nEntered: ${entered}\nMinimum required: ${item.qtyTheoric}\n\nThe Life Raft will be marked UNSERVICEABLE until corrected.`);
+            } else {
+                statusCell.innerHTML = entered > item.qtyTheoric
+                    ? `<span style="color:#f59e0b;font-weight:bold;">↑ ${entered}/${item.qtyTheoric}</span>`
+                    : '<span style="color:#16a34a;font-weight:bold;">✓ OK</span>';
+            }
+            checkQtyServiceability();
+        }
 
         function generateSubItemsTable() {
             const tbody = document.getElementById('subItemsTableBody');
             tbody.innerHTML = '';
             const greyStyle = 'background:#e8e8e8;color:#aaa;pointer-events:none;border:1px solid #ddd;width:100%;box-sizing:border-box;';
-
             subItems.forEach((item, index) => {
                 const noMfg    = item.mfgMode === 'no';
                 const noExpiry = item.intervalMonths === 'NA';
@@ -793,65 +862,6 @@
                 `;
                 tbody.appendChild(row);
             });
-        }
-
-        function calcExpiryFromInterval(index) {
-            const item = subItems[index];
-            const mfgEl = document.getElementById(`subitem_mfg_${index}`);
-            const expiryEl = document.getElementById(`subitem_expiry_${index}`);
-            if (!mfgEl || !expiryEl || !mfgEl.value) return;
-            if (item.mfgMode === 'no' || item.intervalMonths === 'NA') return;
-            if (typeof item.intervalMonths === 'number') {
-                const d = new Date(mfgEl.value);
-                d.setMonth(d.getMonth() + item.intervalMonths);
-                expiryEl.value = d.toISOString().split('T')[0];
-                checkExpiryDates();
-            }
-        }
-
-        function calcMfgFromExpiry(index) {
-            const item = subItems[index];
-            if (item.mfgMode === 'no' || item.intervalMonths === 'NA') return;
-            if (typeof item.intervalMonths !== 'number') return;
-            const expiryEl = document.getElementById(`subitem_expiry_${index}`);
-            const mfgEl = document.getElementById(`subitem_mfg_${index}`);
-            if (!expiryEl || !mfgEl || !expiryEl.value) return;
-            // Only back-fill mfg if it's empty
-            if (mfgEl.value) return;
-            const d = new Date(expiryEl.value);
-            d.setMonth(d.getMonth() - item.intervalMonths);
-            mfgEl.value = d.toISOString().split('T')[0];
-        }
-
-        function checkQty(index) {
-            const item = subItems[index];
-            if (item.item.toUpperCase().includes('CYLINDER')) return;
-            const qtyInput = document.getElementById(`subitem_qty_${index}`);
-            const statusCell = document.getElementById(`subitem_status_${index}`);
-            if (!qtyInput) return;
-            const entered = parseInt(qtyInput.value);
-            if (isNaN(entered) || qtyInput.value === '') { statusCell.innerHTML = '<span style="color:#16a34a;font-weight:bold;">✓ OK</span>'; return; }
-            if (entered < item.qtyTheoric) {
-                statusCell.innerHTML = `<span style="color:#dc2626;font-weight:bold;">⚠ ${entered}/${item.qtyTheoric}</span>`;
-                alert(`⚠️ QTY BELOW MINIMUM\n\n${item.item}\nEntered: ${entered}\nMinimum required: ${item.qtyTheoric}\n\nThe Life Raft will be marked UNSERVICEABLE until corrected.`);
-            } else {
-                statusCell.innerHTML = entered > item.qtyTheoric
-                    ? `<span style="color:#f59e0b;font-weight:bold;">↑ ${entered}/${item.qtyTheoric}</span>`
-                    : '<span style="color:#16a34a;font-weight:bold;">✓ OK</span>';
-            }
-            checkQtyServiceability();
-        }
-
-        function checkQtyServiceability() {
-            let hasMismatch = false;
-            subItems.forEach((item, index) => {
-                if (item.item.toUpperCase().includes('CYLINDER')) return;
-                const el = document.getElementById(`subitem_qty_${index}`);
-                if (!el || el.value === '') return;
-                const v = parseInt(el.value);
-                if (!isNaN(v) && v < item.qtyTheoric) hasMismatch = true;
-            });
-            window._qtyMismatch = hasMismatch;
         }
 
         function checkExpiryDates() {
@@ -919,19 +929,15 @@
                 const sn = document.getElementById(`subitem_sn_${index}`).value.trim();
                 const mfgEl2 = document.getElementById(`subitem_mfg_${index}`);
                 const mfg = (mfgEl2 && !mfgEl2.disabled) ? (mfgEl2.value || '') : '';
-                const interval = item.intervalMonths === 'NA' ? 'N/A' : (typeof item.intervalMonths === 'number' ? item.intervalMonths + 'M' : '');
+                const interval = item.intervalMonths === 'NA' ? 'N/A' : (typeof item.intervalMonths === 'number' ? item.intervalMonths+'M' : '');
                 const expiryEl2 = document.getElementById(`subitem_expiry_${index}`);
                 const expiry = (expiryEl2 && !expiryEl2.disabled) ? (expiryEl2.value || '') : '';
                 const qtyEl2 = document.getElementById(`subitem_qty_${index}`);
                 const qty = qtyEl2 ? qtyEl2.value.trim() : '';
                 subItemsData.push({
-                    item: item.item,
-                    partNumber: item.partNumber,
-                    serialNumber: sn,
-                    manufacturerDate: mfg,
-                    interval: interval,
-                    expiryDate: expiry,
-                    qty: qty
+                    item: item.item, partNumber: item.partNumber,
+                    serialNumber: sn, manufacturerDate: mfg,
+                    interval: interval, expiryDate: expiry, qty: qty
                 });
             });
 
@@ -1804,7 +1810,6 @@ Respond in the same language as the user. Be concise.`;
         </div>
     </div>
 
-    <!-- Help Modal -->
     <div id="helpModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
         <div style="background:white;border-radius:12px;padding:24px;max-width:92vw;max-height:92vh;overflow-y:auto;position:relative;">
             <button onclick="document.getElementById('helpModal').style.display='none'" style="position:absolute;top:12px;right:12px;background:#ef4444;color:white;border:none;border-radius:50%;width:28px;height:28px;font-size:16px;cursor:pointer;font-weight:bold;line-height:1;">✕</button>
