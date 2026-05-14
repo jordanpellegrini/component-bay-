@@ -1849,11 +1849,11 @@ Respond in the same language as the user. Be concise.`;
             const serialNumber = document.getElementById('serialNumber')?.value || '';
             const designation  = document.getElementById('designation')?.value  || '';
 
-            // Build the XLS using SheetJS from the template
             try {
-                const response = await fetch('Logcard_Creation.xls');
-                const buffer  = await response.arrayBuffer();
-                const wb      = XLSX.read(buffer, { type: 'array', bookType: 'xls' });
+                const response = await fetch('https://component-bay-dj2e.vercel.app/Logcard_Creation.xls');
+                if (!response.ok) throw new Error('File not found on server');
+                const buffer = await response.arrayBuffer();
+                const wb     = XLSX.read(buffer, { type: 'array' });
                 const ws      = wb.Sheets['Données à saisir'];
 
                 function setCell(row, col, value) {
@@ -1894,6 +1894,7 @@ Respond in the same language as the user. Be concise.`;
                 const today = new Date().toISOString().slice(0,10);
                 XLSX.writeFile(wb, `LogCard_${serialNumber || 'LR'}_${today}.xls`);
                 showMessage('Log Card generated successfully', 'success', 'liferaftMessage');
+
             } catch(e) {
                 console.error('LogCard error:', e);
                 alert('Error generating Log Card. Make sure Logcard_Creation.xls is in the same folder as liferaft.html.');
