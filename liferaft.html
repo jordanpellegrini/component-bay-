@@ -766,7 +766,9 @@
             const parts = el.value.split('-');
             if (parts.length === 3) {
                 let y = parseInt(parts[0]);
-                if (y < 2000) { y += 2000; el.value = `${y}-${parts[1]}-${parts[2]}`; }
+                if (y < 100) y += 2000;
+                else if (y >= 100 && y < 2000) y += 2000;
+                el.value = `${y}-${parts[1]}-${parts[2]}`;
             }
         }
         function getDateISO(index, prefix) {
@@ -792,7 +794,6 @@
             const item = subItems[index];
             if (item.mfgMode==='no'||item.intervalMonths==='NA'||typeof item.intervalMonths!=='number') return;
             const expISO = getDateISO(index,'exp'); if (!expISO) return;
-            const mfgISO = getDateISO(index,'mfg'); if (mfgISO) return;
             const d = new Date(expISO); if (isNaN(d)) return;
             d.setMonth(d.getMonth() - item.intervalMonths);
             setDateISO(index, 'mfg', d.toISOString().split('T')[0]);
@@ -845,6 +846,7 @@
                         : `<input type="date" id="subitem_mfg_${index}" style="width:100%;box-sizing:border-box;"
                             onchange="fixDateYear(this);calcExpiryFromInterval(${index})"
                             onblur="fixDateYear(this);calcExpiryFromInterval(${index})"
+                            oninput="fixDateYear(this)"
                             min="2000-01-01" max="2099-12-31">`
                     }</td>
                     <td style="text-align:center;">
@@ -858,6 +860,7 @@
                         : `<input type="date" id="subitem_exp_${index}" style="width:100%;box-sizing:border-box;"
                             onchange="fixDateYear(this);calcMfgFromExpiry(${index});checkExpiryDates()"
                             onblur="fixDateYear(this);calcMfgFromExpiry(${index});checkExpiryDates()"
+                            oninput="fixDateYear(this)"
                             min="2000-01-01" max="2099-12-31">`
                     }</td>
                     <td>${isCyl ? '<span style="color:#aaa;font-size:11px;">—</span>' :
