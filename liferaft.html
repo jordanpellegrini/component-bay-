@@ -465,17 +465,25 @@
             }
         }
 
-        async function saveData() {
+        async function saveData(itemToSave = null) {
             localStorage.setItem('componentsBayLifeRafts', JSON.stringify(liferaftData));
             if (window.ComponentsBayDB) {
-                for (const item of liferaftData) {
+                if (itemToSave) {
                     try {
-                        await window.ComponentsBayDB.save('liferafts', {...item});
+                        await window.ComponentsBayDB.save('liferafts', {...itemToSave});
                     } catch(e) {
                         console.error('Liferaft save error:', e);
                     }
+                } else {
+                    // Full sync (import only)
+                    for (const item of liferaftData) {
+                        try {
+                            await window.ComponentsBayDB.save('liferafts', {...item});
+                        } catch(e) {
+                            console.error('Liferaft save error:', e);
+                        }
+                    }
                 }
-                console.log('✅ Liferafts synced to Supabase');
             }
         }
 
@@ -996,7 +1004,7 @@
                 liferaftData.push(formData);
             }
 
-            saveData();
+            saveData(formData);
             updateSummary();
             updateUnserviceableSection();
             showMessage('Life Raft saved successfully', 'success', 'liferaftMessage');
@@ -1289,7 +1297,7 @@
         async function deleteLifeRaft(id) {
             if (confirm('Are you sure you want to delete this life raft system?')) {
                 liferaftData = liferaftData.filter(item => item.id !== id);
-                saveData();
+                localStorage.setItem('componentsBayLifeRafts', JSON.stringify(liferaftData));
                 if (window.ComponentsBayDB) {
                     try { await window.ComponentsBayDB.delete('liferafts', id); } catch(e) { console.error('Liferaft delete error:', e); }
                 }
