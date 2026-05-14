@@ -1840,31 +1840,69 @@ Respond in the same language as the user. Be concise.`;
 
             function fmt(iso) { return iso ? new Date(iso).toLocaleDateString('fr-FR') : ''; }
 
+            const ROWS_PER_PAGE = 13;
             const pages = [];
-            for (let i = 0; i < items.length; i += 10) pages.push(items.slice(i, i+10));
+            for (let i = 0; i < items.length; i += ROWS_PER_PAGE) pages.push(items.slice(i, i + ROWS_PER_PAGE));
 
             const rowsHtml = (pageItems) => pageItems.map(l => `
-                <tr style="height:40px;">
-                    <td style="border:1px solid #555;padding:2px;vertical-align:top;font-size:6.5pt;"><strong>${l.designation}</strong><br>${l.partNumber}</td>
-                    <td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6.5pt;">${l.serialNumber}</td>
-                    <td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6.5pt;font-weight:bold;">NEW</td>
-                    <td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6.5pt;font-weight:bold;">NEW</td>
-                    <td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6.5pt;font-weight:bold;">NEW</td>
+                <tr>
+                    <td style="border:1px solid #555;padding:2px;vertical-align:top;font-size:6pt;"><strong>${l.designation}</strong><br>${l.partNumber}</td>
+                    <td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;">${l.serialNumber}</td>
+                    <td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;font-weight:bold;">NEW</td>
+                    <td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;font-weight:bold;">NEW</td>
+                    <td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;font-weight:bold;">NEW</td>
                     <td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;">${inspDate}</td>
                     <td style="border:1px solid #555;"></td>
                     <td style="border:1px solid #555;"></td>
                     <td style="border:1px solid #555;"></td>
                     <td style="border:1px solid #555;"></td>
-                    <td style="border:1px solid #555;padding:2px;vertical-align:top;font-size:6pt;">${l.mfgDate?'MFD: '+fmt(l.mfgDate):''}${l.expiryDate?'<br>EXP: '+fmt(l.expiryDate):''}</td>
+                    <td style="border:1px solid #555;padding:2px;vertical-align:top;font-size:5.5pt;">${l.mfgDate?'MFD: '+fmt(l.mfgDate):''}${l.expiryDate?'<br>EXP: '+fmt(l.expiryDate):''}</td>
                 </tr>
             `).join('');
 
-            const emptyRows = (n) => Array(n).fill('<tr style="height:40px;"><td style="border:1px solid #555;" colspan="11"></td></tr>').join('');
+            const emptyRows = (n) => Array(n).fill(`
+                <tr><td style="border:1px solid #555;" colspan="11">&nbsp;</td></tr>
+            `).join('');
+
+            const footer = `
+                <div style="margin-top:0;">
+                    <div style="border:1px solid #555;padding:3px 4px;font-size:7pt;font-weight:bold;border-bottom:none;">12/ RECORDABLE CONCESSIONS:</div>
+                    <div style="display:flex;border:1px solid #555;">
+                        <div style="flex:1;padding:20px 4px 4px;font-size:7pt;font-weight:bold;border-right:1px solid #555;">13/ OPERATION LIMIT:</div>
+                        <div style="flex:1;padding:20px 4px 4px;font-size:7pt;font-weight:bold;">14/ LIFE LIMIT:</div>
+                    </div>
+                </div>`;
+
+            const thead = `
+                <thead>
+                    <tr>
+                        <th colspan="2" style="border:1px solid #555;padding:2px;text-align:center;font-size:7pt;font-weight:bold;">A/ ITEM DATA</th>
+                        <th colspan="4" style="border:1px solid #555;padding:2px;text-align:center;font-size:7pt;font-weight:bold;">B/ INSTALLATION</th>
+                        <th colspan="4" style="border:1px solid #555;padding:2px;text-align:center;font-size:7pt;font-weight:bold;">C/ REMOVAL</th>
+                        <th rowspan="3" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">D/ SIGNIFICANT<br>ATA<br>STAMP DATE</th>
+                    </tr>
+                    <tr>
+                        <th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">ITEM DESIGNATION &amp;<br>PART NUMBER</th>
+                        <th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">SERIAL<br>NUMBER</th>
+                        <th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">ASSY<br>OPERATING<br>TIME OR<br>UNITS</th>
+                        <th colspan="2" style="border:1px solid #555;padding:2px;text-align:center;font-size:6pt;font-weight:bold;">ITEM LIFE</th>
+                        <th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">INSPECTION<br>STAMP<br>DATE</th>
+                        <th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">ASSY<br>OPERATING<br>TIME OR<br>UNITS</th>
+                        <th colspan="2" style="border:1px solid #555;padding:2px;text-align:center;font-size:6pt;font-weight:bold;">ITEM LIFE</th>
+                        <th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">INSPECTION<br>STAMP<br>DATE</th>
+                    </tr>
+                    <tr>
+                        <th style="border:1px solid #555;padding:2px;text-align:center;font-size:5.5pt;font-weight:bold;line-height:1.2;">TIME OR UNITS<br>SINCE 0/HOURS</th>
+                        <th style="border:1px solid #555;padding:2px;text-align:center;font-size:5.5pt;font-weight:bold;line-height:1.2;">TIME OR UNITS<br>SINCE OVERHAUL</th>
+                        <th style="border:1px solid #555;padding:2px;text-align:center;font-size:5.5pt;font-weight:bold;line-height:1.2;">TIME OR UNITS<br>SINCE 0/HOURS</th>
+                        <th style="border:1px solid #555;padding:2px;text-align:center;font-size:5.5pt;font-weight:bold;line-height:1.2;">TIME OR UNITS<br>SINCE OVERHAUL</th>
+                    </tr>
+                </thead>`;
 
             const pagesHtml = pages.map((pageItems, pi) => `
                 <div class="page">
-                    <div style="display:flex;justify-content:space-between;align-items:center;border:1px solid #555;border-bottom:none;padding:2px 8px;">
-                        <span style="font-size:8pt;text-align:center;flex:1;">15/ RECORD OF ASSOCIATED EQUIPMENT</span>
+                    <div style="border:1px solid #555;border-bottom:none;padding:2px 8px;text-align:center;font-size:8pt;">
+                        15/ RECORD OF ASSOCIATED EQUIPMENT
                     </div>
                     <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
                         <colgroup>
@@ -1873,35 +1911,13 @@ Respond in the same language as the user. Be concise.`;
                             <col style="width:7%"><col style="width:8%"><col style="width:8%">
                             <col style="width:9%"><col style="width:10%">
                         </colgroup>
-                        <thead>
-                            <tr>
-                                <th colspan="2" style="border:1px solid #555;padding:2px;text-align:center;font-size:7pt;font-weight:bold;">A/ ITEM DATA</th>
-                                <th colspan="4" style="border:1px solid #555;padding:2px;text-align:center;font-size:7pt;font-weight:bold;">B/ INSTALLATION</th>
-                                <th colspan="4" style="border:1px solid #555;padding:2px;text-align:center;font-size:7pt;font-weight:bold;">C/ REMOVAL</th>
-                                <th rowspan="3" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">D/ SIGNIFICANT<br>ATA<br>STAMP DATE</th>
-                            </tr>
-                            <tr>
-                                <th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">ITEM DESIGNATION &amp;<br>PART NUMBER</th>
-                                <th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">SERIAL<br>NUMBER</th>
-                                <th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">ASSY<br>OPERATING<br>TIME OR<br>UNITS</th>
-                                <th colspan="2" style="border:1px solid #555;padding:2px;text-align:center;font-size:6pt;font-weight:bold;">ITEM LIFE</th>
-                                <th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">INSPECTION<br>STAMP<br>DATE</th>
-                                <th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">ASSY<br>OPERATING<br>TIME OR<br>UNITS</th>
-                                <th colspan="2" style="border:1px solid #555;padding:2px;text-align:center;font-size:6pt;font-weight:bold;">ITEM LIFE</th>
-                                <th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">INSPECTION<br>STAMP<br>DATE</th>
-                            </tr>
-                            <tr>
-                                <th style="border:1px solid #555;padding:2px;text-align:center;font-size:5.5pt;font-weight:bold;line-height:1.2;">TIME OR UNITS<br>SINCE 0/HOURS</th>
-                                <th style="border:1px solid #555;padding:2px;text-align:center;font-size:5.5pt;font-weight:bold;line-height:1.2;">TIME OR UNITS<br>SINCE OVERHAUL</th>
-                                <th style="border:1px solid #555;padding:2px;text-align:center;font-size:5.5pt;font-weight:bold;line-height:1.2;">TIME OR UNITS<br>SINCE 0/HOURS</th>
-                                <th style="border:1px solid #555;padding:2px;text-align:center;font-size:5.5pt;font-weight:bold;line-height:1.2;">TIME OR UNITS<br>SINCE OVERHAUL</th>
-                            </tr>
-                        </thead>
+                        ${thead}
                         <tbody>
                             ${rowsHtml(pageItems)}
-                            ${emptyRows(Math.max(0, 10 - pageItems.length))}
+                            ${emptyRows(ROWS_PER_PAGE - pageItems.length)}
                         </tbody>
                     </table>
+                    ${footer}
                 </div>
             `).join('');
 
@@ -1910,28 +1926,20 @@ Respond in the same language as the user. Be concise.`;
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
 body { font-family:Arial,sans-serif; background:#fff; }
-.controls { text-align:center; padding:8px; background:#1B2B4B; color:white; }
-.controls button { padding:6px 18px; border:none; border-radius:4px; cursor:pointer; font-weight:bold; margin:0 4px; }
-.page { width:297mm; padding:8mm; background:white; margin:0 auto; }
+.page { width:297mm; min-height:210mm; padding:6mm; background:white; margin:0 auto; display:flex; flex-direction:column; justify-content:space-between; }
 @media print {
-    .controls { display:none; }
-    .page { margin:0; padding:6mm; page-break-after:always; }
-    @page { size:A4 landscape; margin:0; }
+    .page { margin:0; padding:0; page-break-after:always; min-height:0; }
+    @page { size:A4 landscape; margin:5mm 6mm 5mm 6mm; }
 }
 </style>
 </head><body>
-<div class="controls">
-    <span><strong>Log Card</strong> — ${designation} S/N ${serialNumber}</span>
-    <button onclick="window.print()" style="background:#27ae60;color:white;">Print / Save as PDF</button>
-    <button onclick="window.close()" style="background:#e74c3c;color:white;">Close</button>
-</div>
 ${pagesHtml}
+<script>window.onload=function(){window.print();}<\/script>
 </body></html>`;
 
-            const win = window.open('', '_blank', 'width=1200,height=800');
+            const win = window.open('', '_blank', 'width=1280,height=900');
             win.document.write(html);
             win.document.close();
-            setTimeout(() => win.print(), 500);
         }
         </script>
 
