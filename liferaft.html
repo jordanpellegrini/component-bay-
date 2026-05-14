@@ -766,10 +766,38 @@
             const parts = el.value.split('-');
             if (parts.length === 3) {
                 let y = parseInt(parts[0]);
-                if (y < 100) y += 2000;
-                else if (y >= 100 && y < 2000) y += 2000;
-                el.value = `${y}-${parts[1]}-${parts[2]}`;
+                // Chrome sometimes interprets "27" as 2007 instead of 2027
+                // Rule: years 2001-2009 are suspicious if user likely typed 2 digits
+                // Safe range we accept as-is: 2010-2099
+                // Years 2000-2009: could be genuine or misread "0X" → keep but allow
+                // Years < 2000 or > 2099: fix using last 2 digits
+                if (y < 2000) {
+                    const yStr = String(y).padStart(2,'0').slice(-2);
+                    y = 2000 + parseInt(yStr);
+                    el.value = `${y}-${parts[1]}-${parts[2]}`;
+                } else if (y > 2099) {
+                    const yStr = String(y).slice(-2);
+                    y = 2000 + parseInt(yStr);
+                    el.value = `${y}-${parts[1]}-${parts[2]}`;
+                }
+                // If year is 2000-2009 and looks wrong, user can correct manually
             }
+        }
+
+        // Called when user finishes typing the year manually
+        function onDateBlur(el, calcFn) {
+            if (!el || !el.value) return;
+            const parts = el.value.split('-');
+            if (parts.length === 3) {
+                let y = parseInt(parts[0]);
+                // If year ends up as 200X where X is single digit, it may be misread
+                // Trust the value as-is and just ensure it's in valid range
+                if (y < 2000) {
+                    y += 2000;
+                    el.value = `${y}-${parts[1]}-${parts[2]}`;
+                }
+            }
+            if (calcFn) calcFn();
         }
         function getDateISO(index, prefix) {
             const el = document.getElementById(`subitem_${prefix}_${index}`);
