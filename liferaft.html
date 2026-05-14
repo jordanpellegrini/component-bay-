@@ -887,25 +887,40 @@
             }
         }
 
+        function autoNextDate(el, maxLen, nextId) {
+            if (el.value.length >= maxLen && nextId) {
+                const next = document.getElementById(nextId);
+                if (next) { next.focus(); next.select(); }
+            }
+        }
+
         function makeDateInputs(index, prefix, disabled, isExpiry) {
             const gs = 'background:#e8e8e8;color:#aaa;pointer-events:none;';
-            const s = 'text-align:center;width:32px;border:1px solid #ccc;border-radius:3px;padding:2px;font-size:11px;';
+            const sDD  = 'text-align:center;width:36px;border:1px solid #ccc;border-radius:3px;padding:3px 2px;font-size:12px;';
+            const sMM  = 'text-align:center;width:36px;border:1px solid #ccc;border-radius:3px;padding:3px 2px;font-size:12px;';
+            const sYYY = 'text-align:center;width:50px;border:1px solid #ccc;border-radius:3px;padding:3px 2px;font-size:12px;';
             const onChange = `onchange="datePartChanged(${index},'${prefix}',${isExpiry})"`;
+            const ddId  = `${prefix}_dd_${index}`;
+            const mmId  = `${prefix}_mm_${index}`;
+            const yyId  = `${prefix}_yy_${index}`;
             if (disabled) {
-                return `<div style="display:flex;gap:2px;align-items:center;">
-                    <input style="${s}${gs}" disabled placeholder="DD">
-                    <span style="color:#aaa;font-size:10px;">/</span>
-                    <input style="${s}${gs}" disabled placeholder="MM">
-                    <span style="color:#aaa;font-size:10px;">/</span>
-                    <input style="text-align:center;width:40px;border:1px solid #ccc;border-radius:3px;padding:2px;font-size:11px;${gs}" disabled placeholder="YYYY">
+                return `<div style="display:flex;gap:3px;align-items:center;">
+                    <input style="${sDD}${gs}" disabled placeholder="DD">
+                    <span style="color:#aaa;">/</span>
+                    <input style="${sMM}${gs}" disabled placeholder="MM">
+                    <span style="color:#aaa;">/</span>
+                    <input style="${sYYY}${gs}" disabled placeholder="YYYY">
                 </div>`;
             }
-            return `<div style="display:flex;gap:2px;align-items:center;">
-                <input type="number" id="${prefix}_dd_${index}" min="1" max="31" placeholder="DD" style="${s}" ${onChange}>
-                <span style="color:#666;font-size:10px;">/</span>
-                <input type="number" id="${prefix}_mm_${index}" min="1" max="12" placeholder="MM" style="${s}" ${onChange}>
-                <span style="color:#666;font-size:10px;">/</span>
-                <input type="number" id="${prefix}_yy_${index}" min="1900" max="2100" placeholder="YYYY" style="text-align:center;width:42px;border:1px solid #ccc;border-radius:3px;padding:2px;font-size:11px;" ${onChange}>
+            return `<div style="display:flex;gap:3px;align-items:center;">
+                <input type="number" id="${ddId}" min="1" max="31" placeholder="DD" style="${sDD}"
+                    oninput="autoNextDate(this,2,'${mmId}')" ${onChange}>
+                <span style="color:#666;">/</span>
+                <input type="number" id="${mmId}" min="1" max="12" placeholder="MM" style="${sMM}"
+                    oninput="autoNextDate(this,2,'${yyId}')" ${onChange}>
+                <span style="color:#666;">/</span>
+                <input type="number" id="${yyId}" min="1900" max="2100" placeholder="YYYY" style="${sYYY}"
+                    ${onChange}>
             </div>`;
         }
 
