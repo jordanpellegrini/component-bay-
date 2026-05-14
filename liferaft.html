@@ -1830,7 +1830,6 @@ Respond in the same language as the user. Be concise.`;
         }
 
         async function generateLogCard() {
-            // Load pdf-lib
             if (!window.PDFLib) {
                 await new Promise((resolve, reject) => {
                     const s = document.createElement('script');
@@ -1839,21 +1838,18 @@ Respond in the same language as the user. Be concise.`;
                     document.head.appendChild(s);
                 });
             }
-            const { PDFDocument, rgb, StandardFonts, degrees } = window.PDFLib;
+            const { PDFDocument, rgb, StandardFonts } = window.PDFLib;
 
-            // Get life raft data
             const lrData = editingLifeRaft || (liferaftData.length > 0 ? liferaftData[liferaftData.length-1] : null);
             if (!lrData) { alert('No Life Raft data found.'); return; }
 
             const partNumber   = lrData.partNumber || '';
             const serialNumber = lrData.serialNumber || '';
-            const designation  = lrData.designation || 'Life Raft';
             const inspDateRaw  = lrData.inspectionDate || '';
             const inspDate     = inspDateRaw ? new Date(inspDateRaw).toLocaleDateString('fr-FR') : '';
-
             function fmt(iso) { return iso ? new Date(iso).toLocaleDateString('fr-FR') : ''; }
 
-            // Build rows from history or current subItems
+            // Build rows
             const history = lrData.logCardHistory || [];
             let allRows = [];
             if (history.length === 0) {
@@ -1878,205 +1874,197 @@ Respond in the same language as the user. Be concise.`;
             }
             if (allRows.length === 0) { alert('No sub-components with S/N and Manufacturer Date filled.'); return; }
 
-            // PDF generation constants
             const ROWS_PER_PAGE = 13;
-            const W = 842, H = 595; // A4 landscape in points
+            // A4 landscape in points (72 pts/inch)
+            const W = 841.89, H = 595.28;
             const ML = 18, MR = 18, MT = 14, MB = 14;
-            const contentW = W - ML - MR;
-            const contentH = H - MT - MB;
+            const CW = W - ML - MR; // content width
 
-            // Column widths (proportional)
-            const COL = [0.16, 0.08, 0.07, 0.08, 0.08, 0.09, 0.07, 0.08, 0.08, 0.09, 0.10];
-            const colW = COL.map(c => c * contentW);
+            // 11 columns matching the document exactly
+            // A/ITEM(16%) | S/N(8%) | ASSY(7%) | TIME0H(8%) | OVERHAUL(8%) | STAMP(9%) | ASSY_R(7%) | TIME0H_R(8%) | OVERHAUL_R(8%) | STAMP_R(9%) | D/SIG(10%)
+            const COLS = [0.16, 0.08, 0.07, 0.08, 0.08, 0.09, 0.07, 0.08, 0.08, 0.09, 0.10];
+            const CX = []; // cumulative x positions
+            let acc = ML;
+            COLS.forEach(c => { CX.push(acc); acc += c * CW; });
+            const colW = COLS.map(c => c * CW);
 
             const pdfDoc = await PDFDocument.create();
-            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-            const fontReg  = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const BOLD = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+            const REG  = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const BLK  = rgb(0,0,0);
 
-            const BLACK = rgb(0,0,0);
-            const WHITE = rgb(1,1,1);
-            const DARK  = rgb(0.1, 0.16, 0.29); // #1B2B4B
-
-            // Pages
             const pages = [];
             for (let i = 0; i < allRows.length; i += ROWS_PER_PAGE) pages.push(allRows.slice(i, i+ROWS_PER_PAGE));
 
-            pages.forEach((pageRows) => {
+            pages.forEach(pageRows => {
                 const page = pdfDoc.addPage([W, H]);
-                const { width, height } = page.getSize();
+                const PH = page.getHeight();
 
-                function drawRect(x,y,w,h,fillColor,strokeColor) {
-                    if (fillColor) { page.drawRectangle({ x, y: height-y-h, width: w, height: h, color: fillColor }); }
-                    if (strokeColor) { page.drawRectangle({ x, y: height-y-h, width: w, height: h, borderColor: strokeColor, borderWidth: 0.5 }); }
+                // Helpers
+                const py = y => PH - y; // convert top-down y to pdf y
+                function rect(x, y, w, h, stroke, fill) {
+                    if (fill) page.drawRectangle({ x, y: py(y+h), width: w, height: h, color: fill });
+                    if (stroke) page.drawRectangle({ x, y: py(y+h), width: w, height: h, borderColor: stroke, borderWidth: 0.4 });
                 }
-                function drawLine(x1,y1,x2,y2) {
-                    page.drawLine({ start:{x:x1,y:height-y1}, end:{x:x2,y:height-y2}, thickness:0.5, color:BLACK });
-                }
-                function drawText(text, x, y, size, font, color, maxW) {
-                    if (!text) return;
-                    // Simple truncation
-                    let t = String(text);
-                    if (maxW) {
-                        while (t.length > 1 && font.widthOfTextAtSize(t, size) > maxW-2) t = t.slice(0,-1);
-                    }
-                    page.drawText(t, { x, y: height-y, size, font, color: color||BLACK });
-                }
-                function textCenter(text, cellX, cellY, cellW, cellH, size, font, color) {
+                function txt(text, x, y, size, font, color, maxW) {
                     if (!text) return;
                     let t = String(text);
-                    while (t.length > 1 && font.widthOfTextAtSize(t, size) > cellW-2) t = t.slice(0,-1);
-                    const tw = font.widthOfTextAtSize(t, size);
-                    const tx = cellX + (cellW - tw) / 2;
-                    const ty = cellY + (cellH - size) / 2 + 1;
-                    page.drawText(t, { x: tx, y: height-ty, size, font, color: color||BLACK });
+                    if (maxW) while (t.length > 1 && font.widthOfTextAtSize(t, size) > maxW-2) t = t.slice(0,-1);
+                    page.drawText(t, { x, y: py(y), size, font, color: color||BLK });
+                }
+                function ctr(text, x, y, w, h, size, font, color) {
+                    if (!text) return;
+                    let t = String(text);
+                    while (t.length > 1 && font.widthOfTextAtSize(t, size) > w-2) t = t.slice(0,-1);
+                    const tx = x + (w - font.widthOfTextAtSize(t, size))/2;
+                    const ty = y + h/2 + size*0.35;
+                    page.drawText(t, { x: tx, y: py(ty), size, font, color: color||BLK });
+                }
+                function ctrLines(lines, x, y, w, h, size, font, color) {
+                    const totalH = lines.length * (size + 1.5);
+                    let ty = y + (h - totalH)/2 + size;
+                    lines.forEach(line => {
+                        if (!line) { ty += size+1.5; return; }
+                        let t = String(line);
+                        while (t.length > 1 && font.widthOfTextAtSize(t, size) > w-2) t = t.slice(0,-1);
+                        const tx = x + (w - font.widthOfTextAtSize(t, size))/2;
+                        page.drawText(t, { x: tx, y: py(ty), size, font, color: color||BLK });
+                        ty += size + 1.5;
+                    });
                 }
 
-                let curY = MT;
+                let Y = MT;
 
-                // ── Header: 15/ RECORD OF ASSOCIATED EQUIPMENT ──
-                const hdrH = 13;
-                drawRect(ML, curY, contentW, hdrH, null, BLACK);
-                const hdrTxt = '15/ RECORD OF ASSOCIATED EQUIPMENT';
-                const hdrW2 = fontBold.widthOfTextAtSize(hdrTxt, 7);
-                drawText(hdrTxt, ML + (contentW-hdrW2)/2, curY+8, 7, fontBold);
-                curY += hdrH;
+                // ── Main header ──────────────────────────────────────────────
+                const H0 = 12;
+                rect(ML, Y, CW, H0, BLK);
+                const hTxt = '15/ RECORD OF ASSOCIATED EQUIPMENT';
+                const hW = BOLD.widthOfTextAtSize(hTxt, 7);
+                txt(hTxt, ML + (CW-hW)/2, Y+8, 7, BOLD);
+                Y += H0;
 
-                // ── Column headers (3 rows) ──
-                const h1=10, h2=10, h3=10;
+                // ── Sub-header row 1: group labels ───────────────────────────
+                const H1 = 11, H2 = 12, H3 = 12;
+                // A/ITEM DATA (spans col 0+1)
+                rect(CX[0], Y, colW[0]+colW[1], H1+H2+H3, BLK);
+                ctrLines(['A/ ITEM DATA'], CX[0], Y, colW[0]+colW[1], H1, 5, BOLD);
+                ctrLines(['ITEM DESIGNATION &', 'PART NUMBER'], CX[0], Y+H1, colW[0]+colW[1], H2+H3, 4.5, BOLD);
 
-                // Row 1: A/ITEM DATA + B/INSTALLATION + C/REMOVAL + D/SIGNIFICANT
-                let cx = ML;
-                drawRect(cx, curY, colW[0]+colW[1], h1+h2+h3, null, BLACK); // A/ITEM
-                textCenter('A/ ITEM DATA', cx, curY, colW[0]+colW[1], h1, 5.5, fontBold);
-                cx += colW[0]+colW[1];
-                drawRect(cx, curY, colW[2]+colW[3]+colW[4]+colW[5], h1, null, BLACK); // B/INSTALL
-                textCenter('B/ INSTALLATION', cx, curY, colW[2]+colW[3]+colW[4]+colW[5], h1, 5.5, fontBold);
-                cx += colW[2]+colW[3]+colW[4]+colW[5];
-                drawRect(cx, curY, colW[6]+colW[7]+colW[8]+colW[9], h1, null, BLACK); // C/REMOVAL
-                textCenter('C/ REMOVAL', cx, curY, colW[6]+colW[7]+colW[8]+colW[9], h1, 5.5, fontBold);
-                cx += colW[6]+colW[7]+colW[8]+colW[9];
-                drawRect(cx, curY, colW[10], h1+h2+h3, null, BLACK); // D/
-                textCenter('D/ SIGNIFICANT', cx, curY, colW[10], 7, 4.5, fontBold);
-                textCenter('ATA', cx, curY+7, colW[10], 7, 4.5, fontBold);
-                textCenter('STAMP DATE', cx, curY+14, colW[10], 7, 4.5, fontBold);
-                curY += h1;
+                // SERIAL NUMBER (col 1 is separate serial number column)
+                // Wait — per the document, col structure is:
+                // [ITEM DESIG & PN] [SERIAL] [ASSY] [TIME0H] [OVERHAUL] [STAMP] [ASSY_R] [TIME0H_R] [OVERHAUL_R] [STAMP_R] [D/SIG]
+                // So col[0]=item+PN, col[1]=serial, col[2]=assy, col[3]=time0h, col[4]=overhaul, col[5]=stamp
+                // col[6]=assy_r, col[7]=time0h_r, col[8]=overhaul_r, col[9]=stamp_r, col[10]=dsig
 
-                // Row 2: sub-headers
-                cx = ML;
-                drawRect(cx, curY, colW[0]+colW[1], h2+h3, null, BLACK);
-                const subH_items = [
-                    ['ITEM DESIGNATION &\nPART NUMBER', colW[0]+colW[1]],
-                    ['SERIAL\nNUMBER', colW[2]],
-                ];
-                // Actually draw row2 col by col:
-                textCenter('ITEM DESIGNATION &', cx, curY, colW[0]+colW[1], h2/2+1, 4, fontBold);
-                textCenter('PART NUMBER', cx, curY+5, colW[0]+colW[1], h2/2+1, 4, fontBold);
-                cx += colW[0]+colW[1];
-                drawRect(cx, curY, colW[2], h2+h3, null, BLACK);
-                textCenter('ASSY', cx, curY, colW[2], 5, 4, fontBold);
-                textCenter('OPERATING', cx, curY+4, colW[2], 5, 4, fontBold);
-                textCenter('TIME OR', cx, curY+8, colW[2], 5, 4, fontBold);
-                textCenter('UNITS', cx, curY+12, colW[2], 5, 4, fontBold);
-                cx += colW[2];
-                drawRect(cx, curY, colW[3]+colW[4], h2, null, BLACK);
-                textCenter('ITEM LIFE', cx, curY, colW[3]+colW[4], h2, 5, fontBold);
-                cx += colW[3]+colW[4];
-                drawRect(cx, curY, colW[5], h2+h3, null, BLACK);
-                textCenter('INSPECTION', cx, curY, colW[5], 5, 4, fontBold);
-                textCenter('STAMP', cx, curY+4, colW[5], 5, 4, fontBold);
-                textCenter('DATE', cx, curY+8, colW[5], 5, 4, fontBold);
-                cx += colW[5];
-                drawRect(cx, curY, colW[6], h2+h3, null, BLACK);
-                textCenter('ASSY', cx, curY, colW[6], 5, 4, fontBold);
-                textCenter('OPERATING', cx, curY+4, colW[6], 5, 4, fontBold);
-                textCenter('TIME OR', cx, curY+8, colW[6], 5, 4, fontBold);
-                textCenter('UNITS', cx, curY+12, colW[6], 5, 4, fontBold);
-                cx += colW[6];
-                drawRect(cx, curY, colW[7]+colW[8], h2, null, BLACK);
-                textCenter('ITEM LIFE', cx, curY, colW[7]+colW[8], h2, 5, fontBold);
-                cx += colW[7]+colW[8];
-                drawRect(cx, curY, colW[9], h2+h3, null, BLACK);
-                textCenter('INSPECTION', cx, curY, colW[9], 5, 4, fontBold);
-                textCenter('STAMP', cx, curY+4, colW[9], 5, 4, fontBold);
-                textCenter('DATE', cx, curY+8, colW[9], 5, 4, fontBold);
-                curY += h2;
+                // B/ INSTALLATION (spans col 2+3+4+5)
+                rect(CX[2], Y, colW[2]+colW[3]+colW[4]+colW[5], H1, BLK);
+                ctrLines(['B/ INSTALLATION'], CX[2], Y, colW[2]+colW[3]+colW[4]+colW[5], H1, 5, BOLD);
 
-                // Row 3: TIME OR UNITS sub-headers
-                cx = ML + colW[0]+colW[1] + colW[2];
-                drawRect(cx, curY, colW[3], h3, null, BLACK);
-                textCenter('TIME OR UNITS', cx, curY, colW[3], 5, 4, fontBold);
-                textCenter('SINCE 0/HOURS', cx, curY+5, colW[3], 5, 4, fontBold);
-                cx += colW[3];
-                drawRect(cx, curY, colW[4], h3, null, BLACK);
-                textCenter('TIME OR UNITS', cx, curY, colW[4], 5, 4, fontBold);
-                textCenter('SINCE OVERHAUL', cx, curY+5, colW[4], 5, 4, fontBold);
-                cx += colW[4] + colW[5] + colW[6];
-                drawRect(cx, curY, colW[7], h3, null, BLACK);
-                textCenter('TIME OR UNITS', cx, curY, colW[7], 5, 4, fontBold);
-                textCenter('SINCE 0/HOURS', cx, curY+5, colW[7], 5, 4, fontBold);
-                cx += colW[7];
-                drawRect(cx, curY, colW[8], h3, null, BLACK);
-                textCenter('TIME OR UNITS', cx, curY, colW[8], 5, 4, fontBold);
-                textCenter('SINCE OVERHAUL', cx, curY+5, colW[8], 5, 4, fontBold);
-                curY += h3;
+                // C/ REMOVAL (spans col 6+7+8+9)
+                rect(CX[6], Y, colW[6]+colW[7]+colW[8]+colW[9], H1, BLK);
+                ctrLines(['C/ REMOVAL'], CX[6], Y, colW[6]+colW[7]+colW[8]+colW[9], H1, 5, BOLD);
 
-                // ── Data rows ──
-                const footerH = 14 + 22; // 12/RECORDABLE + 13/14/ row
-                const availH = H - MB - curY - footerH;
+                // D/ SIGNIFICANT (col 10, spans all 3 rows)
+                rect(CX[10], Y, colW[10], H1+H2+H3, BLK);
+                ctrLines(['D/ SIGNIFICANT', 'ATA', 'STAMP DATE'], CX[10], Y, colW[10], H1+H2+H3, 4.5, BOLD);
+
+                Y += H1;
+
+                // ── Sub-header row 2 ─────────────────────────────────────────
+                // SERIAL NUMBER (col 1, spans rows 2+3)
+                rect(CX[1], Y, colW[1], H2+H3, BLK);
+                ctrLines(['SERIAL', 'NUMBER'], CX[1], Y, colW[1], H2+H3, 4.5, BOLD);
+
+                // B cols: ASSY(spans 2+3), ITEM LIFE header, STAMP(spans 2+3)
+                rect(CX[2], Y, colW[2], H2+H3, BLK);
+                ctrLines(['ASSY', 'OPERATING', 'TIME OR', 'UNITS'], CX[2], Y, colW[2], H2+H3, 4, BOLD);
+
+                rect(CX[3], Y, colW[3]+colW[4], H2, BLK);
+                ctrLines(['ITEM LIFE'], CX[3], Y, colW[3]+colW[4], H2, 4.5, BOLD);
+
+                rect(CX[5], Y, colW[5], H2+H3, BLK);
+                ctrLines(['INSPECTION', 'STAMP', 'DATE'], CX[5], Y, colW[5], H2+H3, 4, BOLD);
+
+                // C cols
+                rect(CX[6], Y, colW[6], H2+H3, BLK);
+                ctrLines(['ASSY', 'OPERATING', 'TIME OR', 'UNITS'], CX[6], Y, colW[6], H2+H3, 4, BOLD);
+
+                rect(CX[7], Y, colW[7]+colW[8], H2, BLK);
+                ctrLines(['ITEM LIFE'], CX[7], Y, colW[7]+colW[8], H2, 4.5, BOLD);
+
+                rect(CX[9], Y, colW[9], H2+H3, BLK);
+                ctrLines(['INSPECTION', 'STAMP', 'DATE'], CX[9], Y, colW[9], H2+H3, 4, BOLD);
+
+                Y += H2;
+
+                // ── Sub-header row 3: TIME OR UNITS sub-labels ───────────────
+                rect(CX[3], Y, colW[3], H3, BLK);
+                ctrLines(['TIME OR UNITS', 'SINCE 0/HOURS'], CX[3], Y, colW[3], H3, 3.5, BOLD);
+
+                rect(CX[4], Y, colW[4], H3, BLK);
+                ctrLines(['TIME OR UNITS', 'SINCE OVERHAUL'], CX[4], Y, colW[4], H3, 3.5, BOLD);
+
+                rect(CX[7], Y, colW[7], H3, BLK);
+                ctrLines(['TIME OR UNITS', 'SINCE 0/HOURS'], CX[7], Y, colW[7], H3, 3.5, BOLD);
+
+                rect(CX[8], Y, colW[8], H3, BLK);
+                ctrLines(['TIME OR UNITS', 'SINCE OVERHAUL'], CX[8], Y, colW[8], H3, 3.5, BOLD);
+
+                Y += H3;
+
+                // ── Data rows ────────────────────────────────────────────────
+                const footerH = 12 + 20;
+                const availH = H - MB - Y - footerH;
                 const rowH = availH / ROWS_PER_PAGE;
+                const fs = 5;
 
                 for (let ri = 0; ri < ROWS_PER_PAGE; ri++) {
                     const r = pageRows[ri] || null;
-                    cx = ML;
-                    for (let ci = 0; ci < 11; ci++) {
-                        drawRect(cx, curY, colW[ci], rowH, null, BLACK);
-                        cx += colW[ci];
-                    }
+                    // Draw all cell borders
+                    for (let ci = 0; ci < 11; ci++) rect(CX[ci], Y, colW[ci], rowH, BLK);
+
                     if (r) {
-                        const pad = 2;
-                        const fs = 5.5;
-                        // Col 0+1: designation + PN
-                        const dw = colW[0]+colW[1]-pad*2;
-                        drawText(r.designation, ML+pad, curY+fs+2, fs, fontBold, BLACK, dw);
-                        drawText(r.partNumber, ML+pad, curY+fs*2+4, 4.5, fontReg, BLACK, dw);
-                        // Col 2: serial number
-                        textCenter(r.serialNumber, ML+colW[0]+colW[1], curY, colW[2], rowH, 5, fontReg);
-                        // Col 3: NEW (installation)
-                        textCenter('NEW', ML+colW[0]+colW[1]+colW[2], curY, colW[3], rowH, 5.5, fontBold);
-                        // Col 4: NEW
-                        textCenter('NEW', ML+colW[0]+colW[1]+colW[2]+colW[3], curY, colW[4], rowH, 5.5, fontBold);
-                        // Col 5: install stamp date
-                        textCenter(r.installDate, ML+colW[0]+colW[1]+colW[2]+colW[3]+colW[4], curY, colW[5], rowH, 5, fontReg);
-                        // Col 6-8: removal N/A if removed
+                        const p = 1.5;
+                        // Col 0: designation + PN (left-aligned)
+                        txt(r.designation, CX[0]+p, Y+fs+p+1, fs, BOLD, BLK, colW[0]-p*2);
+                        txt(r.partNumber,  CX[0]+p, Y+fs*2+p+3, 4, REG, BLK, colW[0]-p*2);
+                        // Col 1: serial number
+                        ctr(r.serialNumber, CX[1], Y, colW[1], rowH, 4.5, REG);
+                        // Col 2: ASSY (NEW for installation)
+                        ctr('NEW', CX[2], Y, colW[2], rowH, 5, BOLD);
+                        // Col 3: TIME 0H (NEW)
+                        ctr('NEW', CX[3], Y, colW[3], rowH, 5, BOLD);
+                        // Col 4: OVERHAUL (empty)
+                        // Col 5: INSPECTION STAMP DATE
+                        ctr(r.installDate, CX[5], Y, colW[5], rowH, 4.5, REG);
+                        // Col 6-9: removal
                         if (r.isRemoved) {
-                            textCenter('N/A', ML+colW[0]+colW[1]+colW[2]+colW[3]+colW[4]+colW[5], curY, colW[6], rowH, 5, fontReg);
-                            textCenter('N/A', ML+colW[0]+colW[1]+colW[2]+colW[3]+colW[4]+colW[5]+colW[6], curY, colW[7], rowH, 5, fontReg);
-                            textCenter('N/A', ML+colW[0]+colW[1]+colW[2]+colW[3]+colW[4]+colW[5]+colW[6]+colW[7], curY, colW[8], rowH, 5, fontReg);
-                            textCenter(r.removalDate, ML+colW[0]+colW[1]+colW[2]+colW[3]+colW[4]+colW[5]+colW[6]+colW[7]+colW[8], curY, colW[9], rowH, 5, fontReg);
+                            ctr('N/A', CX[6], Y, colW[6], rowH, 4.5, REG);
+                            ctr('N/A', CX[7], Y, colW[7], rowH, 4.5, REG);
+                            ctr('N/A', CX[8], Y, colW[8], rowH, 4.5, REG);
+                            ctr(r.removalDate, CX[9], Y, colW[9], rowH, 4.5, REG);
                         }
                         // Col 10: MFD + EXP
-                        const sigX = ML+colW[0]+colW[1]+colW[2]+colW[3]+colW[4]+colW[5]+colW[6]+colW[7]+colW[8]+colW[9];
-                        if (r.mfgDate) drawText('MFD: '+fmt(r.mfgDate), sigX+1, curY+fs+2, 4.5, fontReg, BLACK, colW[10]-2);
-                        if (r.expiryDate) drawText('EXP: '+fmt(r.expiryDate), sigX+1, curY+fs*2+4, 4.5, fontReg, BLACK, colW[10]-2);
+                        const mfdTxt = r.mfgDate ? 'MFD: '+fmt(r.mfgDate) : '';
+                        const expTxt = r.expiryDate ? 'EXP: '+fmt(r.expiryDate) : '';
+                        if (mfdTxt) txt(mfdTxt, CX[10]+p, Y+fs+p+1, 4, REG, BLK, colW[10]-p*2);
+                        if (expTxt) txt(expTxt, CX[10]+p, Y+fs*2+p+3, 4, REG, BLK, colW[10]-p*2);
                     }
-                    curY += rowH;
+                    Y += rowH;
                 }
 
-                // ── Footer ──
-                // 12/ RECORDABLE CONCESSIONS
-                const f1H = 14;
-                drawRect(ML, curY, contentW, f1H, null, BLACK);
-                drawText('12/ RECORDABLE CONCESSIONS:', ML+3, curY+9, 5.5, fontBold);
-                curY += f1H;
-                // 13/ OPERATION LIMIT + 14/ LIFE LIMIT
-                const f2H = H - MB - curY;
-                drawRect(ML, curY, contentW/2, f2H, null, BLACK);
-                drawText('13/ OPERATION LIMIT:', ML+3, curY+9, 5.5, fontBold);
-                drawRect(ML+contentW/2, curY, contentW/2, f2H, null, BLACK);
-                drawText('14/ LIFE LIMIT:', ML+contentW/2+3, curY+9, 5.5, fontBold);
+                // ── Footer ───────────────────────────────────────────────────
+                const f1H = 12;
+                rect(ML, Y, CW, f1H, BLK);
+                txt('12/ RECORDABLE CONCESSIONS:', ML+3, Y+8, 5, BOLD);
+                Y += f1H;
+                const f2H = H - MB - Y;
+                rect(ML, Y, CW/2, f2H, BLK);
+                txt('13/ OPERATION LIMIT:', ML+3, Y+8, 5, BOLD);
+                rect(ML+CW/2, Y, CW/2, f2H, BLK);
+                txt('14/ LIFE LIMIT:', ML+CW/2+3, Y+8, 5, BOLD);
             });
 
-            // Download
             const pdfBytes = await pdfDoc.save();
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             const url  = URL.createObjectURL(blob);
