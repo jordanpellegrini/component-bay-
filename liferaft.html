@@ -1861,7 +1861,19 @@ Respond in the same language as the user. Be concise.`;
             `).join('');
 
             const emptyRows = (n) => Array(n).fill(`
-                <tr><td style="border:1px solid #555;" colspan="11">&nbsp;</td></tr>
+                <tr>
+                    <td style="border:1px solid #555;">&nbsp;</td>
+                    <td style="border:1px solid #555;"></td>
+                    <td style="border:1px solid #555;"></td>
+                    <td style="border:1px solid #555;"></td>
+                    <td style="border:1px solid #555;"></td>
+                    <td style="border:1px solid #555;"></td>
+                    <td style="border:1px solid #555;"></td>
+                    <td style="border:1px solid #555;"></td>
+                    <td style="border:1px solid #555;"></td>
+                    <td style="border:1px solid #555;"></td>
+                    <td style="border:1px solid #555;"></td>
+                </tr>
             `).join('');
 
             const footer = `
@@ -1933,9 +1945,10 @@ body { font-family:Arial,sans-serif; background:#fff; }
 .page { width:100%; height:210mm; padding:5mm 6mm; background:white; display:flex; flex-direction:column; }
 .page-table { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 .page-table table { width:100%; border-collapse:collapse; table-layout:fixed; flex:1; height:100%; }
-.page-table tbody tr { height:1px; }
-.page-table tbody td { height:inherit; }
+.page-table tbody tr { height:1%; }
+.page-table tbody td { height:inherit; border-style:solid; }
 @media print {
+    html { zoom: 0.94; }
     .page { margin:0; padding:0; page-break-after:always; min-height:0; }
     @page { size:A4 landscape; margin:5mm 6mm 5mm 6mm; }
 }
