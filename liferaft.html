@@ -333,7 +333,6 @@
                         <button type="button" onclick="handleServiceableWithLogcard()" class="btn" style="background:#27ae60;color:white;">📄 Serviceable Tag</button>
                         <button type="button" onclick="generateTagForCurrent('unserviceable')" class="btn" style="background:#e74c3c;color:white;margin-left:5px;">📄 Unserviceable Tag</button>
                         <button type="button" onclick="generateLogCard()" class="btn" style="background:#1B2B4B;color:white;margin-left:5px;">📋 Log Card</button>
-                        <button type="button" onclick="generateLogCard()" class="btn" style="background:#1B2B4B;color:white;margin-left:5px;">📋 Log Card</button>
                     </span>
                 </div>
             </form>
@@ -1830,7 +1829,19 @@ Respond in the same language as the user. Be concise.`;
             generateTagForCurrent('serviceable');
         }
 
-        function generateLogCard() {
+        async function generateLogCard() {
+            // Load pdf-lib
+            if (!window.PDFLib) {
+                await new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+                    s.onload = resolve; s.onerror = reject;
+                    document.head.appendChild(s);
+                });
+            }
+            const { PDFDocument, rgb, StandardFonts, degrees } = window.PDFLib;
+
+            // Get life raft data
             const lrData = editingLifeRaft || (liferaftData.length > 0 ? liferaftData[liferaftData.length-1] : null);
             if (!lrData) { alert('No Life Raft data found.'); return; }
 
@@ -1842,139 +1853,241 @@ Respond in the same language as the user. Be concise.`;
 
             function fmt(iso) { return iso ? new Date(iso).toLocaleDateString('fr-FR') : ''; }
 
+            // Build rows from history or current subItems
             const history = lrData.logCardHistory || [];
             let allRows = [];
-
             if (history.length === 0) {
-                (lrData.subItems || []).forEach(function(sub) {
+                (lrData.subItems || []).forEach(sub => {
                     if (sub.serialNumber && sub.manufacturerDate) {
-                        allRows.push({
-                            designation: sub.item, partNumber: sub.partNumber,
+                        allRows.push({ designation: sub.item, partNumber: sub.partNumber,
                             serialNumber: sub.serialNumber, installDate: inspDate,
                             mfgDate: sub.manufacturerDate, expiryDate: sub.expiryDate || '',
-                            removalDate: '', isRemoved: false
-                        });
+                            removalDate: '', isRemoved: false });
                     }
                 });
             } else {
-                var installs = history.filter(function(h){ return h.type === 'installation'; });
-                var removals = history.filter(function(h){ return h.type === 'removal'; });
-                installs.forEach(function(inst) {
-                    var removal = removals.find(function(r){ return r.serialNumber === inst.serialNumber && r.item === inst.item; });
-                    allRows.push({
-                        designation: inst.item, partNumber: inst.partNumber,
+                const installs = history.filter(h => h.type === 'installation');
+                const removals = history.filter(h => h.type === 'removal');
+                installs.forEach(inst => {
+                    const removal = removals.find(r => r.serialNumber === inst.serialNumber && r.item === inst.item);
+                    allRows.push({ designation: inst.item, partNumber: inst.partNumber,
                         serialNumber: inst.serialNumber, installDate: fmt(inst.installDate),
                         mfgDate: inst.manufacturerDate, expiryDate: inst.expiryDate || '',
-                        removalDate: removal ? fmt(removal.removalDate) : '', isRemoved: !!removal
-                    });
+                        removalDate: removal ? fmt(removal.removalDate) : '', isRemoved: !!removal });
                 });
             }
-
             if (allRows.length === 0) { alert('No sub-components with S/N and Manufacturer Date filled.'); return; }
 
-            var ROWS_PER_PAGE = 13;
-            var pages = [];
-            for (var i = 0; i < allRows.length; i += ROWS_PER_PAGE) pages.push(allRows.slice(i, i + ROWS_PER_PAGE));
+            // PDF generation constants
+            const ROWS_PER_PAGE = 13;
+            const W = 842, H = 595; // A4 landscape in points
+            const ML = 18, MR = 18, MT = 14, MB = 14;
+            const contentW = W - ML - MR;
+            const contentH = H - MT - MB;
 
-            function rowHtml(r) {
-                return '<tr>' +
-                    '<td style="border:1px solid #555;padding:2px;vertical-align:top;font-size:6pt;"><strong>' + r.designation + '</strong><br>' + r.partNumber + '</td>' +
-                    '<td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;">' + r.serialNumber + '</td>' +
-                    '<td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;font-weight:bold;">NEW</td>' +
-                    '<td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;font-weight:bold;">NEW</td>' +
-                    '<td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;font-weight:bold;">NEW</td>' +
-                    '<td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;">' + r.installDate + '</td>' +
-                    '<td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;">' + (r.isRemoved ? 'N/A' : '') + '</td>' +
-                    '<td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;">' + (r.isRemoved ? 'N/A' : '') + '</td>' +
-                    '<td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;">' + (r.isRemoved ? 'N/A' : '') + '</td>' +
-                    '<td style="border:1px solid #555;padding:2px;text-align:center;vertical-align:top;font-size:6pt;">' + r.removalDate + '</td>' +
-                    '<td style="border:1px solid #555;padding:2px;vertical-align:top;font-size:5.5pt;">' + (r.mfgDate ? 'MFD: ' + fmt(r.mfgDate) : '') + (r.expiryDate ? '<br>EXP: ' + fmt(r.expiryDate) : '') + '</td>' +
-                    '</tr>';
-            }
+            // Column widths (proportional)
+            const COL = [0.16, 0.08, 0.07, 0.08, 0.08, 0.09, 0.07, 0.08, 0.08, 0.09, 0.10];
+            const colW = COL.map(c => c * contentW);
 
-            function emptyRow() {
-                return '<tr><td style="border:1px solid #555;">&nbsp;</td>' +
-                    '<td style="border:1px solid #555;"></td><td style="border:1px solid #555;"></td>' +
-                    '<td style="border:1px solid #555;"></td><td style="border:1px solid #555;"></td>' +
-                    '<td style="border:1px solid #555;"></td><td style="border:1px solid #555;"></td>' +
-                    '<td style="border:1px solid #555;"></td><td style="border:1px solid #555;"></td>' +
-                    '<td style="border:1px solid #555;"></td><td style="border:1px solid #555;"></td></tr>';
-            }
+            const pdfDoc = await PDFDocument.create();
+            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+            const fontReg  = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-            var thead = '<thead>' +
-                '<tr>' +
-                '<th colspan="2" style="border:1px solid #555;padding:2px;text-align:center;font-size:7pt;font-weight:bold;">A/ ITEM DATA</th>' +
-                '<th colspan="4" style="border:1px solid #555;padding:2px;text-align:center;font-size:7pt;font-weight:bold;">B/ INSTALLATION</th>' +
-                '<th colspan="4" style="border:1px solid #555;padding:2px;text-align:center;font-size:7pt;font-weight:bold;">C/ REMOVAL</th>' +
-                '<th rowspan="3" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">D/ SIGNIFICANT<br>ATA<br>STAMP DATE</th></tr>' +
-                '<tr>' +
-                '<th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">ITEM DESIGNATION &amp;<br>PART NUMBER</th>' +
-                '<th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">SERIAL<br>NUMBER</th>' +
-                '<th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">ASSY<br>OPERATING<br>TIME OR<br>UNITS</th>' +
-                '<th colspan="2" style="border:1px solid #555;padding:2px;text-align:center;font-size:6pt;font-weight:bold;">ITEM LIFE</th>' +
-                '<th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">INSPECTION<br>STAMP<br>DATE</th>' +
-                '<th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">ASSY<br>OPERATING<br>TIME OR<br>UNITS</th>' +
-                '<th colspan="2" style="border:1px solid #555;padding:2px;text-align:center;font-size:6pt;font-weight:bold;">ITEM LIFE</th>' +
-                '<th rowspan="2" style="border:1px solid #555;padding:2px;text-align:center;vertical-align:middle;font-size:6pt;font-weight:bold;line-height:1.3;">INSPECTION<br>STAMP<br>DATE</th></tr>' +
-                '<tr>' +
-                '<th style="border:1px solid #555;padding:2px;text-align:center;font-size:5.5pt;font-weight:bold;line-height:1.2;">TIME OR UNITS<br>SINCE 0/HOURS</th>' +
-                '<th style="border:1px solid #555;padding:2px;text-align:center;font-size:5.5pt;font-weight:bold;line-height:1.2;">TIME OR UNITS<br>SINCE OVERHAUL</th>' +
-                '<th style="border:1px solid #555;padding:2px;text-align:center;font-size:5.5pt;font-weight:bold;line-height:1.2;">TIME OR UNITS<br>SINCE 0/HOURS</th>' +
-                '<th style="border:1px solid #555;padding:2px;text-align:center;font-size:5.5pt;font-weight:bold;line-height:1.2;">TIME OR UNITS<br>SINCE OVERHAUL</th>' +
-                '</tr></thead>';
+            const BLACK = rgb(0,0,0);
+            const WHITE = rgb(1,1,1);
+            const DARK  = rgb(0.1, 0.16, 0.29); // #1B2B4B
 
-            var footer = '<div style="margin-top:0;">' +
-                '<div style="border:1px solid #555;padding:3px 4px;font-size:7pt;font-weight:bold;border-bottom:none;">12/ RECORDABLE CONCESSIONS:</div>' +
-                '<div style="display:flex;border:1px solid #555;">' +
-                '<div style="flex:1;padding:20px 4px 4px;font-size:7pt;font-weight:bold;border-right:1px solid #555;">13/ OPERATION LIMIT:</div>' +
-                '<div style="flex:1;padding:20px 4px 4px;font-size:7pt;font-weight:bold;">14/ LIFE LIMIT:</div>' +
-                '</div></div>';
+            // Pages
+            const pages = [];
+            for (let i = 0; i < allRows.length; i += ROWS_PER_PAGE) pages.push(allRows.slice(i, i+ROWS_PER_PAGE));
 
-            var colgroup = '<colgroup>' +
-                '<col style="width:16%"><col style="width:8%"><col style="width:7%">' +
-                '<col style="width:8%"><col style="width:8%"><col style="width:9%">' +
-                '<col style="width:7%"><col style="width:8%"><col style="width:8%">' +
-                '<col style="width:9%"><col style="width:10%"></colgroup>';
+            pages.forEach((pageRows) => {
+                const page = pdfDoc.addPage([W, H]);
+                const { width, height } = page.getSize();
 
-            var pagesHtml = pages.map(function(pageRows) {
-                var rows = pageRows.map(rowHtml).join('');
-                var empty = Array(ROWS_PER_PAGE - pageRows.length).fill(emptyRow()).join('');
-                return '<div class="page">' +
-                    '<div class="page-header"><div style="border:1px solid #555;border-bottom:none;padding:2px 8px;text-align:center;font-size:8pt;">15/ RECORD OF ASSOCIATED EQUIPMENT</div></div>' +
-                    '<div class="page-table"><table>' + colgroup + thead + '<tbody>' + rows + empty + '</tbody></table></div>' +
-                    '<div class="page-footer">' + footer + '</div>' +
-                    '</div>';
-            }).join('');
+                function drawRect(x,y,w,h,fillColor,strokeColor) {
+                    if (fillColor) { page.drawRectangle({ x, y: height-y-h, width: w, height: h, color: fillColor }); }
+                    if (strokeColor) { page.drawRectangle({ x, y: height-y-h, width: w, height: h, borderColor: strokeColor, borderWidth: 0.5 }); }
+                }
+                function drawLine(x1,y1,x2,y2) {
+                    page.drawLine({ start:{x:x1,y:height-y1}, end:{x:x2,y:height-y2}, thickness:0.5, color:BLACK });
+                }
+                function drawText(text, x, y, size, font, color, maxW) {
+                    if (!text) return;
+                    // Simple truncation
+                    let t = String(text);
+                    if (maxW) {
+                        while (t.length > 1 && font.widthOfTextAtSize(t, size) > maxW-2) t = t.slice(0,-1);
+                    }
+                    page.drawText(t, { x, y: height-y, size, font, color: color||BLACK });
+                }
+                function textCenter(text, cellX, cellY, cellW, cellH, size, font, color) {
+                    if (!text) return;
+                    let t = String(text);
+                    while (t.length > 1 && font.widthOfTextAtSize(t, size) > cellW-2) t = t.slice(0,-1);
+                    const tw = font.widthOfTextAtSize(t, size);
+                    const tx = cellX + (cellW - tw) / 2;
+                    const ty = cellY + (cellH - size) / 2 + 1;
+                    page.drawText(t, { x: tx, y: height-ty, size, font, color: color||BLACK });
+                }
 
-            var css = '* {box-sizing:border-box;margin:0;padding:0;}' +
-                'body {font-family:Arial,sans-serif;background:#fff;}' +
-                '.page {width:100%;height:210mm;padding:5mm 6mm;background:white;display:flex;flex-direction:column;}' +
-                '.page-header {flex-shrink:0;}' +
-                '.page-table {flex:1;display:flex;flex-direction:column;overflow:hidden;}' +
-                '.page-table table {width:100%;border-collapse:collapse;table-layout:fixed;flex:1;height:100%;}' +
-                '.page-table tbody tr {height:1%;}' +
-                '.page-table tbody td {height:inherit;border-style:solid;}' +
-                '.page-footer {flex-shrink:0;}' +
-                '@media print {html {zoom:0.94;} .page {page-break-after:always;} @page {size:A4 landscape;margin:5mm 6mm;}}';
+                let curY = MT;
 
-            var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Log Card - ' + designation + ' S/N ' + serialNumber + '</title>' +
-                '<style>' + css + '</style></head><body>' + pagesHtml +
-                '<script>window.onload=function(){window.print();}<' + '/script></body></html>';
+                // ── Header: 15/ RECORD OF ASSOCIATED EQUIPMENT ──
+                const hdrH = 13;
+                drawRect(ML, curY, contentW, hdrH, null, BLACK);
+                const hdrTxt = '15/ RECORD OF ASSOCIATED EQUIPMENT';
+                const hdrW2 = fontBold.widthOfTextAtSize(hdrTxt, 7);
+                drawText(hdrTxt, ML + (contentW-hdrW2)/2, curY+8, 7, fontBold);
+                curY += hdrH;
 
-            var iframe = document.createElement('iframe');
-            iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
-            document.body.appendChild(iframe);
-            iframe.contentDocument.open();
-            iframe.contentDocument.write(html);
-            iframe.contentDocument.close();
-            iframe.onload = function() {
-                setTimeout(function() {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                    setTimeout(function() { document.body.removeChild(iframe); }, 2000);
-                }, 300);
-            };
-            if (typeof showMessage === 'function') showMessage('Log Card ready — save as PDF in the print dialog', 'success', 'liferaftMessage');
+                // ── Column headers (3 rows) ──
+                const h1=10, h2=10, h3=10;
+
+                // Row 1: A/ITEM DATA + B/INSTALLATION + C/REMOVAL + D/SIGNIFICANT
+                let cx = ML;
+                drawRect(cx, curY, colW[0]+colW[1], h1+h2+h3, null, BLACK); // A/ITEM
+                textCenter('A/ ITEM DATA', cx, curY, colW[0]+colW[1], h1, 5.5, fontBold);
+                cx += colW[0]+colW[1];
+                drawRect(cx, curY, colW[2]+colW[3]+colW[4]+colW[5], h1, null, BLACK); // B/INSTALL
+                textCenter('B/ INSTALLATION', cx, curY, colW[2]+colW[3]+colW[4]+colW[5], h1, 5.5, fontBold);
+                cx += colW[2]+colW[3]+colW[4]+colW[5];
+                drawRect(cx, curY, colW[6]+colW[7]+colW[8]+colW[9], h1, null, BLACK); // C/REMOVAL
+                textCenter('C/ REMOVAL', cx, curY, colW[6]+colW[7]+colW[8]+colW[9], h1, 5.5, fontBold);
+                cx += colW[6]+colW[7]+colW[8]+colW[9];
+                drawRect(cx, curY, colW[10], h1+h2+h3, null, BLACK); // D/
+                textCenter('D/ SIGNIFICANT', cx, curY, colW[10], 7, 4.5, fontBold);
+                textCenter('ATA', cx, curY+7, colW[10], 7, 4.5, fontBold);
+                textCenter('STAMP DATE', cx, curY+14, colW[10], 7, 4.5, fontBold);
+                curY += h1;
+
+                // Row 2: sub-headers
+                cx = ML;
+                drawRect(cx, curY, colW[0]+colW[1], h2+h3, null, BLACK);
+                const subH_items = [
+                    ['ITEM DESIGNATION &\nPART NUMBER', colW[0]+colW[1]],
+                    ['SERIAL\nNUMBER', colW[2]],
+                ];
+                // Actually draw row2 col by col:
+                textCenter('ITEM DESIGNATION &', cx, curY, colW[0]+colW[1], h2/2+1, 4, fontBold);
+                textCenter('PART NUMBER', cx, curY+5, colW[0]+colW[1], h2/2+1, 4, fontBold);
+                cx += colW[0]+colW[1];
+                drawRect(cx, curY, colW[2], h2+h3, null, BLACK);
+                textCenter('ASSY', cx, curY, colW[2], 5, 4, fontBold);
+                textCenter('OPERATING', cx, curY+4, colW[2], 5, 4, fontBold);
+                textCenter('TIME OR', cx, curY+8, colW[2], 5, 4, fontBold);
+                textCenter('UNITS', cx, curY+12, colW[2], 5, 4, fontBold);
+                cx += colW[2];
+                drawRect(cx, curY, colW[3]+colW[4], h2, null, BLACK);
+                textCenter('ITEM LIFE', cx, curY, colW[3]+colW[4], h2, 5, fontBold);
+                cx += colW[3]+colW[4];
+                drawRect(cx, curY, colW[5], h2+h3, null, BLACK);
+                textCenter('INSPECTION', cx, curY, colW[5], 5, 4, fontBold);
+                textCenter('STAMP', cx, curY+4, colW[5], 5, 4, fontBold);
+                textCenter('DATE', cx, curY+8, colW[5], 5, 4, fontBold);
+                cx += colW[5];
+                drawRect(cx, curY, colW[6], h2+h3, null, BLACK);
+                textCenter('ASSY', cx, curY, colW[6], 5, 4, fontBold);
+                textCenter('OPERATING', cx, curY+4, colW[6], 5, 4, fontBold);
+                textCenter('TIME OR', cx, curY+8, colW[6], 5, 4, fontBold);
+                textCenter('UNITS', cx, curY+12, colW[6], 5, 4, fontBold);
+                cx += colW[6];
+                drawRect(cx, curY, colW[7]+colW[8], h2, null, BLACK);
+                textCenter('ITEM LIFE', cx, curY, colW[7]+colW[8], h2, 5, fontBold);
+                cx += colW[7]+colW[8];
+                drawRect(cx, curY, colW[9], h2+h3, null, BLACK);
+                textCenter('INSPECTION', cx, curY, colW[9], 5, 4, fontBold);
+                textCenter('STAMP', cx, curY+4, colW[9], 5, 4, fontBold);
+                textCenter('DATE', cx, curY+8, colW[9], 5, 4, fontBold);
+                curY += h2;
+
+                // Row 3: TIME OR UNITS sub-headers
+                cx = ML + colW[0]+colW[1] + colW[2];
+                drawRect(cx, curY, colW[3], h3, null, BLACK);
+                textCenter('TIME OR UNITS', cx, curY, colW[3], 5, 4, fontBold);
+                textCenter('SINCE 0/HOURS', cx, curY+5, colW[3], 5, 4, fontBold);
+                cx += colW[3];
+                drawRect(cx, curY, colW[4], h3, null, BLACK);
+                textCenter('TIME OR UNITS', cx, curY, colW[4], 5, 4, fontBold);
+                textCenter('SINCE OVERHAUL', cx, curY+5, colW[4], 5, 4, fontBold);
+                cx += colW[4] + colW[5] + colW[6];
+                drawRect(cx, curY, colW[7], h3, null, BLACK);
+                textCenter('TIME OR UNITS', cx, curY, colW[7], 5, 4, fontBold);
+                textCenter('SINCE 0/HOURS', cx, curY+5, colW[7], 5, 4, fontBold);
+                cx += colW[7];
+                drawRect(cx, curY, colW[8], h3, null, BLACK);
+                textCenter('TIME OR UNITS', cx, curY, colW[8], 5, 4, fontBold);
+                textCenter('SINCE OVERHAUL', cx, curY+5, colW[8], 5, 4, fontBold);
+                curY += h3;
+
+                // ── Data rows ──
+                const footerH = 14 + 22; // 12/RECORDABLE + 13/14/ row
+                const availH = H - MB - curY - footerH;
+                const rowH = availH / ROWS_PER_PAGE;
+
+                for (let ri = 0; ri < ROWS_PER_PAGE; ri++) {
+                    const r = pageRows[ri] || null;
+                    cx = ML;
+                    for (let ci = 0; ci < 11; ci++) {
+                        drawRect(cx, curY, colW[ci], rowH, null, BLACK);
+                        cx += colW[ci];
+                    }
+                    if (r) {
+                        const pad = 2;
+                        const fs = 5.5;
+                        // Col 0+1: designation + PN
+                        const dw = colW[0]+colW[1]-pad*2;
+                        drawText(r.designation, ML+pad, curY+fs+2, fs, fontBold, BLACK, dw);
+                        drawText(r.partNumber, ML+pad, curY+fs*2+4, 4.5, fontReg, BLACK, dw);
+                        // Col 2: serial number
+                        textCenter(r.serialNumber, ML+colW[0]+colW[1], curY, colW[2], rowH, 5, fontReg);
+                        // Col 3: NEW (installation)
+                        textCenter('NEW', ML+colW[0]+colW[1]+colW[2], curY, colW[3], rowH, 5.5, fontBold);
+                        // Col 4: NEW
+                        textCenter('NEW', ML+colW[0]+colW[1]+colW[2]+colW[3], curY, colW[4], rowH, 5.5, fontBold);
+                        // Col 5: install stamp date
+                        textCenter(r.installDate, ML+colW[0]+colW[1]+colW[2]+colW[3]+colW[4], curY, colW[5], rowH, 5, fontReg);
+                        // Col 6-8: removal N/A if removed
+                        if (r.isRemoved) {
+                            textCenter('N/A', ML+colW[0]+colW[1]+colW[2]+colW[3]+colW[4]+colW[5], curY, colW[6], rowH, 5, fontReg);
+                            textCenter('N/A', ML+colW[0]+colW[1]+colW[2]+colW[3]+colW[4]+colW[5]+colW[6], curY, colW[7], rowH, 5, fontReg);
+                            textCenter('N/A', ML+colW[0]+colW[1]+colW[2]+colW[3]+colW[4]+colW[5]+colW[6]+colW[7], curY, colW[8], rowH, 5, fontReg);
+                            textCenter(r.removalDate, ML+colW[0]+colW[1]+colW[2]+colW[3]+colW[4]+colW[5]+colW[6]+colW[7]+colW[8], curY, colW[9], rowH, 5, fontReg);
+                        }
+                        // Col 10: MFD + EXP
+                        const sigX = ML+colW[0]+colW[1]+colW[2]+colW[3]+colW[4]+colW[5]+colW[6]+colW[7]+colW[8]+colW[9];
+                        if (r.mfgDate) drawText('MFD: '+fmt(r.mfgDate), sigX+1, curY+fs+2, 4.5, fontReg, BLACK, colW[10]-2);
+                        if (r.expiryDate) drawText('EXP: '+fmt(r.expiryDate), sigX+1, curY+fs*2+4, 4.5, fontReg, BLACK, colW[10]-2);
+                    }
+                    curY += rowH;
+                }
+
+                // ── Footer ──
+                // 12/ RECORDABLE CONCESSIONS
+                const f1H = 14;
+                drawRect(ML, curY, contentW, f1H, null, BLACK);
+                drawText('12/ RECORDABLE CONCESSIONS:', ML+3, curY+9, 5.5, fontBold);
+                curY += f1H;
+                // 13/ OPERATION LIMIT + 14/ LIFE LIMIT
+                const f2H = H - MB - curY;
+                drawRect(ML, curY, contentW/2, f2H, null, BLACK);
+                drawText('13/ OPERATION LIMIT:', ML+3, curY+9, 5.5, fontBold);
+                drawRect(ML+contentW/2, curY, contentW/2, f2H, null, BLACK);
+                drawText('14/ LIFE LIMIT:', ML+contentW/2+3, curY+9, 5.5, fontBold);
+            });
+
+            // Download
+            const pdfBytes = await pdfDoc.save();
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = 'LogCard_' + (serialNumber || 'LR') + '_' + new Date().toISOString().slice(0,10) + '.pdf';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            if (typeof showMessage === 'function') showMessage('Log Card PDF downloaded', 'success', 'liferaftMessage');
         }
     </script>
 
