@@ -389,7 +389,7 @@
         const subItems = [
             { item: 'SLEEVE, RATIONS',                   partNumber: '05829010',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
             { item: 'CARD, EMERGENCY PACK CONTENTS',     partNumber: '05804018',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
-            { item: 'SACHET, WATER 500 ML',              partNumber: '05163009',           mfgMode:'yes', intervalMonths:66,   qtyTheoric:1  },
+            { item: 'SACHET, WATER 500 ML',              partNumber: '05163009',           mfgMode:'yes', intervalMonths:60,   qtyTheoric:1  },
             { item: 'SIGNAL DAY/NIGHT MK 8',             partNumber: '11605009 / 9559700', mfgMode:'yes', intervalMonths:42,   qtyTheoric:2  },
             { item: 'PUMP, HAND (MIRADA)',                partNumber: '11731009',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
             { item: 'LEAFLET, IMM. ACTION HELICRAFT',    partNumber: '04935009',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
@@ -399,7 +399,7 @@
             { item: 'STOPPER, LEAK NO. 5',               partNumber: '05720023',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
             { item: 'SPONGE, VISCOSE',                   partNumber: '05720017',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:2  },
             { item: 'BALER, 6 PT',                       partNumber: '05720050 / 4485953', mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
-            { item: 'KIT, FIRST AID PACK NO. 2',         partNumber: '06568001',           mfgMode:'yes', intervalMonths:43,   qtyTheoric:1  },
+            { item: 'KIT, FIRST AID PACK NO. 2',         partNumber: '06568001',           mfgMode:'yes', intervalMonths:42,   qtyTheoric:1  },
             { item: 'TORCH',                             partNumber: '11140009',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
             { item: 'MINIFLARE PACK MK 8',               partNumber: '11588009 / 9556650', mfgMode:'yes', intervalMonths:42,   qtyTheoric:1  },
             { item: 'TABLET, ANTI-SEASICKNESS (QTY 60)', partNumber: '01174009',           mfgMode:'yes', intervalMonths:64,   qtyTheoric:1  },
@@ -408,7 +408,7 @@
             { item: 'REVERSE OSMOSIS PUMP',              partNumber: '11125009',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
             { item: 'BAG, PLASTIC, MINIGRIP',            partNumber: '11020009',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:4  },
             { item: 'CYLINDER',                          partNumber: '51668001',           mfgMode:'yes', intervalMonths:60,   qtyTheoric:1  },
-            { item: 'RB2 BATTERY PACK',                  partNumber: 'A0696',              mfgMode:'yes', intervalMonths:59,   qtyTheoric:1  },
+            { item: 'RB2 BATTERY PACK',                  partNumber: 'A0696',              mfgMode:'yes', intervalMonths:60,   qtyTheoric:1  },
             { item: 'BATTERY TORCH X2',                  partNumber: 'LR06',               mfgMode:'yes', intervalMonths:129,  qtyTheoric:2  },
             { item: 'PADDLE GLOVE',                      partNumber: '39993001',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:2  },
             { item: 'PLB',                               partNumber: '500-27',             mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
@@ -1268,11 +1268,22 @@
             try { document.getElementById('logCardMissing').checked = editingLifeRaft.logCardMissing || false; } catch(e) {}
             try { document.getElementById('lifeRaftMissing').checked = editingLifeRaft.lifeRaftMissing || false; } catch(e) {}
 
-            // Fill sub-items
+            // Fill sub-items — recalculate expiry from current intervalMonths
             editingLifeRaft.subItems.forEach((sub, index) => {
                 const snE = document.getElementById('subitem_sn_' + index); if (snE) snE.value = sub.serialNumber || '';
                 setDateISO(index, 'mfg', sub.manufacturerDate || '');
-                setDateISO(index, 'exp', sub.expiryDate || '');
+                // Recalc expiry from mfg + current interval (catches interval changes)
+                const def = subItems[index];
+                let expISO = sub.expiryDate || '';
+                if (def && def.mfgMode === 'yes' && def.intervalMonths !== 'NA' && sub.manufacturerDate) {
+                    const mfg = new Date(sub.manufacturerDate);
+                    if (!isNaN(mfg)) {
+                        const exp = new Date(mfg);
+                        exp.setMonth(exp.getMonth() + parseInt(def.intervalMonths));
+                        expISO = exp.toISOString().split('T')[0];
+                    }
+                }
+                setDateISO(index, 'exp', expISO);
                 const qtyE = document.getElementById('subitem_qty_' + index);
                 if (qtyE) { qtyE.value = sub.qty || ''; if (sub.qty) checkQty(index); }
             });
@@ -1413,10 +1424,12 @@
             liferaftData.forEach(item => {
                 const sn = (item.serialNumber || 'Unknown').toString().replace(/[:\\\/\?\*\[\]]/g, '').substring(0, 31);
 
-                // Use saved subItems if available, otherwise show default list (item + P/N only)
-                const savedSubs = (item.subItems && item.subItems.length > 0)
-                    ? item.subItems
-                    : subItems.map(s => ({ item: s.item, partNumber: s.partNumber, serialNumber: '', expiryDate: '' }));
+                // Merge saved subItems with full subItems list so all 26 always appear
+                const savedMap = {};
+                (item.subItems || []).forEach(s => { if (s.item) savedMap[s.item] = s; });
+                const savedSubs = subItems.map(def => savedMap[def.item] || {
+                    item: def.item, partNumber: def.partNumber, serialNumber: '', expiryDate: ''
+                });
                 const expiredCount = savedSubs.filter(s => isExpired(s.expiryDate)).length;
                 const svcOk = item.serviceability !== 'Unserviceable';
 
