@@ -1081,12 +1081,19 @@
             const flightHours = document.getElementById('flightHours')?.value || '';
             const position = document.getElementById('position')?.value || '';
 
-            // Build comments with line breaks for PDF
+            // Build comments section (tire info) for serviceable tag
             let tagComments = [];
             if (pnTire) tagComments.push('P/N Tire: ' + pnTire);
             tagComments.push('S/N: ___________');
             if (numberTire) tagComments.push('Number Tire: ' + numberTire);
             if (eddyCurrent) tagComments.push('Eddy Current: ' + eddyCurrent);
+
+            // Build reason for removal = tire info + user comments (for unserviceable tag)
+            let storedReason = (typeof editingItem !== 'undefined' && editingItem) ? (editingItem.reason || '') : '';
+            let reasonParts = [];
+            if (tagComments.length) reasonParts.push(tagComments.join(' | '));
+            if (storedReason) reasonParts.push(storedReason);
+            if (comments) reasonParts.push(comments);
 
             const item = {
                 partNumber: pnWheel,
@@ -1095,14 +1102,11 @@
                 serviceability: serviceability,
                 orderRef: order,
                 comments: tagComments.join('\n'),
+                reason: reasonParts.join('\n'),
                 flightHours: flightHours,
                 removeFrom: removeFrom,
                 logCard: 'YES'
             };
-
-            // Get reason from stored data + combine with form comments
-            if (typeof editingItem !== 'undefined' && editingItem) item.reason = editingItem.reason || '';
-            if (comments) item.reason = [item.reason, comments].filter(Boolean).join('\n');
             if (!item.partNumber) { alert('No P/N Wheel data'); return; }
             // JCN + Book for Work Order
             const jcnEl = document.getElementById('jcnNumber');
