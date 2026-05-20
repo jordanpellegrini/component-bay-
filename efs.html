@@ -1415,7 +1415,7 @@ async function runEFSPlanner() {
         // Swap = 1 day of work, inspection = 15 days by dedicated team (parallel)
         // Gap = 7 days between swap START dates (main d'oeuvre constraint)
         // Kit becomes free after full 15 days (inspection team needs it)
-        var SWAP_WORK_DAYS = 1;    // days of main team work per swap
+        var SWAP_WORK_DAYS = 2;    // days of main team work per swap (remove day1 + install day2)
         var monthSwapCount = {};   // "YYYY-MM" -> count of swaps starting that month
         var allSwapDates   = [];   // all swap start dates (for gap check)
         var MIN_GAP_DAYS   = 7;    // min days between swap STARTS
@@ -1423,15 +1423,24 @@ async function runEFSPlanner() {
 
         function getMonthKey(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 
+        // Working days: Sun=0 Mon=1 Tue=2 Wed=3 Thu=4 Fri=5 Sat=6
+        // Weekend = Fri(5) + Sat(6). Cannot start Thu(4) because day2 = Fri
+        var INVALID_START_DAYS = [4, 5, 6]; // Thu, Fri, Sat
+
+        function isWorkingStart(d) {
+            return INVALID_START_DAYS.indexOf(d.getDay()) === -1;
+        }
+
         function isDateValid(candidate) {
-            // 1. Max 2 swaps per month
+            // 1. Must be a valid working day start (not Thu/Fri/Sat)
+            if (!isWorkingStart(candidate)) return false;
+            // 2. Max 2 swaps per month
             var mk = getMonthKey(candidate);
             if ((monthSwapCount[mk] || 0) >= MAX_PER_MONTH) return false;
-            // 2. Min 7 days between swap START dates (main team constraint)
+            // 3. Min 7 days between swap START dates (main team constraint)
             for (var i = 0; i < allSwapDates.length; i++) {
-                var diff = (candidate - allSwapDates[i]) / 86400000;
-                // Only check forward gap (don't block past dates)
-                if (Math.abs(diff) < MIN_GAP_DAYS) return false;
+                var diff = Math.abs(candidate - allSwapDates[i]) / 86400000;
+                if (diff < MIN_GAP_DAYS) return false;
             }
             return true;
         }
