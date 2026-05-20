@@ -38,7 +38,7 @@
             </div>
             <div class="header-actions">
                 <button onclick="showAddEFS()" class="btn btn-add">+ Add EFS Float</button>
-                <button id="btnEFSOptimizer" onclick="openEFSOptimizer()" class="btn" style="margin-left:8px;background:#1B2B4B;color:#00d4ff;border:1px solid rgba(0,212,255,0.5);display:none;">📅 Planner</button>
+                <button id="btnEFSOptimizer" onclick="setTimeout(function(){openEFSOptimizer();},0)" class="btn" style="margin-left:8px;background:#1B2B4B;color:#00d4ff;border:1px solid rgba(0,212,255,0.5);display:none;">📅 Planner</button>
                 <button onclick="showAllEFS()" class="btn">📋 View All EFS</button>
             </div>
         </div>
@@ -988,14 +988,6 @@
 
             generateTag(type, item);
         }
-        function openEFSOptimizer() {
-            document.getElementById('efsPlannerModal').style.display = 'flex';
-            runEFSPlanner();
-        }
-        function closeEFSOptimizer() {
-            document.getElementById('efsPlannerModal').style.display = 'none';
-        }
-
     </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -1280,7 +1272,13 @@ Respond in the same language as the user. Be concise.`;
 </div>
 
 <script>
-
+function openEFSOptimizer() {
+    document.getElementById('efsPlannerModal').style.display = 'flex';
+    runEFSPlanner();
+}
+function closeEFSOptimizer() {
+    document.getElementById('efsPlannerModal').style.display = 'none';
+}
 
 async function runEFSPlanner() {
     var statusEl  = document.getElementById('efs_status');
