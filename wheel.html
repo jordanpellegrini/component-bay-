@@ -230,6 +230,7 @@
                         <button type="button" onclick="generateTagForCurrent('unserviceable')" class="btn" style="background:#e74c3c;color:white;margin-left:5px;">📄 Unserviceable Tag</button>
                     </span>
                     <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
+                    <button type="button" id="btnOptimizer" onclick="openOptimizer()" class="btn" style="margin-left:15px;background:#1B2B4B;color:#00d4ff;border:1px solid #00d4ff;display:none;">⚙️ Optimizer</button>
                 </div>
             </form>
         </div>
@@ -358,6 +359,11 @@
                 return;
             }
             document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+            // Show optimizer button for admin only
+            const optimizerBtn = document.getElementById('btnOptimizer');
+            if (optimizerBtn && userRole && userRole.toLowerCase() === 'admin') {
+                optimizerBtn.style.display = 'inline-block';
+            }
         }
 
         async function loadData() {
@@ -1066,6 +1072,10 @@
             }
         });
     
+        function openOptimizer() {
+            window.open('wheel-optimizer.html', '_blank');
+        }
+
         function generateTagForCurrent(type) {
             const pnWheel = document.getElementById('pnWheel')?.value || '';
             const pnTire = document.getElementById('pnTire')?.value || '';
