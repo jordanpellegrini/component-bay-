@@ -1831,37 +1831,48 @@ async function computeEFSPlan(allEFS, today, tolerancePct, setDays, forecastDays
 function buildAIPrompt(planData, tolerancePct, setDays, forecastDays) {
     var today = new Date(); today.setHours(0,0,0,0);
     var scheduled = planData.assignments.map(function(a) {
+        var winDays   = Math.round((a.winEnd - a.winStart) / 86400000);
+        var daysToEnd = Math.round((a.winEnd - a.start) / 86400000);
+        var canShiftLater = Math.max(0, daysToEnd - setDays);
+        var canShiftEarlier = Math.round((a.start - (a.winStart < today ? today : a.winStart)) / 86400000);
         return {
             hc: a.hc,
+            inspectionType: a.type,
             dueDate: fmtDate(a.dueDate),
+            toleranceWindowDays: winDays,
             windowStart: fmtDate(a.winStart),
             windowEnd: fmtDate(a.winEnd),
             plannedStart: fmtDate(a.start),
             plannedEnd: fmtDate(a.end),
             kit: a.kitSN,
-            daysMargin: Math.round((a.winEnd - a.start) / 86400000),
+            canShiftEarlierDays: Math.max(0, canShiftEarlier),
+            canShiftLaterDays: canShiftLater,
             overdue: a.overdue
         };
     });
     var conflicts = planData.unschedulable.map(function(u) {
-        return { hc: u.hc, dueDate: fmtDate(u.dueDate), windowStart: fmtDate(u.winStart), windowEnd: fmtDate(u.winEnd) };
+        var winDays = Math.round((u.winEnd - u.winStart) / 86400000);
+        return { hc: u.hc, inspectionType: u.type, dueDate: fmtDate(u.dueDate),
+            toleranceWindowDays: winDays,
+            windowStart: fmtDate(u.winStart), windowEnd: fmtDate(u.winEnd),
+            problem: 'No kit available in ' + winDays + '-day window' };
     });
-    var kits = planData.kits.map(function(k) { return { sn: k.sn, lastUsed: k.refDate ? fmtDate(k.refDate) : 'unknown' }; });
+    var kits = planData.kits.map(function(k) {
+        return { sn: k.sn, lastUsedDate: k.refDate ? fmtDate(k.refDate) : 'unknown',
+            currentlyFreeDate: k.freeDate ? fmtDate(k.freeDate) : fmtDate(today) };
+    });
 
     return 'You are an aviation maintenance scheduling expert.\n\n'
-        + 'CONSTRAINTS:\n'
-        + '- Tolerance: +/-' + Math.round(tolerancePct*100) + '% around due date\n'
-        + '- Kit duration: ' + setDays + ' days per H/C\n'
-        + '- Available spare kits: ' + kits.length + '\n'
-        + '- Kits: ' + JSON.stringify(kits) + '\n'
-        + '- Forecast window: ' + forecastDays + ' days from today (' + fmtDate(today) + ')\n\n'
-        + 'CURRENT SCHEDULE:\n' + JSON.stringify(scheduled, null, 2) + '\n\n'
-        + (conflicts.length ? 'CONFLICTS (cannot fit in window):\n' + JSON.stringify(conflicts, null, 2) + '\n\n' : '')
-        + 'TASK: Analyze this schedule. Check if it is optimal:\n'
-        + '1. Are kits properly rotated (oldest refDate used first)?\n'
-        + '2. Can any conflicts be resolved by reordering or shifting assignments within their windows?\n'
-        + '3. Is the margin (daysMargin) distributed fairly to maximize flexibility?\n'
-        + '4. Can we reduce risk by spreading inspections more evenly?\n\n'
+        + 'RULES:\n'
+        + '- Tolerance: +/-' + Math.round(tolerancePct*100) + '% = ' + Math.round(547*tolerancePct) + ' days for 18M / ' + Math.round(1095*tolerancePct) + ' days for 36M\n'
+        + '- Each inspection needs 1 kit for exactly ' + setDays + ' days\n'
+        + '- Max parallel = ' + kits.length + ' kit(s) | Today: ' + fmtDate(today) + '\n'
+        + '- Kit rotation: use oldest lastUsedDate first\n'
+        + '- Planned start MUST stay within windowStart and windowEnd\n\n'
+        + 'KITS: ' + JSON.stringify(kits) + '\n\n'
+        + 'SCHEDULE (canShiftEarlierDays / canShiftLaterDays = room to move):\n' + JSON.stringify(scheduled, null, 2) + '\n\n'
+        + (conflicts.length ? 'CONFLICTS:\n' + JSON.stringify(conflicts, null, 2) + '\n\n' : '')
+        + 'TASK: Optimize. Can shifting earlier inspections free a kit for conflicts? Is rotation correct? Is flexibility balanced?\n\n'
         + 'If you find improvements, return ONLY this JSON (no explanation outside it):\n'
         + '```json\n'
         + '{\n'
