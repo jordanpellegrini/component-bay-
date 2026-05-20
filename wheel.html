@@ -1229,6 +1229,8 @@
                 });
                 html += '</div>';
                 resultsEl.innerHTML = html;
+                var aiBtn = document.getElementById('btnWheelAI');
+                if (aiBtn) aiBtn.style.display = 'inline-block';
 
             } catch(e) {
                 statusEl.textContent = 'ERROR: ' + e.message;
@@ -1307,6 +1309,144 @@
                 + '</div>';
         }
         // END OPTIMIZER
+
+        // ── WHEEL AI OPTIMIZER ────────────────────────────────────────────────
+        async function runWheelAI() {
+            var btn = document.getElementById('btnWheelAI');
+            var statusEl = document.getElementById('opt_status');
+            var resultsEl = document.getElementById('opt_results');
+            btn.disabled = true;
+            btn.textContent = '🤖 Analyzing...';
+            statusEl.textContent = 'AI analyzing spare wheel schedule...';
+
+            var cadences = {
+                opt_cadMLGTTH: parseFloat(document.getElementById('opt_cadMLGTTH').value) || 10,
+                opt_cadMLGNFH: parseFloat(document.getElementById('opt_cadMLGNFH').value) || 5,
+                opt_cadNLG:    parseFloat(document.getElementById('opt_cadNLG').value)    || 5
+            };
+            var eddyDur   = parseFloat(document.getElementById('opt_eddyDur').value)  || 3;
+            var forecastW = parseFloat(document.getElementById('opt_forecast').value) || 12;
+
+            try {
+                var allWheels = [];
+                if (window.ComponentsBayDB) allWheels = await window.ComponentsBayDB.load('wheels') || [];
+
+                var normalizedWheels = allWheels.map(function(w) {
+                    if (w.data && typeof w.data === 'object') return w.data;
+                    if (w.data && typeof w.data === 'string') { try { return JSON.parse(w.data); } catch(e) { return w; } }
+                    return w;
+                });
+
+                var spares = normalizedWheels.filter(function(w) {
+                    var svc = (w.serviceability || '').toLowerCase();
+                    var onHC = (w.installedOnHC || '').trim().toLowerCase();
+                    return svc === 'serviceable' && (onHC === '' || onHC === 'spare' || onHC === 'stock');
+                });
+
+                // Build scored spares per PN (same logic as optRenderPN)
+                var spareData = {};
+                Object.keys(OPT_PN_DEFS).forEach(function(pn) {
+                    var def = OPT_PN_DEFS[pn];
+                    var cad = cadences[def.cadKey];
+                    var pnSpares = spares.filter(function(s) {
+                        return (s.pnWheel || s.partNumber || '').toUpperCase() === pn;
+                    }).map(function(s) {
+                        return {
+                            sn: s.serialNumber || '—',
+                            pn: pn,
+                            tireChange: s.numberTireChange || 0,
+                            changesLeft: optChangesLeft(s.numberTireChange),
+                            nextEddy: optNextEddy(s.numberTireChange),
+                            weeksToEddy: optWeeksToEddy(s.numberTireChange, cad),
+                            risk: optRisk(s, spares.filter(function(x){ return (x.pnWheel||x.partNumber||'').toUpperCase()===pn; }), cad, eddyDur, forecastW)
+                        };
+                    }).sort(function(a,b){ return a.risk - b.risk; });
+                    if (pnSpares.length > 0) spareData[pn] = { label: def.label, cadence: cad, spares: pnSpares };
+                });
+
+                // Build prompt
+                var prompt = 'You are an aviation maintenance expert specializing in wheel/tire management.\n\n'
+                    + 'CONTEXT:\n'
+                    + '- Eddy Current inspection triggered at tire change numbers: ' + OPT_EDDY_NUMBERS.join(', ') + '\n'
+                    + '- Eddy Current takes ' + eddyDur + ' weeks (wheel unserviceable during this time)\n'
+                    + '- Forecast window: ' + forecastW + ' weeks\n\n'
+                    + 'CURRENT SPARE WHEEL SCHEDULE (sorted by risk score, lowest=deliver first):\n'
+                    + JSON.stringify(spareData, null, 2) + '\n\n'
+                    + 'TASK: Verify if the delivery order is optimal to avoid simultaneous Eddy Currents.\n'
+                    + 'Risk score: higher = more collision risk with other spares. Lower score = safer to deliver first.\n\n'
+                    + 'Check:\n'
+                    + '1. Is the delivery order correct per P/N group?\n'
+                    + '2. Are there better orderings that reduce collision risk?\n'
+                    + '3. Any warnings about upcoming simultaneous Eddy Currents?\n\n'
+                    + 'Respond ONLY with this JSON:\n'
+                    + '```json\n'
+                    + '{\n'
+                    + '  "optimized": true/false,\n'
+                    + '  "changes": [\n'
+                    + '    { "pn": "S324F1851861", "newOrder": ["SN1","SN2","SN3"], "reason": "short reason" }\n'
+                    + '  ],\n'
+                    + '  "warnings": ["warning1", "warning2"],\n'
+                    + '  "summary": "One paragraph"\n'
+                    + '}\n'
+                    + '```';
+
+                var response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 1000,
+                        messages: [{ role: 'user', content: prompt }]
+                    })
+                });
+
+                var data = await response.json();
+                var text = data.content && data.content[0] ? data.content[0].text : '';
+                var jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/(\{[\s\S]*\})/);
+                var aiResult = null;
+                if (jsonMatch) { try { aiResult = JSON.parse(jsonMatch[1]); } catch(e) {} }
+
+                // Show AI result box at top of results
+                var aiBox = '<div style="margin-bottom:20px;padding:16px 20px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.3);border-radius:12px;">'
+                    + '<div style="font-family:monospace;font-size:11px;color:#a78bfa;letter-spacing:2px;margin-bottom:10px;">🤖 AI OPTIMIZATION RESULT</div>';
+
+                if (aiResult) {
+                    aiBox += '<div style="font-size:13px;color:#c8d6e8;line-height:1.6;margin-bottom:10px;">' + (aiResult.summary || '') + '</div>';
+                    if (aiResult.warnings && aiResult.warnings.length) {
+                        aiBox += '<div style="margin-top:10px;">';
+                        aiResult.warnings.forEach(function(w) {
+                            aiBox += '<div style="font-size:12px;color:#ff6b35;padding:3px 0;">⚠ ' + w + '</div>';
+                        });
+                        aiBox += '</div>';
+                    }
+                    if (aiResult.changes && aiResult.changes.length) {
+                        aiBox += '<div style="margin-top:10px;font-family:monospace;font-size:11px;color:#a78bfa;">REORDER SUGGESTIONS:</div>';
+                        aiResult.changes.forEach(function(c) {
+                            aiBox += '<div style="font-size:12px;color:#c8d6e8;padding:3px 0;">'
+                                + c.pn + ': ' + (c.newOrder || []).join(' → ')
+                                + ' <span style="color:#4a5a70;">(' + (c.reason||'') + ')</span></div>';
+                        });
+                    }
+                    if (!aiResult.optimized) {
+                        aiBox += '<div style="margin-top:8px;font-size:12px;color:#00ff9d;">✓ Schedule is already optimal</div>';
+                    }
+                } else {
+                    aiBox += '<div style="font-size:13px;color:#c8d6e8;">' + text.replace(/```[\s\S]*?```/g,'').trim() + '</div>';
+                }
+                aiBox += '</div>';
+
+                resultsEl.innerHTML = aiBox + resultsEl.innerHTML;
+                statusEl.textContent = 'AI analysis complete';
+
+            } catch(e) {
+                console.error('Wheel AI Error:', e);
+                statusEl.textContent = 'AI Error: ' + e.message;
+            }
+
+            btn.disabled = false;
+            btn.textContent = '🤖 AI OPTIMIZE';
+        }
+        // ── END WHEEL AI OPTIMIZER ────────────────────────────────────────────
 
     </script>
 <script>
@@ -1544,7 +1684,7 @@ Respond in the same language as the user. Be concise.`;
 
 <!-- Optimizer Modal -->
 <div id="optimizerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:#0f1625;border:1px solid #1e2d4a;border-radius:14px;width:95vw;max-width:1300px;height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 60px rgba(0,212,255,0.15);">
+  <div style="background:#0f1625;border:1px solid #1e2d4a;border-radius:14px;width:99vw;max-width:99vw;height:97vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 60px rgba(0,212,255,0.15);">
     <!-- Modal header -->
     <div style="display:flex;align-items:center;gap:16px;padding:16px 24px;border-bottom:1px solid #1e2d4a;background:linear-gradient(90deg,rgba(0,212,255,0.08),transparent);flex-shrink:0;">
       <div style="width:40px;height:40px;background:linear-gradient(135deg,#00d4ff,#0077aa);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">⚙️</div>
@@ -1577,6 +1717,7 @@ Respond in the same language as the user. Be concise.`;
         <input type="number" id="opt_forecast" value="12" min="4" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:100px;">
       </div>
       <button onclick="loadOptimizer()" style="background:linear-gradient(135deg,#00d4ff,#0077aa);color:#000;border:none;font-family:sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 22px;border-radius:6px;cursor:pointer;">▶ RUN</button>
+      <button id="btnWheelAI" onclick="runWheelAI()" style="background:linear-gradient(135deg,#7c3aed,#4f1d96);color:#fff;border:none;font-family:sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 22px;border-radius:6px;cursor:pointer;display:none;">🤖 AI OPTIMIZE</button>
       <div id="opt_status" style="font-family:monospace;font-size:11px;color:#4a5a70;align-self:center;"></div>
     </div>
     <!-- Results -->
