@@ -1437,28 +1437,32 @@ async function runEFSPlanner() {
         }
 
         function findEarliestValid(kitFreeDate, winStart, winEnd, dueDate) {
-            // Two separate constraints:
-            // 1. Kit must be free (kitFreeDate) — inspection team constraint
-            // 2. Gap between swaps >= 7 days — main team constraint (checked in isDateValid)
-            // Search starts from max(today, winStart) — kit constraint applied per-candidate
+            // Strategy: plan AS CLOSE TO dueDate as possible
+            // Search order: dueDate → winStart (before) → winEnd (after, last resort)
             var effectiveWinStart = winStart < today ? new Date(today) : new Date(winStart);
-            var limit = new Date(winEnd);
+            var effectiveDue = dueDate < effectiveWinStart ? new Date(effectiveWinStart)
+                             : dueDate > winEnd ? new Date(winEnd)
+                             : new Date(dueDate);
 
-            // First pass: prefer before dueDate
-            var preferredEnd = dueDate < winEnd ? new Date(dueDate) : new Date(winEnd);
-            var cursor = new Date(effectiveWinStart);
-            while (cursor <= preferredEnd) {
-                // Check: kit free AND global constraints valid
-                if (cursor >= kitFreeDate && isDateValid(cursor)) return new Date(cursor);
-                cursor.setDate(cursor.getDate() + 1);
+            function valid(d) {
+                return d >= effectiveWinStart && d <= winEnd && d >= kitFreeDate && isDateValid(d);
             }
 
-            // Second pass: after dueDate (use post-due tolerance)
-            cursor = new Date(preferredEnd);
-            cursor.setDate(cursor.getDate() + 1);
-            while (cursor <= limit) {
-                if (cursor >= kitFreeDate && isDateValid(cursor)) return new Date(cursor);
-                cursor.setDate(cursor.getDate() + 1);
+            // Pass 1: try dueDate itself
+            if (valid(effectiveDue)) return new Date(effectiveDue);
+
+            // Pass 2: spiral outward from dueDate — try before and after alternately
+            for (var offset = 1; offset <= 200; offset++) {
+                // Try before dueDate (preferred — use pre-due tolerance)
+                var before = new Date(effectiveDue);
+                before.setDate(before.getDate() - offset);
+                if (before >= effectiveWinStart && valid(before)) return new Date(before);
+
+                // Try after dueDate (last resort — use post-due tolerance)
+                var after = new Date(effectiveDue);
+                after.setDate(after.getDate() + offset);
+                if (after > winEnd) break; // past window
+                if (valid(after)) return new Date(after);
             }
 
             return null;
