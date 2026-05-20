@@ -1254,7 +1254,7 @@ Respond in the same language as the user. Be concise.`;
         <input type="number" id="efs_tolerance" value="10" min="1" max="20" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;">
-        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">SET DURATION (DAYS)</label>
+        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">INSPECTION DURATION (DAYS)</label>
         <input type="number" id="efs_duration" value="15" min="1" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;">
@@ -1412,9 +1412,13 @@ async function runEFSPlanner() {
         // If no kit: still show planning with NO KIT label on each card
 
         // Global constraints
+        // Swap = 1 day of work, inspection = 15 days by dedicated team (parallel)
+        // Gap = 7 days between swap START dates (main d'oeuvre constraint)
+        // Kit becomes free after full 15 days (inspection team needs it)
+        var SWAP_WORK_DAYS = 1;    // days of main team work per swap
         var monthSwapCount = {};   // "YYYY-MM" -> count of swaps starting that month
-        var allSwapDates   = [];   // all assigned start dates (for 1-week gap check)
-        var MIN_GAP_DAYS   = 7;
+        var allSwapDates   = [];   // all swap start dates (for gap check)
+        var MIN_GAP_DAYS   = 7;    // min days between swap STARTS
         var MAX_PER_MONTH  = 2;
 
         function getMonthKey(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
@@ -1423,10 +1427,11 @@ async function runEFSPlanner() {
             // 1. Max 2 swaps per month
             var mk = getMonthKey(candidate);
             if ((monthSwapCount[mk] || 0) >= MAX_PER_MONTH) return false;
-            // 2. Min 1 week gap from any other swap
+            // 2. Min 7 days between swap START dates (main team constraint)
             for (var i = 0; i < allSwapDates.length; i++) {
-                var diff = Math.abs(candidate - allSwapDates[i]) / 86400000;
-                if (diff < MIN_GAP_DAYS) return false;
+                var diff = (candidate - allSwapDates[i]) / 86400000;
+                // Only check forward gap (don't block past dates)
+                if (Math.abs(diff) < MIN_GAP_DAYS) return false;
             }
             return true;
         }
@@ -1466,12 +1471,11 @@ async function runEFSPlanner() {
             var bestStart = null, bestEnd = null, kitSN = null, kitIdx = 0, afterDue = false;
 
             if (noKitAvailable) {
-                // No kit: plan at earliest valid date (constraints still apply for spacing)
+                // No kit: plan based on swap gap only (no kit freeDate constraint)
                 bestStart = findEarliestValid(new Date(today), insp.winStart, insp.winEnd, insp.dueDate);
                 if (!bestStart) bestStart = insp.effectiveStart < today ? new Date(today) : new Date(insp.effectiveStart);
-                bestEnd = new Date(bestStart); bestEnd.setDate(bestEnd.getDate() + setDays);
+                bestEnd = new Date(bestStart); bestEnd.setDate(bestEnd.getDate() + 1); // swap = 1 day work
                 afterDue = bestStart > insp.dueDate;
-                // Register for spacing
                 var mk0 = getMonthKey(bestStart);
                 monthSwapCount[mk0] = (monthSwapCount[mk0] || 0) + 1;
                 allSwapDates.push(new Date(bestStart));
