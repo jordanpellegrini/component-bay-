@@ -1437,31 +1437,31 @@ async function runEFSPlanner() {
         }
 
         function findEarliestValid(kitFreeDate, winStart, winEnd, dueDate) {
-            // Start searching from max(kitFreeDate, effectiveWindowStart)
-            var effectiveStart = winStart < today ? new Date(today) : new Date(winStart);
-            var searchFrom = kitFreeDate > effectiveStart ? new Date(kitFreeDate) : new Date(effectiveStart);
+            // Two separate constraints:
+            // 1. Kit must be free (kitFreeDate) — inspection team constraint
+            // 2. Gap between swaps >= 7 days — main team constraint (checked in isDateValid)
+            // Search starts from max(today, winStart) — kit constraint applied per-candidate
+            var effectiveWinStart = winStart < today ? new Date(today) : new Date(winStart);
+            var limit = new Date(winEnd);
 
-            // Prefer before due date — try day by day up to winEnd
-            var cursor = new Date(searchFrom);
-            var limit  = new Date(winEnd);
-
-            // First pass: try to find a slot BEFORE dueDate
+            // First pass: prefer before dueDate
             var preferredEnd = dueDate < winEnd ? new Date(dueDate) : new Date(winEnd);
-            var tempCursor = new Date(cursor);
-            while (tempCursor <= preferredEnd) {
-                if (isDateValid(tempCursor)) return new Date(tempCursor);
-                tempCursor.setDate(tempCursor.getDate() + 1);
+            var cursor = new Date(effectiveWinStart);
+            while (cursor <= preferredEnd) {
+                // Check: kit free AND global constraints valid
+                if (cursor >= kitFreeDate && isDateValid(cursor)) return new Date(cursor);
+                cursor.setDate(cursor.getDate() + 1);
             }
 
-            // Second pass: try after dueDate up to winEnd (use tolerance after)
-            tempCursor = new Date(preferredEnd);
-            tempCursor.setDate(tempCursor.getDate() + 1);
-            while (tempCursor <= limit) {
-                if (isDateValid(tempCursor)) return new Date(tempCursor);
-                tempCursor.setDate(tempCursor.getDate() + 1);
+            // Second pass: after dueDate (use post-due tolerance)
+            cursor = new Date(preferredEnd);
+            cursor.setDate(cursor.getDate() + 1);
+            while (cursor <= limit) {
+                if (cursor >= kitFreeDate && isDateValid(cursor)) return new Date(cursor);
+                cursor.setDate(cursor.getDate() + 1);
             }
 
-            return null; // no valid slot found
+            return null;
         }
 
         var assignments   = [];
