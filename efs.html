@@ -1446,32 +1446,36 @@ async function runEFSPlanner() {
         }
 
         function findEarliestValid(kitFreeDate, winStart, winEnd, dueDate) {
-            // Strategy: plan AS CLOSE TO dueDate as possible
-            // Search order: dueDate → winStart (before) → winEnd (after, last resort)
+            // Strategy: plan ON dueDate if possible, then search BEFORE (pre-tolerance)
+            // Only go AFTER dueDate as absolute last resort
             var effectiveWinStart = winStart < today ? new Date(today) : new Date(winStart);
-            var effectiveDue = dueDate < effectiveWinStart ? new Date(effectiveWinStart)
-                             : dueDate > winEnd ? new Date(winEnd)
-                             : new Date(dueDate);
 
             function valid(d) {
                 return d >= effectiveWinStart && d <= winEnd && d >= kitFreeDate && isDateValid(d);
             }
 
-            // Pass 1: try dueDate itself
+            // Clamp dueDate to window
+            var effectiveDue = new Date(dueDate);
+            if (effectiveDue < effectiveWinStart) effectiveDue = new Date(effectiveWinStart);
+            if (effectiveDue > winEnd) effectiveDue = new Date(winEnd);
+
+            // Pass 1: try exactly dueDate
             if (valid(effectiveDue)) return new Date(effectiveDue);
 
-            // Pass 2: spiral outward from dueDate — try before and after alternately
-            for (var offset = 1; offset <= 200; offset++) {
-                // Try before dueDate (preferred — use pre-due tolerance)
-                var before = new Date(effectiveDue);
-                before.setDate(before.getDate() - offset);
-                if (before >= effectiveWinStart && valid(before)) return new Date(before);
+            // Pass 2: go BACKWARDS from dueDate to winStart
+            var cursor = new Date(effectiveDue);
+            cursor.setDate(cursor.getDate() - 1);
+            while (cursor >= effectiveWinStart) {
+                if (valid(cursor)) return new Date(cursor);
+                cursor.setDate(cursor.getDate() - 1);
+            }
 
-                // Try after dueDate (last resort — use post-due tolerance)
-                var after = new Date(effectiveDue);
-                after.setDate(after.getDate() + offset);
-                if (after > winEnd) break; // past window
-                if (valid(after)) return new Date(after);
+            // Pass 3: go FORWARDS from dueDate to winEnd (post-due tolerance, last resort)
+            cursor = new Date(effectiveDue);
+            cursor.setDate(cursor.getDate() + 1);
+            while (cursor <= winEnd) {
+                if (valid(cursor)) return new Date(cursor);
+                cursor.setDate(cursor.getDate() + 1);
             }
 
             return null;
