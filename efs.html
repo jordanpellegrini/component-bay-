@@ -38,7 +38,7 @@
             </div>
             <div class="header-actions">
                 <button onclick="showAddEFS()" class="btn btn-add">+ Add EFS Float</button>
-                <button id="btnEFSOptimizer" class="btn" style="margin-left:8px;background:#1B2B4B;color:#00d4ff;border:1px solid rgba(0,212,255,0.5);display:none;">📅 Planner</button>
+                <button id="btnEFSOptimizer" onclick="openEFSOptimizer()" class="btn" style="margin-left:8px;background:#1B2B4B;color:#00d4ff;border:1px solid rgba(0,212,255,0.5);display:none;">📅 Planner</button>
                 <button onclick="showAllEFS()" class="btn">📋 View All EFS</button>
             </div>
         </div>
@@ -988,290 +988,8 @@
 
             generateTag(type, item);
         }
-    </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-    (function() {
-        var s = document.createElement('script');
-        s.src = 'generate-tag.js';
-        s.onerror = function() { console.warn('generate-tag.js not found, skipping.'); };
-        document.head.appendChild(s);
-    })();
-</script>
-
-<!-- Claude Chat Modal -->
-<div id="claudeChatModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
-    <div style="background:white;border-radius:18px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-        <div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;padding:16px 20px;border-radius:18px 18px 0 0;display:flex;align-items:center;gap:10px;">
-            <span style="font-size:1.4em;">🤖</span>
-            <div style="flex:1;">
-                <div style="font-weight:700;font-size:1em;">Claude AI — EFS Float</div>
-                <div style="font-size:0.75em;opacity:0.8;">Private conversation — only you can see this</div>
-            </div>
-            <button onclick="closeClaudeChat()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px;">✕ Close</button>
-        </div>
-        <div id="claudeMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:300px;max-height:450px;">
-            <div style="background:#f3f0ff;border-radius:12px 12px 12px 0;padding:12px 16px;max-width:85%;align-self:flex-start;">
-                <div style="font-weight:600;color:#7c3aed;font-size:0.8em;margin-bottom:4px;">🤖 Claude</div>
-                <div style="color:#1e1b4b;line-height:1.5;">Bonjour ! Je suis connecté aux données EFS Float. Je peux lire, analyser et modifier les items si vous me le demandez. Que puis-je faire pour vous ?</div>
-            </div>
-        </div>
-        <div style="padding:10px 16px;border-top:1px solid #e5e7eb;">
-            <!-- Attachment preview -->
-            <div id="claudeAttachPreview" style="display:none;margin-bottom:8px;padding:8px 12px;background:#f3f0ff;border-radius:8px;display:none;align-items:center;gap:8px;">
-                <span id="claudeAttachName" style="font-size:13px;color:#7c3aed;font-weight:600;flex:1;"></span>
-                <button onclick="clearAttachment()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;">✕</button>
-            </div>
-            <!-- Input row -->
-            <div style="display:flex;gap:8px;align-items:flex-end;">
-                <!-- Photo button -->
-                <label title="Upload photo" style="cursor:pointer;background:#f3f0ff;border:none;border-radius:10px;padding:10px 12px;color:#7c3aed;font-size:18px;align-self:stretch;display:flex;align-items:center;">
-                    📷<input type="file" id="claudePhotoInput" accept="image/*" style="display:none" onchange="handlePhotoAttach(this)">
-                </label>
-                <!-- Excel button -->
-                <label title="Upload Excel" style="cursor:pointer;background:#f3f0ff;border:none;border-radius:10px;padding:10px 12px;color:#7c3aed;font-size:18px;align-self:stretch;display:flex;align-items:center;">
-                    📊<input type="file" id="claudeExcelInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelAttach(this)">
-                </label>
-                <textarea id="claudeInput" placeholder="Posez votre question, uploadez une photo ou un Excel..."
-                    style="flex:1;border:2px solid #e5e7eb;border-radius:10px;padding:10px;font-size:14px;resize:none;height:60px;outline:none;font-family:inherit;"
-                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendToClaudeChat();}"></textarea>
-                <button onclick="sendToClaudeChat()" id="claudeSendBtn"
-                    style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:10px;padding:0 20px;cursor:pointer;font-size:18px;align-self:stretch;">➤</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    const _CLAUDE_USER_KEY = 'claudeChat_EFS_Float_' + (localStorage.getItem('componentsBayCurrentUser') || 'unknown');
-    let _claudeHistory = [];
-    let _claudeAttachment = null;
-
-    function clearAttachment() {
-        _claudeAttachment = null;
-        var preview = document.getElementById('claudeAttachmentPreview');
-        if (preview) preview.style.display = 'none';
-    }
-
-    function handlePhotoAttach(input) {
-        if (!input.files || !input.files[0]) return;
-        const file = input.files[0];
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const base64 = e.target.result.split(',')[1];
-            _claudeAttachment = { type: 'image', name: file.name, mimeType: file.type, data: base64 };
-            var preview = document.getElementById('claudeAttachmentPreview');
-            if (preview) {
-                preview.innerHTML = '📷 ' + file.name + ' <span onclick="clearAttachment();document.getElementById(\'claudePhotoInput\').value=\'\';" style="cursor:pointer;color:#ef4444;font-weight:bold;margin-left:6px;">✕</span>';
-                preview.style.display = 'block';
-            }
-        };
-        reader.readAsDataURL(file);
-    }
-
-    function openClaudeChat() {
-        document.getElementById('claudeChatModal').style.display = 'flex';
-        try { _claudeHistory = JSON.parse(localStorage.getItem(_CLAUDE_USER_KEY) || '[]'); } catch(e) { _claudeHistory = []; }
-        _renderChatHistory();
-        document.getElementById('claudeInput').focus();
-    }
-    function closeClaudeChat() {
-        document.getElementById('claudeChatModal').style.display = 'none';
-    }
-    // Override globals with real implementations
-    window.openClaudeChat = openClaudeChat;
-    window.closeClaudeChat = closeClaudeChat;
-    window.sendToClaudeChat = sendToClaudeChat;
-    function _renderChatHistory() {
-        const container = document.getElementById('claudeMessages');
-        const welcome = container.children[0].outerHTML;
-        container.innerHTML = welcome;
-        _claudeHistory.forEach(msg => _appendMessage(msg.role, msg.content, false));
-        container.scrollTop = container.scrollHeight;
-    }
-    function _appendMessage(role, content, save=true) {
-        const container = document.getElementById('claudeMessages');
-        const isUser = role === 'user';
-        const div = document.createElement('div');
-        div.style.cssText = `background:${isUser?'#1B2B4B':'#f3f0ff'};border-radius:${isUser?'12px 12px 0 12px':'12px 12px 12px 0'};padding:12px 16px;max-width:85%;align-self:${isUser?'flex-end':'flex-start'};`;
-        div.innerHTML = `<div style="font-weight:600;color:${isUser?'#D4900A':'#7c3aed'};font-size:0.8em;margin-bottom:4px;">${isUser?'👤 You':'🤖 Claude'}</div><div style="color:${isUser?'white':'#1e1b4b'};line-height:1.5;white-space:pre-wrap;">${content}</div>`;
-        container.appendChild(div);
-        container.scrollTop = container.scrollHeight;
-        if (save) {
-            _claudeHistory.push({ role, content });
-            if (_claudeHistory.length > 50) _claudeHistory = _claudeHistory.slice(-50);
-            localStorage.setItem(_CLAUDE_USER_KEY, JSON.stringify(_claudeHistory));
-        }
-    }
-    async function sendToClaudeChat() {
-        const input = document.getElementById('claudeInput');
-        const msg = input.value.trim();
-        const hasAttachment = !!_claudeAttachment;
-        if (!msg && !hasAttachment) return;
-        input.value = '';
-        document.getElementById('claudeSendBtn').disabled = true;
-        const displayMsg = msg + (hasAttachment ? (msg ? ' [+' + _claudeAttachment.name + ']' : '[' + _claudeAttachment.name + ']') : '');
-        _appendMessage('user', displayMsg);
-        const today = new Date().toISOString().split('T')[0];
-        
-        const dataSnapshot = (typeof efsData !== 'undefined' ? efsData : []).slice(0, 100).map(i => ({
-            id: i.id, designation: i.designation, partNumber: i.partNumber,
-            serialNumber: i.serialNumber, serviceability: i.serviceability,
-            nextInspection: i.nextInspection, reason: i.reason, comments: i.comments
-        }));
-        const dataStr = JSON.stringify(dataSnapshot, null, 2);
-        const totalUS = (typeof efsData !== 'undefined' ? efsData : []).filter(i => i.serviceability === 'Unserviceable').length;
-        const totalItems = (typeof efsData !== 'undefined' ? efsData : []).length;
-        const systemPrompt = `You are an aircraft maintenance assistant for ASM integrated into the EFS Float module of Components Bay.
-Today: ${today} | Total items: ${totalItems} | Unserviceable: ${totalUS}
-Data: ${dataStr}
-
-Available fields: designation, partNumber, serialNumber, serviceability (Serviceable/Unserviceable), next18M (YYYY-MM-DD), next36M (YYYY-MM-DD), reason, comments
-Required for ADD: partNumber, serialNumber
-
-You can READ and MODIFY data. When asked to modify:
-1. Confirm what you understood with all field values
-2. Wait for confirmation (oui/yes/ok/confirme)
-3. For UPDATE: <action>{"type":"update","id":"ITEM_ID","fields":{"field":"value"}}</action>
-   For ADD: <action>{"type":"add","fields":{"partNumber":"...","serialNumber":"...","designation":"...","serviceability":"...","nextInspection":"YYYY-MM-DD","reason":"...","comments":"..."}}</action>
-   For DELETE: <action>{"type":"delete","id":"ITEM_ID"}</action>
-IMPORTANT: Always include ALL provided fields in the action JSON. Dates must be YYYY-MM-DD format.
-Respond in the same language as the user. Be concise.`;
-        const messages = _claudeHistory.slice(-20).map(h => ({ role: h.role, content: h.content }));
-        messages.push({ role: 'user', content: msg });
-        const loadDiv = document.createElement('div');
-        loadDiv.style.cssText = 'background:#f3f0ff;border-radius:12px;padding:12px 16px;max-width:85%;align-self:flex-start;color:#7c3aed;';
-        loadDiv.innerHTML = '🤖 <em>Thinking...</em>';
-        document.getElementById('claudeMessages').appendChild(loadDiv);
-        document.getElementById('claudeMessages').scrollTop = 99999;
-        try {
-            // Build message content with optional attachment
-            let userContent;
-            if (_claudeAttachment && _claudeAttachment.type === 'image') {
-                userContent = [
-                    { type: 'image', source: { type: 'base64', media_type: _claudeAttachment.mimeType, data: _claudeAttachment.data } },
-                    { type: 'text', text: msg || 'Analyse cette image et extrait les données de maintenance (P/N, S/N, Designation, dates). Propose de créer/modifier les items correspondants.' }
-                ];
-                // Replace last user message content
-                if (messages.length > 0 && messages[messages.length-1].role === 'user') {
-                    messages[messages.length-1].content = userContent;
-                }
-            } else if (_claudeAttachment && _claudeAttachment.type === 'excel') {
-                const excelSummary = JSON.stringify(_claudeAttachment.data.slice(0, 50), null, 2);
-                const excelMsg = (msg || 'Analyse ce fichier Excel') + '\n\nFichier: ' + _claudeAttachment.name + ' (' + _claudeAttachment.data.length + ' lignes)\nDonnées (50 premières lignes):\n' + excelSummary;
-                if (messages.length > 0 && messages[messages.length-1].role === 'user') {
-                    messages[messages.length-1].content = excelMsg;
-                }
-            }
-            clearAttachment();
-
-            const res = await fetch('/api/claude', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: systemPrompt, messages })
-            });
-            const data = await res.json();
-            loadDiv.remove();
-            let reply = data.content?.[0]?.text || 'No response.';
-            const actionMatch = reply.match(/<action>([\s\S]*?)<\/action>/);
-            if (actionMatch) {
-                try {
-                    const action = JSON.parse(actionMatch[1].trim());
-                    if (action.type === 'update' && action.id && action.fields) {
-                        const allData = (typeof efsData !== 'undefined' ? efsData : []);
-                        const item = allData.find(i => i.id === action.id);
-                        if (item && window.ComponentsBayDB) {
-                            Object.assign(item, action.fields);
-                            item.lastModified = new Date().toISOString();
-                            item.modifiedBy = localStorage.getItem('componentsBayCurrentUser') || 'unknown';
-                            await window.ComponentsBayDB.save('efs', {...item});
-                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Modification sauvegardée.';
-                            try { if (typeof updateSummary === 'function') updateSummary(); if (typeof refreshTable === 'function') refreshTable(); } catch(e) { console.warn('refresh error:', e); }
-                        } else {
-                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Item non trouvé.';
-                        }
-                    } else if ((action.type === 'add' || action.type === 'create') && action.fields) {
-                        if (!action.fields.partNumber || !action.fields.serialNumber) {
-                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ P/N et S/N obligatoires pour créer un item.';
-                        } else if (window.ComponentsBayDB) {
-                            const newItem = {
-                                id: Date.now().toString() + '-' + Math.random().toString(36).substr(2,6),
-                                serviceability: 'Serviceable',
-                                createdAt: new Date().toISOString(),
-                                createdBy: localStorage.getItem('componentsBayCurrentUser') || 'unknown',
-                                lastModified: new Date().toISOString(),
-                                ...action.fields
-                            };
-                            await window.ComponentsBayDB.save('efs', newItem);
-                            if (typeof efsData !== 'undefined') efsData.push(newItem);
-                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Item créé et sauvegardé dans Supabase.';
-                            try { if (typeof updateSummary === 'function') updateSummary(); if (typeof refreshTable === 'function') refreshTable(); } catch(e) { console.warn('refresh error:', e); }
-                        }
-                    } else if (action.type === 'delete' && action.id) {
-                        const allData = (typeof efsData !== 'undefined' ? efsData : []);
-                        const item = allData.find(i => i.id === action.id);
-                        if (item && window.ComponentsBayDB) {
-                            await window.ComponentsBayDB.delete('efs', action.id);
-                            const idx = allData.findIndex(i => i.id === action.id);
-                            if (idx > -1) allData.splice(idx, 1);
-                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Item supprimé.';
-                            try { if (typeof updateSummary === 'function') updateSummary(); if (typeof refreshTable === 'function') refreshTable(); } catch(e) { console.warn('refresh error:', e); }
-                        } else {
-                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Item introuvable.';
-                        }
-                    }
-                } catch(e) { reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Erreur: ' + e.message; }
-            }
-            _appendMessage('assistant', reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim() || reply);
-        } catch(err) {
-            loadDiv.remove();
-            _appendMessage('assistant', 'Error: ' + err.message);
-        }
-        document.getElementById('claudeSendBtn').disabled = false;
-        document.getElementById('claudeInput').focus();
-    }
-</script>
 
 
-<!-- EFS Planner Modal -->
-<div id="efsPlannerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:#0f1625;border:1px solid #1e2d4a;border-radius:14px;width:99vw;max-width:99vw;height:97vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 60px rgba(0,212,255,0.15);">
-    <div style="display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid #1e2d4a;background:linear-gradient(90deg,rgba(0,212,255,0.08),transparent);flex-shrink:0;">
-      <div style="width:38px;height:38px;background:linear-gradient(135deg,#00d4ff,#0077aa);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">📅</div>
-      <div>
-        <div style="font-family:sans-serif;font-size:20px;font-weight:900;letter-spacing:2px;color:#c8d6e8;text-transform:uppercase;">EFS Inspection <span style="color:#00d4ff">Planner</span></div>
-        <div style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:3px;">120-DAY WINDOW · 10% TOLERANCE · 2 SPARE KITS · 15-DAY SET</div>
-      </div>
-      <button onclick="closeEFSOptimizer()" style="margin-left:auto;background:rgba(255,255,255,0.1);border:none;color:#c8d6e8;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:14px;">x Close</button>
-    </div>
-    <div style="display:flex;gap:16px;padding:12px 24px;border-bottom:1px solid #1e2d4a;flex-wrap:wrap;align-items:flex-end;flex-shrink:0;background:#0a0e1a;">
-      <div style="display:flex;flex-direction:column;gap:4px;justify-content:center;">
-        <div style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">SPARE KITS</div>
-        <div id="efs_kit_count" style="color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 0;">Auto (from DB)</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">TOLERANCE %</label>
-        <input type="number" id="efs_tolerance" value="10" min="1" max="20" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">INSPECTION DURATION (DAYS)</label>
-        <input type="number" id="efs_duration" value="15" min="1" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">FORECAST (DAYS)</label>
-        <input type="number" id="efs_forecast" value="120" min="30" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
-      </div>
-      <button onclick="runEFSPlanner()" style="background:linear-gradient(135deg,#00d4ff,#0077aa);color:#000;border:none;font-family:sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 22px;border-radius:6px;cursor:pointer;">RUN</button>
-<!-- AI runs automatically after RUN -->
-      <div id="efs_status" style="font-family:monospace;font-size:11px;color:#4a5a70;align-self:center;"></div>
-    </div>
-    <div id="efs_results" style="flex:1;overflow-y:auto;padding:20px 24px;background:#0a0e1a;">
-      <div style="color:#4a5a70;font-family:monospace;font-size:12px;text-align:center;padding:40px;">Click RUN to compute the inspection schedule...</div>
-    </div>
-  </div>
-</div>
-
-<script>
 function openEFSOptimizer() {
     document.getElementById('efsPlannerModal').style.display = 'flex';
     runEFSPlanner();
@@ -1995,7 +1713,290 @@ function showAIAnalysis(text, planData) {
 }
 // ── END AI OPTIMIZER ──────────────────────────────────────────────────────────
 
+
+    </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+    (function() {
+        var s = document.createElement('script');
+        s.src = 'generate-tag.js';
+        s.onerror = function() { console.warn('generate-tag.js not found, skipping.'); };
+        document.head.appendChild(s);
+    })();
 </script>
+
+<!-- Claude Chat Modal -->
+<div id="claudeChatModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:18px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;padding:16px 20px;border-radius:18px 18px 0 0;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.4em;">🤖</span>
+            <div style="flex:1;">
+                <div style="font-weight:700;font-size:1em;">Claude AI — EFS Float</div>
+                <div style="font-size:0.75em;opacity:0.8;">Private conversation — only you can see this</div>
+            </div>
+            <button onclick="closeClaudeChat()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px;">✕ Close</button>
+        </div>
+        <div id="claudeMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:300px;max-height:450px;">
+            <div style="background:#f3f0ff;border-radius:12px 12px 12px 0;padding:12px 16px;max-width:85%;align-self:flex-start;">
+                <div style="font-weight:600;color:#7c3aed;font-size:0.8em;margin-bottom:4px;">🤖 Claude</div>
+                <div style="color:#1e1b4b;line-height:1.5;">Bonjour ! Je suis connecté aux données EFS Float. Je peux lire, analyser et modifier les items si vous me le demandez. Que puis-je faire pour vous ?</div>
+            </div>
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid #e5e7eb;">
+            <!-- Attachment preview -->
+            <div id="claudeAttachPreview" style="display:none;margin-bottom:8px;padding:8px 12px;background:#f3f0ff;border-radius:8px;display:none;align-items:center;gap:8px;">
+                <span id="claudeAttachName" style="font-size:13px;color:#7c3aed;font-weight:600;flex:1;"></span>
+                <button onclick="clearAttachment()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;">✕</button>
+            </div>
+            <!-- Input row -->
+            <div style="display:flex;gap:8px;align-items:flex-end;">
+                <!-- Photo button -->
+                <label title="Upload photo" style="cursor:pointer;background:#f3f0ff;border:none;border-radius:10px;padding:10px 12px;color:#7c3aed;font-size:18px;align-self:stretch;display:flex;align-items:center;">
+                    📷<input type="file" id="claudePhotoInput" accept="image/*" style="display:none" onchange="handlePhotoAttach(this)">
+                </label>
+                <!-- Excel button -->
+                <label title="Upload Excel" style="cursor:pointer;background:#f3f0ff;border:none;border-radius:10px;padding:10px 12px;color:#7c3aed;font-size:18px;align-self:stretch;display:flex;align-items:center;">
+                    📊<input type="file" id="claudeExcelInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelAttach(this)">
+                </label>
+                <textarea id="claudeInput" placeholder="Posez votre question, uploadez une photo ou un Excel..."
+                    style="flex:1;border:2px solid #e5e7eb;border-radius:10px;padding:10px;font-size:14px;resize:none;height:60px;outline:none;font-family:inherit;"
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendToClaudeChat();}"></textarea>
+                <button onclick="sendToClaudeChat()" id="claudeSendBtn"
+                    style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:10px;padding:0 20px;cursor:pointer;font-size:18px;align-self:stretch;">➤</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const _CLAUDE_USER_KEY = 'claudeChat_EFS_Float_' + (localStorage.getItem('componentsBayCurrentUser') || 'unknown');
+    let _claudeHistory = [];
+    let _claudeAttachment = null;
+
+    function clearAttachment() {
+        _claudeAttachment = null;
+        var preview = document.getElementById('claudeAttachmentPreview');
+        if (preview) preview.style.display = 'none';
+    }
+
+    function handlePhotoAttach(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64 = e.target.result.split(',')[1];
+            _claudeAttachment = { type: 'image', name: file.name, mimeType: file.type, data: base64 };
+            var preview = document.getElementById('claudeAttachmentPreview');
+            if (preview) {
+                preview.innerHTML = '📷 ' + file.name + ' <span onclick="clearAttachment();document.getElementById(\'claudePhotoInput\').value=\'\';" style="cursor:pointer;color:#ef4444;font-weight:bold;margin-left:6px;">✕</span>';
+                preview.style.display = 'block';
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function openClaudeChat() {
+        document.getElementById('claudeChatModal').style.display = 'flex';
+        try { _claudeHistory = JSON.parse(localStorage.getItem(_CLAUDE_USER_KEY) || '[]'); } catch(e) { _claudeHistory = []; }
+        _renderChatHistory();
+        document.getElementById('claudeInput').focus();
+    }
+    function closeClaudeChat() {
+        document.getElementById('claudeChatModal').style.display = 'none';
+    }
+    // Override globals with real implementations
+    window.openClaudeChat = openClaudeChat;
+    window.closeClaudeChat = closeClaudeChat;
+    window.sendToClaudeChat = sendToClaudeChat;
+    function _renderChatHistory() {
+        const container = document.getElementById('claudeMessages');
+        const welcome = container.children[0].outerHTML;
+        container.innerHTML = welcome;
+        _claudeHistory.forEach(msg => _appendMessage(msg.role, msg.content, false));
+        container.scrollTop = container.scrollHeight;
+    }
+    function _appendMessage(role, content, save=true) {
+        const container = document.getElementById('claudeMessages');
+        const isUser = role === 'user';
+        const div = document.createElement('div');
+        div.style.cssText = `background:${isUser?'#1B2B4B':'#f3f0ff'};border-radius:${isUser?'12px 12px 0 12px':'12px 12px 12px 0'};padding:12px 16px;max-width:85%;align-self:${isUser?'flex-end':'flex-start'};`;
+        div.innerHTML = `<div style="font-weight:600;color:${isUser?'#D4900A':'#7c3aed'};font-size:0.8em;margin-bottom:4px;">${isUser?'👤 You':'🤖 Claude'}</div><div style="color:${isUser?'white':'#1e1b4b'};line-height:1.5;white-space:pre-wrap;">${content}</div>`;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        if (save) {
+            _claudeHistory.push({ role, content });
+            if (_claudeHistory.length > 50) _claudeHistory = _claudeHistory.slice(-50);
+            localStorage.setItem(_CLAUDE_USER_KEY, JSON.stringify(_claudeHistory));
+        }
+    }
+    async function sendToClaudeChat() {
+        const input = document.getElementById('claudeInput');
+        const msg = input.value.trim();
+        const hasAttachment = !!_claudeAttachment;
+        if (!msg && !hasAttachment) return;
+        input.value = '';
+        document.getElementById('claudeSendBtn').disabled = true;
+        const displayMsg = msg + (hasAttachment ? (msg ? ' [+' + _claudeAttachment.name + ']' : '[' + _claudeAttachment.name + ']') : '');
+        _appendMessage('user', displayMsg);
+        const today = new Date().toISOString().split('T')[0];
+        
+        const dataSnapshot = (typeof efsData !== 'undefined' ? efsData : []).slice(0, 100).map(i => ({
+            id: i.id, designation: i.designation, partNumber: i.partNumber,
+            serialNumber: i.serialNumber, serviceability: i.serviceability,
+            nextInspection: i.nextInspection, reason: i.reason, comments: i.comments
+        }));
+        const dataStr = JSON.stringify(dataSnapshot, null, 2);
+        const totalUS = (typeof efsData !== 'undefined' ? efsData : []).filter(i => i.serviceability === 'Unserviceable').length;
+        const totalItems = (typeof efsData !== 'undefined' ? efsData : []).length;
+        const systemPrompt = `You are an aircraft maintenance assistant for ASM integrated into the EFS Float module of Components Bay.
+Today: ${today} | Total items: ${totalItems} | Unserviceable: ${totalUS}
+Data: ${dataStr}
+
+Available fields: designation, partNumber, serialNumber, serviceability (Serviceable/Unserviceable), next18M (YYYY-MM-DD), next36M (YYYY-MM-DD), reason, comments
+Required for ADD: partNumber, serialNumber
+
+You can READ and MODIFY data. When asked to modify:
+1. Confirm what you understood with all field values
+2. Wait for confirmation (oui/yes/ok/confirme)
+3. For UPDATE: <action>{"type":"update","id":"ITEM_ID","fields":{"field":"value"}}</action>
+   For ADD: <action>{"type":"add","fields":{"partNumber":"...","serialNumber":"...","designation":"...","serviceability":"...","nextInspection":"YYYY-MM-DD","reason":"...","comments":"..."}}</action>
+   For DELETE: <action>{"type":"delete","id":"ITEM_ID"}</action>
+IMPORTANT: Always include ALL provided fields in the action JSON. Dates must be YYYY-MM-DD format.
+Respond in the same language as the user. Be concise.`;
+        const messages = _claudeHistory.slice(-20).map(h => ({ role: h.role, content: h.content }));
+        messages.push({ role: 'user', content: msg });
+        const loadDiv = document.createElement('div');
+        loadDiv.style.cssText = 'background:#f3f0ff;border-radius:12px;padding:12px 16px;max-width:85%;align-self:flex-start;color:#7c3aed;';
+        loadDiv.innerHTML = '🤖 <em>Thinking...</em>';
+        document.getElementById('claudeMessages').appendChild(loadDiv);
+        document.getElementById('claudeMessages').scrollTop = 99999;
+        try {
+            // Build message content with optional attachment
+            let userContent;
+            if (_claudeAttachment && _claudeAttachment.type === 'image') {
+                userContent = [
+                    { type: 'image', source: { type: 'base64', media_type: _claudeAttachment.mimeType, data: _claudeAttachment.data } },
+                    { type: 'text', text: msg || 'Analyse cette image et extrait les données de maintenance (P/N, S/N, Designation, dates). Propose de créer/modifier les items correspondants.' }
+                ];
+                // Replace last user message content
+                if (messages.length > 0 && messages[messages.length-1].role === 'user') {
+                    messages[messages.length-1].content = userContent;
+                }
+            } else if (_claudeAttachment && _claudeAttachment.type === 'excel') {
+                const excelSummary = JSON.stringify(_claudeAttachment.data.slice(0, 50), null, 2);
+                const excelMsg = (msg || 'Analyse ce fichier Excel') + '\n\nFichier: ' + _claudeAttachment.name + ' (' + _claudeAttachment.data.length + ' lignes)\nDonnées (50 premières lignes):\n' + excelSummary;
+                if (messages.length > 0 && messages[messages.length-1].role === 'user') {
+                    messages[messages.length-1].content = excelMsg;
+                }
+            }
+            clearAttachment();
+
+            const res = await fetch('/api/claude', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: systemPrompt, messages })
+            });
+            const data = await res.json();
+            loadDiv.remove();
+            let reply = data.content?.[0]?.text || 'No response.';
+            const actionMatch = reply.match(/<action>([\s\S]*?)<\/action>/);
+            if (actionMatch) {
+                try {
+                    const action = JSON.parse(actionMatch[1].trim());
+                    if (action.type === 'update' && action.id && action.fields) {
+                        const allData = (typeof efsData !== 'undefined' ? efsData : []);
+                        const item = allData.find(i => i.id === action.id);
+                        if (item && window.ComponentsBayDB) {
+                            Object.assign(item, action.fields);
+                            item.lastModified = new Date().toISOString();
+                            item.modifiedBy = localStorage.getItem('componentsBayCurrentUser') || 'unknown';
+                            await window.ComponentsBayDB.save('efs', {...item});
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Modification sauvegardée.';
+                            try { if (typeof updateSummary === 'function') updateSummary(); if (typeof refreshTable === 'function') refreshTable(); } catch(e) { console.warn('refresh error:', e); }
+                        } else {
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Item non trouvé.';
+                        }
+                    } else if ((action.type === 'add' || action.type === 'create') && action.fields) {
+                        if (!action.fields.partNumber || !action.fields.serialNumber) {
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ P/N et S/N obligatoires pour créer un item.';
+                        } else if (window.ComponentsBayDB) {
+                            const newItem = {
+                                id: Date.now().toString() + '-' + Math.random().toString(36).substr(2,6),
+                                serviceability: 'Serviceable',
+                                createdAt: new Date().toISOString(),
+                                createdBy: localStorage.getItem('componentsBayCurrentUser') || 'unknown',
+                                lastModified: new Date().toISOString(),
+                                ...action.fields
+                            };
+                            await window.ComponentsBayDB.save('efs', newItem);
+                            if (typeof efsData !== 'undefined') efsData.push(newItem);
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Item créé et sauvegardé dans Supabase.';
+                            try { if (typeof updateSummary === 'function') updateSummary(); if (typeof refreshTable === 'function') refreshTable(); } catch(e) { console.warn('refresh error:', e); }
+                        }
+                    } else if (action.type === 'delete' && action.id) {
+                        const allData = (typeof efsData !== 'undefined' ? efsData : []);
+                        const item = allData.find(i => i.id === action.id);
+                        if (item && window.ComponentsBayDB) {
+                            await window.ComponentsBayDB.delete('efs', action.id);
+                            const idx = allData.findIndex(i => i.id === action.id);
+                            if (idx > -1) allData.splice(idx, 1);
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n✅ Item supprimé.';
+                            try { if (typeof updateSummary === 'function') updateSummary(); if (typeof refreshTable === 'function') refreshTable(); } catch(e) { console.warn('refresh error:', e); }
+                        } else {
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Item introuvable.';
+                        }
+                    }
+                } catch(e) { reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim() + '\n\n❌ Erreur: ' + e.message; }
+            }
+            _appendMessage('assistant', reply.replace(/<action>[\s\S]*?<\/action>/g, '').trim() || reply);
+        } catch(err) {
+            loadDiv.remove();
+            _appendMessage('assistant', 'Error: ' + err.message);
+        }
+        document.getElementById('claudeSendBtn').disabled = false;
+        document.getElementById('claudeInput').focus();
+    }
+</script>
+
+
+<!-- EFS Planner Modal -->
+<div id="efsPlannerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#0f1625;border:1px solid #1e2d4a;border-radius:14px;width:99vw;max-width:99vw;height:97vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 60px rgba(0,212,255,0.15);">
+    <div style="display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid #1e2d4a;background:linear-gradient(90deg,rgba(0,212,255,0.08),transparent);flex-shrink:0;">
+      <div style="width:38px;height:38px;background:linear-gradient(135deg,#00d4ff,#0077aa);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">📅</div>
+      <div>
+        <div style="font-family:sans-serif;font-size:20px;font-weight:900;letter-spacing:2px;color:#c8d6e8;text-transform:uppercase;">EFS Inspection <span style="color:#00d4ff">Planner</span></div>
+        <div style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:3px;">120-DAY WINDOW · 10% TOLERANCE · 2 SPARE KITS · 15-DAY SET</div>
+      </div>
+      <button onclick="closeEFSOptimizer()" style="margin-left:auto;background:rgba(255,255,255,0.1);border:none;color:#c8d6e8;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:14px;">x Close</button>
+    </div>
+    <div style="display:flex;gap:16px;padding:12px 24px;border-bottom:1px solid #1e2d4a;flex-wrap:wrap;align-items:flex-end;flex-shrink:0;background:#0a0e1a;">
+      <div style="display:flex;flex-direction:column;gap:4px;justify-content:center;">
+        <div style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">SPARE KITS</div>
+        <div id="efs_kit_count" style="color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 0;">Auto (from DB)</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">TOLERANCE %</label>
+        <input type="number" id="efs_tolerance" value="10" min="1" max="20" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">INSPECTION DURATION (DAYS)</label>
+        <input type="number" id="efs_duration" value="15" min="1" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">FORECAST (DAYS)</label>
+        <input type="number" id="efs_forecast" value="120" min="30" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
+      </div>
+      <button onclick="runEFSPlanner()" style="background:linear-gradient(135deg,#00d4ff,#0077aa);color:#000;border:none;font-family:sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 22px;border-radius:6px;cursor:pointer;">RUN</button>
+<!-- AI runs automatically after RUN -->
+      <div id="efs_status" style="font-family:monospace;font-size:11px;color:#4a5a70;align-self:center;"></div>
+    </div>
+    <div id="efs_results" style="flex:1;overflow-y:auto;padding:20px 24px;background:#0a0e1a;">
+      <div style="color:#4a5a70;font-family:monospace;font-size:12px;text-align:center;padding:40px;">Click RUN to compute the inspection schedule...</div>
+    </div>
+  </div>
+</div>
+
 
 </body>
 </html>
