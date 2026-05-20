@@ -1555,6 +1555,7 @@ async function runEFSPlanner() {
         var kcEl = document.getElementById('efs_kit_count');
         if (kcEl) kcEl.textContent = completeKits.length + ' complete kit(s)' + (incompleteKits.length > 0 ? ' + ' + incompleteKits.length + ' incomplete' : '');
         statusEl.textContent = assignments.length + ' scheduled / ' + unschedulable.length + ' conflicts';
+        showAIButton();
 
     } catch(e) {
         console.error(e);
@@ -1671,17 +1672,8 @@ function efsHCCard(a, today) {
 }
 
 // ── AI OPTIMIZER ─────────────────────────────────────────────────────────────
-var _lastAssignments   = [];
-var _lastUnschedulable = [];
-var _lastKits          = [];
-var _lastParams        = {};
-
-// Store results after each run for AI to use
-var _origRunEFSPlanner = runEFSPlanner;
-
-async function runEFSPlanner() {
-    await _origRunEFSPlanner.apply(this, arguments);
-    // Show AI button after first run
+// Show AI button after RUN — called at end of runEFSPlanner
+function showAIButton() {
     var btn = document.getElementById('btnAIOptimize');
     if (btn) btn.style.display = 'inline-block';
 }
