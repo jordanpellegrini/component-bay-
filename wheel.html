@@ -1188,15 +1188,21 @@
             var forecastW = parseFloat(document.getElementById('opt_forecast').value) || 12;
 
             try {
-                var allWheels = wheelData || [];
-                if (allWheels.length === 0 && window.ComponentsBayDB) {
+                // Always reload fresh from DB
+                var allWheels = [];
+                if (window.ComponentsBayDB) {
                     allWheels = await window.ComponentsBayDB.load('wheels') || [];
+                } else {
+                    allWheels = wheelData || [];
                 }
+                console.log('Optimizer: loaded', allWheels.length, 'wheels');
+                console.log('Sample:', allWheels[0]);
 
                 var spares = allWheels.filter(function(w) {
                     var svc = (w.serviceability || '').toLowerCase();
                     var hc  = (w.hc || w.removeFrom || '').toLowerCase();
-                    return svc === 'serviceable' && (hc === 'spare' || hc === '' || hc === 'stock');
+                    var isSpare = svc === 'serviceable' && (hc === 'spare' || hc === '' || hc === 'stock');
+                    return isSpare;
                 });
 
                 statusEl.textContent = allWheels.length + ' wheels loaded · ' + spares.length + ' spare serviceable';
