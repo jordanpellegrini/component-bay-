@@ -38,6 +38,7 @@
             </div>
             <div class="header-actions">
                 <button onclick="showAddEFS()" class="btn btn-add">+ Add EFS Float</button>
+                <button id="btnEFSOptimizer" onclick="openEFSOptimizer()" class="btn" style="margin-left:8px;background:#1B2B4B;color:#00d4ff;border:1px solid rgba(0,212,255,0.5);display:none;">📅 Planner</button>
                 <button onclick="showAllEFS()" class="btn">📋 View All EFS</button>
             </div>
         </div>
@@ -302,6 +303,10 @@
                 return;
             }
             document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
+            const efsOptBtn = document.getElementById('btnEFSOptimizer');
+            if (efsOptBtn && userRole && userRole.toLowerCase() === 'admin') {
+                efsOptBtn.style.display = 'inline-block';
+            }
         }
 
         async function loadData() {
@@ -1225,6 +1230,345 @@ Respond in the same language as the user. Be concise.`;
         document.getElementById('claudeSendBtn').disabled = false;
         document.getElementById('claudeInput').focus();
     }
+</script>
+
+
+<!-- EFS Planner Modal -->
+<div id="efsPlannerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#0f1625;border:1px solid #1e2d4a;border-radius:14px;width:99vw;max-width:99vw;height:97vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 60px rgba(0,212,255,0.15);">
+    <div style="display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid #1e2d4a;background:linear-gradient(90deg,rgba(0,212,255,0.08),transparent);flex-shrink:0;">
+      <div style="width:38px;height:38px;background:linear-gradient(135deg,#00d4ff,#0077aa);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">📅</div>
+      <div>
+        <div style="font-family:sans-serif;font-size:20px;font-weight:900;letter-spacing:2px;color:#c8d6e8;text-transform:uppercase;">EFS Inspection <span style="color:#00d4ff">Planner</span></div>
+        <div style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:3px;">120-DAY WINDOW · 10% TOLERANCE · 2 SPARE KITS · 15-DAY SET</div>
+      </div>
+      <button onclick="closeEFSOptimizer()" style="margin-left:auto;background:rgba(255,255,255,0.1);border:none;color:#c8d6e8;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:14px;">x Close</button>
+    </div>
+    <div style="display:flex;gap:16px;padding:12px 24px;border-bottom:1px solid #1e2d4a;flex-wrap:wrap;align-items:flex-end;flex-shrink:0;background:#0a0e1a;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">SPARE KITS</label>
+        <input type="number" id="efs_kits" value="2" min="1" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">TOLERANCE %</label>
+        <input type="number" id="efs_tolerance" value="10" min="1" max="20" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">SET DURATION (DAYS)</label>
+        <input type="number" id="efs_duration" value="15" min="1" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">FORECAST (DAYS)</label>
+        <input type="number" id="efs_forecast" value="120" min="30" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
+      </div>
+      <button onclick="runEFSPlanner()" style="background:linear-gradient(135deg,#00d4ff,#0077aa);color:#000;border:none;font-family:sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 22px;border-radius:6px;cursor:pointer;">RUN</button>
+      <div id="efs_status" style="font-family:monospace;font-size:11px;color:#4a5a70;align-self:center;"></div>
+    </div>
+    <div id="efs_results" style="flex:1;overflow-y:auto;padding:20px 24px;background:#0a0e1a;">
+      <div style="color:#4a5a70;font-family:monospace;font-size:12px;text-align:center;padding:40px;">Click RUN to compute the inspection schedule...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openEFSOptimizer() {
+    document.getElementById('efsPlannerModal').style.display = 'flex';
+    runEFSPlanner();
+}
+function closeEFSOptimizer() {
+    document.getElementById('efsPlannerModal').style.display = 'none';
+}
+
+async function runEFSPlanner() {
+    var statusEl  = document.getElementById('efs_status');
+    var resultsEl = document.getElementById('efs_results');
+    statusEl.textContent = 'Loading...';
+    resultsEl.innerHTML = '<div style="color:#4a5a70;font-family:monospace;text-align:center;padding:40px;">Loading...</div>';
+
+    var maxKits      = parseInt(document.getElementById('efs_kits').value)      || 2;
+    var tolerancePct = parseFloat(document.getElementById('efs_tolerance').value) / 100 || 0.10;
+    var setDays      = parseInt(document.getElementById('efs_duration').value)   || 15;
+    var forecastDays = parseInt(document.getElementById('efs_forecast').value)   || 120;
+
+    try {
+        var allEFS = [];
+        if (window.ComponentsBayDB) {
+            allEFS = await window.ComponentsBayDB.load('efs') || [];
+        }
+
+        var today       = new Date(); today.setHours(0,0,0,0);
+        var forecastEnd = new Date(today); forecastEnd.setDate(forecastEnd.getDate() + forecastDays);
+
+        // Group EFS by H/C, skip spares
+        var hcMap = {};
+        allEFS.forEach(function(e) {
+            var hc = (e.hc || '').trim();
+            if (!hc || hc.toLowerCase() === 'spare') return;
+            if (!hcMap[hc]) hcMap[hc] = [];
+            hcMap[hc].push(e);
+        });
+
+        // For each H/C, find the soonest due date considering all EFS (18M and 36M)
+        // and compute the tolerance window
+        var hcInspections = [];
+        Object.keys(hcMap).forEach(function(hc) {
+            var efsList = hcMap[hc];
+            var allDueDates = [];
+            efsList.forEach(function(e) {
+                if (e.next18M) allDueDates.push({ date: new Date(e.next18M), type: '18M', intervalDays: 547 });
+                if (e.next36M) allDueDates.push({ date: new Date(e.next36M), type: '36M', intervalDays: 1095 });
+            });
+            if (allDueDates.length === 0) return;
+
+            // Take the soonest due date as the reference for this H/C inspection
+            allDueDates.sort(function(a,b){ return a.date - b.date; });
+            var ref = allDueDates[0];
+            var tolDays = Math.round(ref.intervalDays * tolerancePct);
+
+            var winStart = new Date(ref.date); winStart.setDate(winStart.getDate() - tolDays);
+            var winEnd   = new Date(ref.date); winEnd.setDate(winEnd.getDate() + tolDays);
+
+            // Skip if window completely outside forecast (but keep overdue)
+            if (winEnd < new Date(today.getTime() - 30*86400000)) return; // more than 30d overdue = show anyway
+            if (winStart > forecastEnd) return;
+
+            // Clamp window start to today if in past
+            var effectiveStart = winStart < today ? new Date(today) : new Date(winStart);
+
+            hcInspections.push({
+                hc: hc,
+                efsList: efsList,
+                dueDate: ref.date,
+                type: ref.type,
+                winStart: winStart,
+                winEnd: winEnd,
+                effectiveStart: effectiveStart,
+                tolDays: tolDays,
+                overdue: ref.date < today
+            });
+        });
+
+        // Sort by window end (most urgent first = tightest deadline)
+        hcInspections.sort(function(a,b){ return a.winEnd - b.winEnd; });
+
+        // Greedy scheduling with maxKits constraint
+        // kitsAvailable[i] = date when kit i becomes free again
+        var kitsFreeDates = [];
+        for (var k = 0; k < maxKits; k++) kitsFreeDates.push(new Date(today));
+
+        var assignments = [];
+        var unschedulable = [];
+
+        hcInspections.forEach(function(insp) {
+            // Find best kit: earliest free date that fits in window
+            var bestKit = -1, bestStart = null;
+
+            // Try each kit
+            for (var k = 0; k < maxKits; k++) {
+                var kitFree = kitsFreeDates[k];
+                // Earliest we can start = max(kitFree, effectiveStart)
+                var candidateStart = kitFree > insp.effectiveStart ? new Date(kitFree) : new Date(insp.effectiveStart);
+                var candidateEnd = new Date(candidateStart); candidateEnd.setDate(candidateEnd.getDate() + setDays);
+
+                // Check if this fits within the tolerance window
+                if (candidateStart <= insp.winEnd) {
+                    // Prefer kit that allows latest start (less rushed)
+                    if (bestKit === -1 || candidateStart > bestStart) {
+                        bestKit = k;
+                        bestStart = new Date(candidateStart);
+                    }
+                }
+            }
+
+            if (bestKit === -1) {
+                // Cannot schedule within window - mark as conflict
+                unschedulable.push(insp);
+                return;
+            }
+
+            var assignedEnd = new Date(bestStart); assignedEnd.setDate(assignedEnd.getDate() + setDays);
+            kitsFreeDates[bestKit] = new Date(assignedEnd);
+
+            var daysFromToday = Math.round((bestStart - today) / 86400000);
+            var daysToDeadline = Math.round((insp.winEnd - bestStart) / 86400000);
+            var urgency = insp.overdue ? 'overdue'
+                        : daysFromToday <= 0 ? 'now'
+                        : daysFromToday <= 14 ? 'urgent'
+                        : daysFromToday <= 45 ? 'soon' : 'ok';
+
+            assignments.push({
+                hc: insp.hc,
+                efsList: insp.efsList,
+                dueDate: insp.dueDate,
+                type: insp.type,
+                winStart: insp.winStart,
+                winEnd: insp.winEnd,
+                start: bestStart,
+                end: assignedEnd,
+                kit: bestKit + 1,
+                daysFromToday: daysFromToday,
+                daysToDeadline: daysToDeadline,
+                urgency: urgency,
+                overdue: insp.overdue
+            });
+        });
+
+        // Render
+        var html = '';
+
+        // Stat cards
+        var nOverdue  = assignments.filter(function(a){ return a.urgency === 'overdue' || a.urgency === 'now'; }).length + unschedulable.length;
+        var nUrgent   = assignments.filter(function(a){ return a.urgency === 'urgent'; }).length;
+        var nSoon     = assignments.filter(function(a){ return a.urgency === 'soon';   }).length;
+        var nOK       = assignments.filter(function(a){ return a.urgency === 'ok';     }).length;
+
+        html += '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;">'
+            + efsStat(nOverdue,          'OVERDUE/CONFLICT', '#ff3366')
+            + efsStat(nUrgent,           'URGENT < 14D',     '#ff6b35')
+            + efsStat(nSoon,             'SOON < 45D',       '#ffd700')
+            + efsStat(nOK,               'PLANNED OK',       '#00ff9d')
+            + efsStat(maxKits,           'SPARE KITS',       '#00d4ff')
+            + efsStat(assignments.length,'TOTAL SCHEDULED',  '#c8d6e8')
+            + '</div>';
+
+        // Timeline
+        html += efsTimeline(assignments, unschedulable, today, forecastDays, setDays, maxKits);
+
+        // Conflict warning
+        if (unschedulable.length > 0) {
+            html += '<div style="margin:16px 0;padding:14px 18px;background:rgba(255,51,102,0.08);border:1px solid rgba(255,51,102,0.3);border-radius:10px;">'
+                + '<div style="font-family:monospace;font-size:11px;color:#ff3366;letter-spacing:2px;margin-bottom:8px;">SCHEDULING CONFLICT — CANNOT FIT IN WINDOW WITH ' + maxKits + ' KIT(S)</div>';
+            unschedulable.forEach(function(u) {
+                html += '<div style="font-size:13px;color:#ff6b35;padding:4px 0;">H/C ' + u.hc + ' — due ' + fmtDate(u.dueDate) + ' — window: ' + fmtDate(u.winStart) + ' to ' + fmtDate(u.winEnd) + '</div>';
+            });
+            html += '</div>';
+        }
+
+        // HC cards sorted by start date
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;margin-top:8px;">';
+        assignments.forEach(function(a) { html += efsHCCard(a, today); });
+        html += '</div>';
+
+        if (assignments.length === 0 && unschedulable.length === 0) {
+            html = '<div style="color:#4a5a70;font-family:monospace;font-size:13px;text-align:center;padding:60px;">No EFS inspections due in the next ' + forecastDays + ' days</div>';
+        }
+
+        resultsEl.innerHTML = html;
+        statusEl.textContent = assignments.length + ' inspections scheduled / ' + unschedulable.length + ' conflicts';
+
+    } catch(e) {
+        console.error(e);
+        statusEl.textContent = 'ERROR: ' + e.message;
+        resultsEl.innerHTML = '<div style="color:#ff3366;font-family:monospace;padding:20px;">ERROR: ' + e.message + '</div>';
+    }
+}
+
+function fmtDate(d) {
+    if (!d) return '-';
+    return d.toLocaleDateString('fr-FR');
+}
+
+function efsStat(val, label, color) {
+    return '<div style="background:#0f1625;border:1px solid #1e2d4a;border-radius:8px;padding:10px 16px;">'
+        + '<div style="font-size:24px;font-weight:900;color:' + color + ';line-height:1;">' + val + '</div>'
+        + '<div style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:1px;margin-top:2px;">' + label + '</div>'
+        + '</div>';
+}
+
+function efsTimeline(assignments, unschedulable, today, forecastDays, setDays, maxKits) {
+    var totalMs = forecastDays * 86400000;
+    var kitColors = ['#00d4ff','#00ff9d','#ffd700','#ff6b35'];
+
+    // Build kit rows
+    var kitRows = [];
+    for (var k = 1; k <= maxKits; k++) {
+        var row = assignments.filter(function(a){ return a.kit === k; });
+        kitRows.push(row);
+    }
+
+    var html = '<div style="background:#0f1625;border:1px solid #1e2d4a;border-radius:12px;padding:16px;margin-bottom:20px;">'
+        + '<div style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;margin-bottom:12px;">TIMELINE — ' + forecastDays + ' DAYS FROM TODAY</div>';
+
+    // Date markers every 30 days
+    var markers = '';
+    for (var d = 0; d <= forecastDays; d += 30) {
+        var pct = (d / forecastDays) * 100;
+        var markerDate = new Date(today); markerDate.setDate(markerDate.getDate() + d);
+        markers += '<div style="position:absolute;left:' + pct + '%;top:0;bottom:0;border-left:1px dashed rgba(255,255,255,0.06);"></div>'
+            + '<div style="position:absolute;left:' + pct + '%;top:-18px;font-family:monospace;font-size:9px;color:#4a5a70;transform:translateX(-50%);">'
+            + fmtDate(markerDate) + '</div>';
+    }
+
+    html += '<div style="position:relative;margin-top:24px;">' + markers;
+
+    kitRows.forEach(function(row, ki) {
+        var color = kitColors[ki % kitColors.length];
+        html += '<div style="position:relative;height:32px;margin-bottom:6px;background:rgba(255,255,255,0.02);border-radius:4px;">'
+            + '<div style="position:absolute;left:-70px;top:50%;transform:translateY(-50%);font-family:monospace;font-size:10px;color:' + color + ';white-space:nowrap;">KIT ' + (ki+1) + '</div>';
+
+        row.forEach(function(a) {
+            var left = Math.max(0, (a.start - today) / totalMs) * 100;
+            var width = (setDays / forecastDays) * 100;
+            var urgColor = a.urgency === 'overdue' || a.urgency === 'now' ? '#ff3366'
+                         : a.urgency === 'urgent' ? '#ff6b35'
+                         : a.urgency === 'soon'   ? '#ffd700' : color;
+            html += '<div title="' + a.hc + ' — ' + fmtDate(a.start) + ' to ' + fmtDate(a.end) + '" '
+                + 'style="position:absolute;left:' + left + '%;width:' + Math.max(width,0.5) + '%;height:100%;'
+                + 'background:' + urgColor + ';border-radius:4px;opacity:0.85;display:flex;align-items:center;justify-content:center;overflow:hidden;">'
+                + '<span style="font-family:monospace;font-size:10px;color:#000;font-weight:700;white-space:nowrap;padding:0 4px;">' + a.hc + '</span>'
+                + '</div>';
+        });
+        html += '</div>';
+    });
+
+    html += '</div></div>';
+    return html;
+}
+
+function efsHCCard(a, today) {
+    var urgColor = a.urgency === 'overdue' || a.urgency === 'now' ? '#ff3366'
+                 : a.urgency === 'urgent' ? '#ff6b35'
+                 : a.urgency === 'soon'   ? '#ffd700' : '#00ff9d';
+    var kitColor = a.kit === 1 ? '#00d4ff' : '#00ff9d';
+    var daysLabel = a.daysFromToday <= 0 ? 'NOW' : 'IN ' + a.daysFromToday + ' DAYS';
+    var deadlineLabel = a.daysToDeadline >= 0 ? a.daysToDeadline + 'd margin' : 'OVERDUE';
+
+    var efsRows = '';
+    a.efsList.forEach(function(e) {
+        efsRows += '<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+            + '<span style="color:#c8d6e8;">' + (e.designation || e.partNumber || '-') + '</span>'
+            + '<span style="font-family:monospace;color:#4a5a70;">'
+            + (e.next18M ? '18M: ' + fmtDate(new Date(e.next18M)) : '')
+            + (e.next18M && e.next36M ? ' / ' : '')
+            + (e.next36M ? '36M: ' + fmtDate(new Date(e.next36M)) : '')
+            + '</span>'
+            + '</div>';
+    });
+
+    return '<div style="background:#0f1625;border:1px solid #1e2d4a;border-left:3px solid ' + urgColor + ';border-radius:10px;overflow:hidden;">'
+        + '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #1e2d4a;background:linear-gradient(90deg,rgba(0,212,255,0.05),transparent);">'
+        +   '<div style="font-size:18px;font-weight:900;color:' + urgColor + ';">H/C ' + a.hc + '</div>'
+        +   '<div style="margin-left:auto;display:flex;gap:8px;align-items:center;">'
+        +     '<span style="background:rgba(0,212,255,0.1);color:' + kitColor + ';border:1px solid ' + kitColor + ';padding:2px 8px;border-radius:3px;font-family:monospace;font-size:10px;">KIT ' + a.kit + '</span>'
+        +     '<span style="background:rgba(255,255,255,0.05);color:' + urgColor + ';padding:2px 8px;border-radius:3px;font-family:monospace;font-size:10px;">' + daysLabel + '</span>'
+        +   '</div>'
+        + '</div>'
+        + '<div style="padding:12px 16px;">'
+        +   '<div style="display:flex;justify-content:space-between;margin-bottom:10px;">'
+        +     '<div>'
+        +       '<div style="font-family:monospace;font-size:11px;color:#4a5a70;margin-bottom:2px;">PLANNED</div>'
+        +       '<div style="font-size:13px;color:#c8d6e8;font-weight:700;">' + fmtDate(a.start) + ' &rarr; ' + fmtDate(a.end) + '</div>'
+        +     '</div>'
+        +     '<div style="text-align:right;">'
+        +       '<div style="font-family:monospace;font-size:11px;color:#4a5a70;margin-bottom:2px;">WINDOW</div>'
+        +       '<div style="font-size:12px;color:#4a5a70;">' + fmtDate(a.winStart) + ' &rarr; ' + fmtDate(a.winEnd) + '</div>'
+        +       '<div style="font-family:monospace;font-size:10px;color:' + urgColor + ';margin-top:2px;">' + deadlineLabel + '</div>'
+        +     '</div>'
+        +   '</div>'
+        +   '<div style="background:#0a0e1a;border-radius:6px;padding:8px 10px;">' + efsRows + '</div>'
+        + '</div>'
+        + '</div>';
+}
 </script>
 
 </body>
