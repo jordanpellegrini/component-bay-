@@ -1699,8 +1699,7 @@ async function runAIOptimize() {
     var statusEl = document.getElementById('efs_status');
     var resultsEl = document.getElementById('efs_results');
 
-    btn.disabled = true;
-    btn.textContent = '🤖 Analyzing...';
+    if (btn) { btn.disabled = true; btn.textContent = '🤖 Analyzing...'; }
     statusEl.textContent = 'AI analyzing the schedule...';
 
     // Get current schedule from DOM
@@ -1761,8 +1760,7 @@ async function runAIOptimize() {
         statusEl.textContent = 'AI Error: ' + e.message;
     }
 
-    btn.disabled = false;
-    btn.textContent = '🤖 AI OPTIMIZE';
+    if (btn) { btn.disabled = false; btn.textContent = '🤖 AI OPTIMIZE'; }
 }
 
 async function computeEFSPlan(allEFS, today, tolerancePct, setDays, forecastDays) {
