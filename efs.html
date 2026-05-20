@@ -1591,10 +1591,7 @@ async function computeEFSPlan(allEFS, today, tolerancePct, setDays, forecastDays
 function buildAIPrompt(planData, tolerancePct, setDays, forecastDays) {
     var today = new Date(); today.setHours(0,0,0,0);
     var scheduled = planData.assignments.map(function(a) {
-        var winDays   = Math.round((a.winEnd - a.winStart) / 86400000);
-        var daysToEnd = Math.round((a.winEnd - a.start) / 86400000);
-        var distToDue = Math.round((a.start - a.dueDate) / 86400000); // negative = before due, positive = after due
-        var isOnDue   = distToDue === 0;
+        var distToDue = Math.round((a.start - a.dueDate) / 86400000);
         return {
             hc: a.hc,
             inspectionType: a.type,
@@ -1604,31 +1601,51 @@ function buildAIPrompt(planData, tolerancePct, setDays, forecastDays) {
             windowStart: fmtDate(a.winStart),
             windowEnd: fmtDate(a.winEnd),
             distanceToDueDateDays: distToDue,
-            isOnDueDate: isOnDue,
-            afterDue: distToDue > 0,
-            STATUS: isOnDue ? 'OPTIMAL' : (distToDue < 0 ? 'BEFORE_DUE_OK' : 'AFTER_DUE_AVOID')
+            STATUS: distToDue === 0 ? 'OPTIMAL' : (distToDue < 0 ? 'BEFORE_DUE_OK' : 'AFTER_DUE_AVOID')
         };
     });
     var conflicts = planData.unschedulable.map(function(u) {
-        var winDays = Math.round((u.winEnd - u.winStart) / 86400000);
-        return { hc: u.hc, inspectionType: u.type, dueDate: fmtDate(u.dueDate),
-            toleranceWindowDays: winDays,
-            windowStart: fmtDate(u.winStart), windowEnd: fmtDate(u.winEnd),
-            problem: 'No kit available in ' + winDays + '-day window' };
+        return { hc: u.hc, dueDate: fmtDate(u.dueDate), windowStart: fmtDate(u.winStart), windowEnd: fmtDate(u.winEnd) };
     });
     var kits = planData.kits.map(function(k) {
-        return { sn: k.sn, lastUsedDate: k.refDate ? fmtDate(k.refDate) : 'unknown',
-            currentlyFreeDate: k.freeDate ? fmtDate(k.freeDate) : fmtDate(today) };
+        return { sn: k.sn, lastUsedDate: k.refDate ? fmtDate(k.refDate) : 'unknown' };
     });
 
-    return 'You are an aviation maintenance scheduling expert for NH90 helicopters.\n\n'        + 'HARD CONSTRAINTS — NEVER VIOLATE THESE:\n'        + '1. Swap start MUST be within windowStart and windowEnd\n'        + '2. INVALID start days: Thursday, Friday, Saturday. Valid: Sunday, Monday, Tuesday, Wednesday ONLY\n'        + '3. Swap = 2 working days (main team). Inspection = ' + setDays + ' days (dedicated team, parallel)\n'        + '4. Min 7 calendar days between any two swap START dates\n'        + '5. Max 2 swaps per calendar month\n'        + '6. Kit occupied for ' + setDays + ' days from swap start\n'        + '7. PREFERRED: plan ON or BEFORE dueDate. Use post-due tolerance only if unavoidable\n\n'        + 'TODAY: ' + fmtDate(today) + ' | TOLERANCE: +/-' + Math.round(tolerancePct*100) + '% ('        + Math.round(547*tolerancePct) + 'd for 18M / ' + Math.round(1095*tolerancePct) + 'd for 36M)\n'        + 'KITS: ' + JSON.stringify(kits) + '\n\n'        + 'CURRENT SCHEDULE:\n' + JSON.stringify(scheduled, null, 2) + '\n\n'        + (conflicts.length ? 'CONFLICTS:\n' + JSON.stringify(conflicts, null, 2) + '\n\n' : '')        + 'TASK:\n'\
-        + '- STATUS=OPTIMAL: plannedStart=dueDate — DO NOT CHANGE\n'\
-        + '- STATUS=BEFORE_DUE_OK: before dueDate — only change if violates hard constraints\n'\
-        + '- STATUS=AFTER_DUE_AVOID: after dueDate — try to move to/before dueDate\n'\
-        + '- NEVER shift dates later just to balance windows\n'\
-        + '- Goal is ON dueDate or as close before as possible\n'\
-        + '- If all constraints met and STATUS are OPTIMAL/BEFORE_DUE_OK: return optimized:false\n\n'\
-        + 'Return ONLY this JSON:\n'        + '```json\n'        + '{\n'        + '  "optimized": true,\n'        + '  "changes": [ { "hc": "QA262", "newStart": "DD/MM/YYYY", "kit": "kit_SN", "reason": "short" } ],\n'        + '  "summary": "Brief explanation"\n'        + '}\n'        + '```'
+    var rules = [
+        'You are an aviation maintenance scheduling expert for NH90 helicopters.',
+        '',
+        'HARD CONSTRAINTS — NEVER VIOLATE:',
+        '1. Swap start MUST be within windowStart and windowEnd',
+        '2. INVALID start days: Thursday, Friday, Saturday. Valid: Sunday/Monday/Tuesday/Wednesday ONLY',
+        '3. Swap = 2 working days (main team). Inspection = ' + setDays + ' days (dedicated team, parallel)',
+        '4. Min 7 calendar days between any two swap START dates',
+        '5. Max 2 swaps per calendar month',
+        '6. Kit occupied for ' + setDays + ' days from swap start',
+        '7. PREFERRED: plan ON or BEFORE dueDate. Post-due tolerance only if unavoidable',
+        '',
+        'TODAY: ' + fmtDate(today) + ' | TOLERANCE: +/-' + Math.round(tolerancePct*100) + '% (' + Math.round(547*tolerancePct) + 'd for 18M / ' + Math.round(1095*tolerancePct) + 'd for 36M)',
+        '',
+        'KITS: ' + JSON.stringify(kits),
+        '',
+        'CURRENT SCHEDULE:',
+        JSON.stringify(scheduled, null, 2),
+        '',
+        conflicts.length ? 'CONFLICTS: ' + JSON.stringify(conflicts) : '',
+        '',
+        'TASK:',
+        '- STATUS=OPTIMAL: plannedStart=dueDate — DO NOT CHANGE',
+        '- STATUS=BEFORE_DUE_OK: before dueDate — only change if hard constraint violated',
+        '- STATUS=AFTER_DUE_AVOID: after dueDate — try to move to/before dueDate',
+        '- NEVER shift dates later just to balance windows',
+        '- If all constraints met and all STATUS OPTIMAL/BEFORE_DUE_OK: return optimized:false',
+        '',
+        'Return ONLY this JSON:',
+        '```json',
+        '{ "optimized": true, "changes": [ { "hc": "QA262", "newStart": "DD/MM/YYYY", "kit": "kit_SN", "reason": "short" } ], "summary": "Brief explanation" }',
+        '```'
+    ].join('\n');
+
+    return rules;
 }
 
 function applyAIOptimizations(aiResult, planData, today, setDays, forecastDays) {
