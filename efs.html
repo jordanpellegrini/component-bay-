@@ -988,6 +988,14 @@
 
             generateTag(type, item);
         }
+        function openEFSOptimizer() {
+            document.getElementById('efsPlannerModal').style.display = 'flex';
+            runEFSPlanner();
+        }
+        function closeEFSOptimizer() {
+            document.getElementById('efsPlannerModal').style.display = 'none';
+        }
+
     </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -1272,13 +1280,7 @@ Respond in the same language as the user. Be concise.`;
 </div>
 
 <script>
-function openEFSOptimizer() {
-    document.getElementById('efsPlannerModal').style.display = 'flex';
-    runEFSPlanner();
-}
-function closeEFSOptimizer() {
-    document.getElementById('efsPlannerModal').style.display = 'none';
-}
+
 
 async function runEFSPlanner() {
     var statusEl  = document.getElementById('efs_status');
