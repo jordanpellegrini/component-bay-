@@ -1208,9 +1208,9 @@
 
                 var spares = normalizedWheels.filter(function(w) {
                     var svc = (w.serviceability || '').toLowerCase();
-                    var onHC = (w.installedOnHC || '').trim();
-                    // Spare = serviceable + not installed on any H/C
-                    return svc === 'serviceable' && onHC === '';
+                    var onHC = (w.installedOnHC || '').trim().toLowerCase();
+                    // Spare = serviceable + installedOnHC is empty or "spare" or "stock"
+                    return svc === 'serviceable' && (onHC === '' || onHC === 'spare' || onHC === 'stock');
                 });
 
                 statusEl.textContent = allWheels.length + ' wheels loaded · ' + spares.length + ' spare serviceable';
@@ -1218,7 +1218,7 @@
                 var byPN = {};
                 Object.keys(OPT_PN_DEFS).forEach(function(pn) {
                     byPN[pn] = spares.filter(function(s) {
-                        return (s.partNumber || '').toUpperCase() === pn;
+                        return (s.pnWheel || s.partNumber || '').toUpperCase() === pn;
                     });
                 });
 
