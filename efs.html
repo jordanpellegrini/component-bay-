@@ -38,7 +38,7 @@
             </div>
             <div class="header-actions">
                 <button onclick="showAddEFS()" class="btn btn-add">+ Add EFS Float</button>
-                <button id="btnEFSOptimizer" onclick="setTimeout(function(){openEFSOptimizer();},0)" class="btn" style="margin-left:8px;background:#1B2B4B;color:#00d4ff;border:1px solid rgba(0,212,255,0.5);display:none;">📅 Planner</button>
+                <button id="btnEFSOptimizer" class="btn" style="margin-left:8px;background:#1B2B4B;color:#00d4ff;border:1px solid rgba(0,212,255,0.5);display:none;">📅 Planner</button>
                 <button onclick="showAllEFS()" class="btn">📋 View All EFS</button>
             </div>
         </div>
@@ -1279,6 +1279,13 @@ function openEFSOptimizer() {
 function closeEFSOptimizer() {
     document.getElementById('efsPlannerModal').style.display = 'none';
 }
+// Wire up planner button now that functions are defined
+(function() {
+    var btn = document.getElementById('btnEFSOptimizer');
+    if (btn) btn.onclick = function() { openEFSOptimizer(); };
+    var triggerBtn = document.getElementById('btnEFSPlannerTrigger');
+    if (triggerBtn) triggerBtn.onclick = function() { openEFSOptimizer(); };
+})();
 
 async function runEFSPlanner() {
     var statusEl  = document.getElementById('efs_status');
