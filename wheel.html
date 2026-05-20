@@ -1198,11 +1198,19 @@
                 console.log('Optimizer: loaded', allWheels.length, 'wheels');
                 console.log('Sample:', allWheels[0]);
 
-                var spares = allWheels.filter(function(w) {
+                // Normalize: data may be nested in .data or flat
+                var normalizedWheels = allWheels.map(function(w) {
+                    if (w.data && typeof w.data === 'object') return w.data;
+                    if (w.data && typeof w.data === 'string') { try { return JSON.parse(w.data); } catch(e) { return w; } }
+                    return w;
+                });
+                console.log('Normalized sample:', normalizedWheels[0]);
+
+                var spares = normalizedWheels.filter(function(w) {
                     var svc = (w.serviceability || '').toLowerCase();
                     var hc  = (w.hc || w.removeFrom || '').toLowerCase();
-                    var isSpare = svc === 'serviceable' && (hc === 'spare' || hc === '' || hc === 'stock');
-                    return isSpare;
+                    console.log('Wheel:', w.serialNumber, '| svc:', svc, '| hc:', hc);
+                    return svc === 'serviceable' && (hc === 'spare' || hc === '' || hc === 'stock');
                 });
 
                 statusEl.textContent = allWheels.length + ' wheels loaded · ' + spares.length + ' spare serviceable';
