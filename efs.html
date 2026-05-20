@@ -1245,9 +1245,9 @@ Respond in the same language as the user. Be concise.`;
       <button onclick="closeEFSOptimizer()" style="margin-left:auto;background:rgba(255,255,255,0.1);border:none;color:#c8d6e8;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:14px;">x Close</button>
     </div>
     <div style="display:flex;gap:16px;padding:12px 24px;border-bottom:1px solid #1e2d4a;flex-wrap:wrap;align-items:flex-end;flex-shrink:0;background:#0a0e1a;">
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">SPARE KITS</label>
-        <input type="number" id="efs_kits" value="2" min="1" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
+      <div style="display:flex;flex-direction:column;gap:4px;justify-content:center;">
+        <div style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">SPARE KITS</div>
+        <div id="efs_kit_count" style="color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 0;">Auto (from DB)</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;">
         <label style="font-family:monospace;font-size:10px;color:#4a5a70;letter-spacing:2px;">TOLERANCE %</label>
@@ -1285,7 +1285,6 @@ async function runEFSPlanner() {
     statusEl.textContent = 'Loading...';
     resultsEl.innerHTML = '<div style="color:#4a5a70;font-family:monospace;text-align:center;padding:40px;">Loading...</div>';
 
-    var maxKits      = parseInt(document.getElementById('efs_kits').value)      || 2;
     var tolerancePct = parseFloat(document.getElementById('efs_tolerance').value) / 100 || 0.10;
     var setDays      = parseInt(document.getElementById('efs_duration').value)   || 15;
     var forecastDays = parseInt(document.getElementById('efs_forecast').value)   || 120;
@@ -1295,6 +1294,31 @@ async function runEFSPlanner() {
         if (window.ComponentsBayDB) {
             allEFS = await window.ComponentsBayDB.load('efs') || [];
         }
+
+        // Auto-detect spare kits: installedOnHC = Spare + Serviceable
+        var spareEFS = allEFS.filter(function(e) {
+            var hc  = (e.hc || e.installedOnHC || '').trim().toLowerCase();
+            var svc = (e.serviceability || '').toLowerCase();
+            return hc === 'spare' && svc === 'serviceable';
+        });
+        // Group by serialNumber -> each unique SN group = one kit
+        var kitMap = {};
+        spareEFS.forEach(function(e) {
+            var sn = (e.serialNumber || e.id || 'kit1');
+            if (!kitMap[sn]) kitMap[sn] = { sn: sn, inspectionDate: null };
+            if (e.inspectionDate) {
+                var d = new Date(e.inspectionDate);
+                if (!kitMap[sn].inspectionDate || d > kitMap[sn].inspectionDate)
+                    kitMap[sn].inspectionDate = d;
+            }
+        });
+        // Sort oldest inspectionDate first (most rested kit used first)
+        var kitList = Object.values(kitMap).sort(function(a,b) {
+            var da = a.inspectionDate ? a.inspectionDate.getTime() : 0;
+            var db = b.inspectionDate ? b.inspectionDate.getTime() : 0;
+            return da - db;
+        });
+        var maxKits = kitList.length > 0 ? kitList.length : 2;
 
         var today       = new Date(); today.setHours(0,0,0,0);
         var forecastEnd = new Date(today); forecastEnd.setDate(forecastEnd.getDate() + forecastDays);
@@ -1351,10 +1375,13 @@ async function runEFSPlanner() {
         // Sort by window end (most urgent first = tightest deadline)
         hcInspections.sort(function(a,b){ return a.winEnd - b.winEnd; });
 
-        // Greedy scheduling with maxKits constraint
-        // kitsAvailable[i] = date when kit i becomes free again
+        // Greedy scheduling — kits ordered by oldest inspectionDate (rotation)
+        // kitsFreeDates[i] = date when kit i becomes free again
         var kitsFreeDates = [];
         for (var k = 0; k < maxKits; k++) kitsFreeDates.push(new Date(today));
+        var kitLabels = kitList.map(function(k) { return k.sn; });
+        // Pad labels if fallback
+        while (kitLabels.length < maxKits) kitLabels.push('Kit ' + (kitLabels.length+1));
 
         var assignments = [];
         var unschedulable = [];
@@ -1406,6 +1433,7 @@ async function runEFSPlanner() {
                 start: bestStart,
                 end: assignedEnd,
                 kit: bestKit + 1,
+                    kitLabel: kitLabels[bestKit] || ('Kit ' + (bestKit+1)),
                 daysFromToday: daysFromToday,
                 daysToDeadline: daysToDeadline,
                 urgency: urgency,
@@ -1454,7 +1482,10 @@ async function runEFSPlanner() {
         }
 
         resultsEl.innerHTML = html;
-        statusEl.textContent = assignments.length + ' inspections scheduled / ' + unschedulable.length + ' conflicts';
+        var kitInfo = kitList.length > 0 ? kitList.map(function(k){ return k.sn + (k.inspectionDate ? ' (insp: ' + fmtDate(k.inspectionDate) + ')' : ''); }).join(' | ') : 'fallback 2 kits';
+        var kcEl = document.getElementById('efs_kit_count');
+        if (kcEl) kcEl.textContent = maxKits + ' kit(s): ' + (kitList.length > 0 ? kitList.map(function(k){ return k.sn; }).join(', ') : 'auto');
+        statusEl.textContent = assignments.length + ' scheduled / ' + unschedulable.length + ' conflicts | Kits: ' + kitInfo;
 
     } catch(e) {
         console.error(e);
@@ -1549,7 +1580,7 @@ function efsHCCard(a, today) {
         + '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #1e2d4a;background:linear-gradient(90deg,rgba(0,212,255,0.05),transparent);">'
         +   '<div style="font-size:18px;font-weight:900;color:' + urgColor + ';">H/C ' + a.hc + '</div>'
         +   '<div style="margin-left:auto;display:flex;gap:8px;align-items:center;">'
-        +     '<span style="background:rgba(0,212,255,0.1);color:' + kitColor + ';border:1px solid ' + kitColor + ';padding:2px 8px;border-radius:3px;font-family:monospace;font-size:10px;">KIT ' + a.kit + '</span>'
+        +     '<span style="background:rgba(0,212,255,0.1);color:' + kitColor + ';border:1px solid ' + kitColor + ';padding:2px 8px;border-radius:3px;font-family:monospace;font-size:10px;">' + (a.kitLabel || ('KIT ' + a.kit)) + '</span>'
         +     '<span style="background:rgba(255,255,255,0.05);color:' + urgColor + ';padding:2px 8px;border-radius:3px;font-family:monospace;font-size:10px;">' + daysLabel + '</span>'
         +   '</div>'
         + '</div>'
