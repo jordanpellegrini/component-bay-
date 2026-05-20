@@ -1262,6 +1262,7 @@ Respond in the same language as the user. Be concise.`;
         <input type="number" id="efs_forecast" value="120" min="30" style="background:#0f1625;border:1px solid #1e2d4a;color:#00d4ff;font-family:monospace;font-size:13px;padding:6px 10px;border-radius:6px;width:80px;">
       </div>
       <button onclick="runEFSPlanner()" style="background:linear-gradient(135deg,#00d4ff,#0077aa);color:#000;border:none;font-family:sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 22px;border-radius:6px;cursor:pointer;">RUN</button>
+      <button id="btnAIOptimize" onclick="runAIOptimize()" style="background:linear-gradient(135deg,#7c3aed,#4f1d96);color:#fff;border:none;font-family:sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 22px;border-radius:6px;cursor:pointer;display:none;">🤖 AI OPTIMIZE</button>
       <div id="efs_status" style="font-family:monospace;font-size:11px;color:#4a5a70;align-self:center;"></div>
     </div>
     <div id="efs_results" style="flex:1;overflow-y:auto;padding:20px 24px;background:#0a0e1a;">
@@ -1668,6 +1669,305 @@ function efsHCCard(a, today) {
         + '</div>'
         + '</div>';
 }
+
+// ── AI OPTIMIZER ─────────────────────────────────────────────────────────────
+var _lastAssignments   = [];
+var _lastUnschedulable = [];
+var _lastKits          = [];
+var _lastParams        = {};
+
+// Store results after each run for AI to use
+var _origRunEFSPlanner = runEFSPlanner;
+
+async function runEFSPlanner() {
+    await _origRunEFSPlanner.apply(this, arguments);
+    // Show AI button after first run
+    var btn = document.getElementById('btnAIOptimize');
+    if (btn) btn.style.display = 'inline-block';
+}
+
+async function runAIOptimize() {
+    var btn = document.getElementById('btnAIOptimize');
+    var statusEl = document.getElementById('efs_status');
+    var resultsEl = document.getElementById('efs_results');
+
+    btn.disabled = true;
+    btn.textContent = '🤖 Analyzing...';
+    statusEl.textContent = 'AI analyzing the schedule...';
+
+    // Get current schedule from DOM
+    var tolerancePct = parseFloat(document.getElementById('efs_tolerance').value) / 100 || 0.10;
+    var setDays      = parseInt(document.getElementById('efs_duration').value) || 15;
+    var forecastDays = parseInt(document.getElementById('efs_forecast').value) || 120;
+
+    try {
+        // Reload data fresh
+        var allEFS = [];
+        if (window.ComponentsBayDB) allEFS = await window.ComponentsBayDB.load('efs') || [];
+
+        var today = new Date(); today.setHours(0,0,0,0);
+
+        // Run algo internally to get raw data
+        var planData = await computeEFSPlan(allEFS, today, tolerancePct, setDays, forecastDays);
+
+        if (!planData.assignments.length && !planData.unschedulable.length) {
+            btn.disabled = false; btn.textContent = '🤖 AI OPTIMIZE';
+            statusEl.textContent = 'Nothing to optimize';
+            return;
+        }
+
+        // Build prompt for Claude
+        var prompt = buildAIPrompt(planData, tolerancePct, setDays, forecastDays);
+
+        // Call Anthropic API
+        var response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 1000,
+                messages: [{ role: 'user', content: prompt }]
+            })
+        });
+
+        var data = await response.json();
+        var text = data.content && data.content[0] ? data.content[0].text : '';
+
+        // Parse JSON from AI response
+        var jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/(\{[\s\S]*\})/);
+        var aiResult = null;
+        if (jsonMatch) {
+            try { aiResult = JSON.parse(jsonMatch[1]); } catch(e) {}
+        }
+
+        if (aiResult && aiResult.optimized) {
+            // Apply AI optimizations
+            applyAIOptimizations(aiResult, planData, today, setDays, forecastDays);
+        } else {
+            // Show AI analysis as overlay
+            showAIAnalysis(text, planData);
+        }
+
+    } catch(e) {
+        console.error('AI Error:', e);
+        statusEl.textContent = 'AI Error: ' + e.message;
+    }
+
+    btn.disabled = false;
+    btn.textContent = '🤖 AI OPTIMIZE';
+}
+
+async function computeEFSPlan(allEFS, today, tolerancePct, setDays, forecastDays) {
+    var forecastEnd = new Date(today); forecastEnd.setDate(forecastEnd.getDate() + forecastDays);
+    var KIT_REQUIRED = {
+        pn1004: ['S956A20A1004'], pn1005: ['S956A20A1005'],
+        pnAft:  ['S956A20A1007','S956A20A1014'],
+        pnFwd:  ['S956A20A1006','S956A20A1013']
+    };
+
+    // Spare kits
+    var spareEFS = allEFS.filter(function(e) {
+        return (e.hc||'').trim().toLowerCase() === 'spare' && (e.serviceability||'').toLowerCase() === 'serviceable';
+    });
+    var kitMap = {};
+    spareEFS.forEach(function(e) {
+        var sn = e.serialNumber || e.id || 'kit1';
+        if (!kitMap[sn]) kitMap[sn] = { sn: sn, efsList: [], refDate: null, complete: false };
+        kitMap[sn].efsList.push(e);
+        var d = e.inspectionDate ? new Date(e.inspectionDate) : null;
+        if (!d) { var c=[]; if(e.next18M)c.push(new Date(e.next18M)); if(e.next36M)c.push(new Date(e.next36M)); if(c.length){c.sort(function(a,b){return Math.abs(a-today)-Math.abs(b-today);}); d=c[0];} }
+        if (d && (!kitMap[sn].refDate || d > kitMap[sn].refDate)) kitMap[sn].refDate = d;
+    });
+    Object.values(kitMap).forEach(function(k) {
+        var pns = k.efsList.map(function(e){return(e.partNumber||'').toUpperCase();});
+        k.complete = KIT_REQUIRED.pn1004.some(function(p){return pns.indexOf(p)>=0;})
+            && KIT_REQUIRED.pn1005.some(function(p){return pns.indexOf(p)>=0;})
+            && KIT_REQUIRED.pnAft.some(function(p){return pns.indexOf(p)>=0;})
+            && KIT_REQUIRED.pnFwd.some(function(p){return pns.indexOf(p)>=0;});
+    });
+    var completeKits = Object.values(kitMap).filter(function(k){return k.complete;});
+    completeKits.sort(function(a,b){return (a.refDate?a.refDate.getTime():0)-(b.refDate?b.refDate.getTime():0);});
+
+    // H/C windows
+    var hcMap = {};
+    allEFS.forEach(function(e) {
+        var hc=(e.hc||'').trim(); if(!hc||hc.toLowerCase()==='spare') return;
+        if(!hcMap[hc]) hcMap[hc]=[];
+        hcMap[hc].push(e);
+    });
+    var hcList = [];
+    Object.keys(hcMap).forEach(function(hc) {
+        var efsList=hcMap[hc], dueDates=[];
+        efsList.forEach(function(e){
+            if(e.next18M) dueDates.push({date:new Date(e.next18M),type:'18M',intervalDays:547});
+            if(e.next36M) dueDates.push({date:new Date(e.next36M),type:'36M',intervalDays:1095});
+        });
+        if(!dueDates.length) return;
+        dueDates.sort(function(a,b){return a.date-b.date;});
+        var ref=dueDates[0], tolDays=Math.round(ref.intervalDays*tolerancePct);
+        var winStart=new Date(ref.date); winStart.setDate(winStart.getDate()-tolDays);
+        var winEnd=new Date(ref.date);   winEnd.setDate(winEnd.getDate()+tolDays);
+        if(winEnd<new Date(today.getTime()-30*86400000)||winStart>forecastEnd) return;
+        var eff=winStart<today?new Date(today):new Date(winStart);
+        hcList.push({hc:hc,efsList:efsList,dueDate:ref.date,type:ref.type,winStart:winStart,winEnd:winEnd,effectiveStart:eff,tolDays:tolDays,overdue:ref.date<today});
+    });
+    hcList.sort(function(a,b){return a.winEnd-b.winEnd;});
+
+    // Schedule
+    var kits = completeKits.map(function(k){return {sn:k.sn,refDate:k.refDate,freeDate:new Date(today)};});
+    if(!kits.length) kits=[{sn:'Kit 1',refDate:null,freeDate:new Date(today)},{sn:'Kit 2',refDate:null,freeDate:new Date(today)}];
+    var assignments=[], unschedulable=[];
+    hcList.forEach(function(insp) {
+        var cands=[];
+        for(var k=0;k<kits.length;k++){
+            var es=kits[k].freeDate>insp.effectiveStart?new Date(kits[k].freeDate):new Date(insp.effectiveStart);
+            if(es<=insp.winEnd) cands.push({kitIdx:k,earliestStart:es});
+        }
+        if(!cands.length){unschedulable.push(insp);return;}
+        cands.sort(function(a,b){return (kits[a.kitIdx].refDate?kits[a.kitIdx].refDate.getTime():0)-(kits[b.kitIdx].refDate?kits[b.kitIdx].refDate.getTime():0);});
+        var chosen=cands[0], ki=chosen.kitIdx;
+        var latest=new Date(insp.winEnd); latest.setDate(latest.getDate()-setDays);
+        var aStart=latest>chosen.earliestStart?new Date(latest):new Date(chosen.earliestStart);
+        if(aStart>insp.winEnd){unschedulable.push(insp);return;}
+        var aEnd=new Date(aStart); aEnd.setDate(aEnd.getDate()+setDays);
+        kits[ki].freeDate=new Date(aEnd); kits[ki].refDate=new Date(aEnd);
+        assignments.push({hc:insp.hc,efsList:insp.efsList,dueDate:insp.dueDate,type:insp.type,winStart:insp.winStart,winEnd:insp.winEnd,start:aStart,end:aEnd,kitSN:kits[ki].sn,kitIdx:ki+1,overdue:insp.overdue});
+    });
+    return { assignments: assignments, unschedulable: unschedulable, kits: kits, hcList: hcList };
+}
+
+function buildAIPrompt(planData, tolerancePct, setDays, forecastDays) {
+    var today = new Date(); today.setHours(0,0,0,0);
+    var scheduled = planData.assignments.map(function(a) {
+        return {
+            hc: a.hc,
+            dueDate: fmtDate(a.dueDate),
+            windowStart: fmtDate(a.winStart),
+            windowEnd: fmtDate(a.winEnd),
+            plannedStart: fmtDate(a.start),
+            plannedEnd: fmtDate(a.end),
+            kit: a.kitSN,
+            daysMargin: Math.round((a.winEnd - a.start) / 86400000),
+            overdue: a.overdue
+        };
+    });
+    var conflicts = planData.unschedulable.map(function(u) {
+        return { hc: u.hc, dueDate: fmtDate(u.dueDate), windowStart: fmtDate(u.winStart), windowEnd: fmtDate(u.winEnd) };
+    });
+    var kits = planData.kits.map(function(k) { return { sn: k.sn, lastUsed: k.refDate ? fmtDate(k.refDate) : 'unknown' }; });
+
+    return 'You are an aviation maintenance scheduling expert.\n\n'
+        + 'CONSTRAINTS:\n'
+        + '- Tolerance: +/-' + Math.round(tolerancePct*100) + '% around due date\n'
+        + '- Kit duration: ' + setDays + ' days per H/C\n'
+        + '- Available spare kits: ' + kits.length + '\n'
+        + '- Kits: ' + JSON.stringify(kits) + '\n'
+        + '- Forecast window: ' + forecastDays + ' days from today (' + fmtDate(today) + ')\n\n'
+        + 'CURRENT SCHEDULE:\n' + JSON.stringify(scheduled, null, 2) + '\n\n'
+        + (conflicts.length ? 'CONFLICTS (cannot fit in window):\n' + JSON.stringify(conflicts, null, 2) + '\n\n' : '')
+        + 'TASK: Analyze this schedule. Check if it is optimal:\n'
+        + '1. Are kits properly rotated (oldest refDate used first)?\n'
+        + '2. Can any conflicts be resolved by reordering or shifting assignments within their windows?\n'
+        + '3. Is the margin (daysMargin) distributed fairly to maximize flexibility?\n'
+        + '4. Can we reduce risk by spreading inspections more evenly?\n\n'
+        + 'If you find improvements, return ONLY this JSON (no explanation outside it):\n'
+        + '```json\n'
+        + '{\n'
+        + '  "optimized": true,\n'
+        + '  "changes": [\n'
+        + '    { "hc": "QA262", "newStart": "DD/MM/YYYY", "newEnd": "DD/MM/YYYY", "kit": "SN_of_kit", "reason": "short reason" }\n'
+        + '  ],\n'
+        + '  "summary": "One paragraph explaining what was changed and why"\n'
+        + '}\n'
+        + '```\n'
+        + 'If the schedule is already optimal, return:\n'
+        + '```json\n'
+        + '{ "optimized": false, "summary": "Why it is already optimal" }\n'
+        + '```';
+}
+
+function applyAIOptimizations(aiResult, planData, today, setDays, forecastDays) {
+    var resultsEl = document.getElementById('efs_results');
+    var statusEl  = document.getElementById('efs_status');
+
+    // Apply changes to assignments
+    var modified = 0;
+    if (aiResult.changes && aiResult.changes.length) {
+        aiResult.changes.forEach(function(change) {
+            planData.assignments.forEach(function(a) {
+                if (a.hc === change.hc && change.newStart) {
+                    // Parse DD/MM/YYYY
+                    var parts = change.newStart.split('/');
+                    if (parts.length === 3) {
+                        var newStart = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
+                        var newEnd   = new Date(newStart); newEnd.setDate(newEnd.getDate() + setDays);
+                        // Validate within window
+                        if (newStart >= a.winStart && newStart <= a.winEnd) {
+                            a.start = newStart; a.end = newEnd;
+                            if (change.kit) a.kitSN = change.kit;
+                            a.aiModified = true; a.aiReason = change.reason || '';
+                            modified++;
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    // Re-sort by start date
+    planData.assignments.sort(function(a,b){ return a.start - b.start; });
+
+    // Re-render with AI badge
+    var html = '';
+
+    // AI summary box
+    html += '<div style="margin-bottom:20px;padding:16px 20px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.3);border-radius:12px;">'
+        + '<div style="font-family:monospace;font-size:11px;color:#a78bfa;letter-spacing:2px;margin-bottom:8px;">🤖 AI OPTIMIZATION RESULT — ' + modified + ' CHANGE(S) APPLIED</div>'
+        + '<div style="font-size:13px;color:#c8d6e8;line-height:1.6;">' + (aiResult.summary || '') + '</div>'
+        + '</div>';
+
+    // Stats
+    var nOver   = planData.assignments.filter(function(a){return a.overdue;}).length + planData.unschedulable.length;
+    var nMod    = planData.assignments.filter(function(a){return a.aiModified;}).length;
+    html += '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;">'
+        + efsStat(nOver,  'OVERDUE/CONFLICT', '#ff3366')
+        + efsStat(nMod,   'AI MODIFIED',      '#a78bfa')
+        + efsStat(planData.assignments.length,'TOTAL SCHEDULED','#c8d6e8')
+        + '</div>';
+
+    // Timeline
+    html += efsTimeline(planData.assignments, planData.unschedulable, today, forecastDays, setDays, planData.kits.length);
+
+    // Cards with AI badge
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;margin-top:8px;">';
+    planData.assignments.forEach(function(a) {
+        var card = efsHCCard(a, today);
+        if (a.aiModified) {
+            card = card.replace('border-radius:10px;overflow:hidden;">', 'border-radius:10px;overflow:hidden;border-color:rgba(124,58,237,0.5);">');
+            // Add AI tag in card header
+            card = card.replace('</div>\n        + \'<div style="padding:12px 16px;">', 
+                '<span style="background:rgba(124,58,237,0.2);color:#a78bfa;border:1px solid rgba(124,58,237,0.4);padding:2px 8px;border-radius:3px;font-family:monospace;font-size:10px;margin-left:6px;">🤖 AI</span></div>\n        + \'<div style="padding:12px 16px;">');
+        }
+        html += card;
+    });
+    html += '</div>';
+
+    resultsEl.innerHTML = html;
+    statusEl.textContent = 'AI optimization complete — ' + modified + ' change(s) applied';
+}
+
+function showAIAnalysis(text, planData) {
+    var resultsEl = document.getElementById('efs_results');
+    var existing  = resultsEl.innerHTML;
+    var box = '<div style="margin-bottom:20px;padding:16px 20px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.3);border-radius:12px;">'
+        + '<div style="font-family:monospace;font-size:11px;color:#a78bfa;letter-spacing:2px;margin-bottom:8px;">🤖 AI ANALYSIS — SCHEDULE ALREADY OPTIMAL</div>'
+        + '<div style="font-size:13px;color:#c8d6e8;line-height:1.6;">' + text.replace(/```json[\s\S]*?```/g,'').trim() + '</div>'
+        + '</div>';
+    resultsEl.innerHTML = box + existing;
+    document.getElementById('efs_status').textContent = 'AI analysis complete — no changes needed';
+}
+// ── END AI OPTIMIZER ──────────────────────────────────────────────────────────
+
 </script>
 
 </body>
