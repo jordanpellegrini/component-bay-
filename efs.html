@@ -549,7 +549,7 @@
             const formData = {
                 id: editingEFS ? editingEFS.id : Date.now().toString(),
                 designation: document.getElementById('efsDesignation').value.trim(),
-                hc: document.getElementById('efsHC').value.trim(),
+                hc: document.getElementById('efsHC').value.trim() || 'Spare',
                 partNumber: partNumber,
                 serialNumber: document.getElementById('efsSerialNumber').value.trim(),
                 order: document.getElementById('efsOrder').value.trim(),
@@ -1295,30 +1295,77 @@ async function runEFSPlanner() {
             allEFS = await window.ComponentsBayDB.load('efs') || [];
         }
 
-        // Auto-detect spare kits: installedOnHC = Spare + Serviceable
+        // Kit definition: a complete kit requires these P/N combinations
+        // Required: S956A20A1004 + S956A20A1005 + (S956A20A1007 OR S956A20A1014) + (S956A20A1006 OR S956A20A1013)
+        var KIT_REQUIRED = {
+            'pn1004': ['S956A20A1004'],
+            'pn1005': ['S956A20A1005'],
+            'pnAft':  ['S956A20A1007', 'S956A20A1014'],
+            'pnFwd':  ['S956A20A1006', 'S956A20A1013']
+        };
+
+        // Auto-detect spare kits: hc = Spare + Serviceable
         var spareEFS = allEFS.filter(function(e) {
-            var hc  = (e.hc || e.installedOnHC || '').trim().toLowerCase();
+            var hc  = (e.hc || '').trim().toLowerCase();
             var svc = (e.serviceability || '').toLowerCase();
             return hc === 'spare' && svc === 'serviceable';
         });
-        // Group by serialNumber -> each unique SN group = one kit
+
+        // Group spare EFS by serialNumber (each SN = one physical kit)
         var kitMap = {};
         spareEFS.forEach(function(e) {
             var sn = (e.serialNumber || e.id || 'kit1');
-            if (!kitMap[sn]) kitMap[sn] = { sn: sn, inspectionDate: null };
+            if (!kitMap[sn]) kitMap[sn] = { sn: sn, efsList: [], inspectionDate: null, complete: false };
+            kitMap[sn].efsList.push(e);
+
+            // Fix 3: inspectionDate fallback = next18M or next36M closest to today
+            var refDate = null;
             if (e.inspectionDate) {
-                var d = new Date(e.inspectionDate);
-                if (!kitMap[sn].inspectionDate || d > kitMap[sn].inspectionDate)
-                    kitMap[sn].inspectionDate = d;
+                refDate = new Date(e.inspectionDate);
+            } else {
+                // Use next18M or next36M closest to today as proxy
+                var candidates = [];
+                if (e.next18M) candidates.push(new Date(e.next18M));
+                if (e.next36M) candidates.push(new Date(e.next36M));
+                if (candidates.length > 0) {
+                    candidates.sort(function(a,b){ return Math.abs(a-today) - Math.abs(b-today); });
+                    refDate = candidates[0];
+                }
+            }
+            if (refDate) {
+                if (!kitMap[sn].inspectionDate || refDate > kitMap[sn].inspectionDate)
+                    kitMap[sn].inspectionDate = refDate;
             }
         });
-        // Sort oldest inspectionDate first (most rested kit used first)
-        var kitList = Object.values(kitMap).sort(function(a,b) {
+
+        // Fix 2: Validate kit completeness
+        Object.values(kitMap).forEach(function(kit) {
+            var pns = kit.efsList.map(function(e){ return (e.partNumber||'').toUpperCase(); });
+            var has1004 = KIT_REQUIRED.pn1004.some(function(p){ return pns.indexOf(p) >= 0; });
+            var has1005 = KIT_REQUIRED.pn1005.some(function(p){ return pns.indexOf(p) >= 0; });
+            var hasAft  = KIT_REQUIRED.pnAft.some(function(p) { return pns.indexOf(p) >= 0; });
+            var hasFwd  = KIT_REQUIRED.pnFwd.some(function(p) { return pns.indexOf(p) >= 0; });
+            kit.complete = has1004 && has1005 && hasAft && hasFwd;
+            kit.missing = [];
+            if (!has1004) kit.missing.push('S956A20A1004');
+            if (!has1005) kit.missing.push('S956A20A1005');
+            if (!hasAft)  kit.missing.push('S956A20A1007/1014');
+            if (!hasFwd)  kit.missing.push('S956A20A1006/1013');
+        });
+
+        // Only use complete kits for scheduling
+        var completeKits = Object.values(kitMap).filter(function(k){ return k.complete; });
+        var incompleteKits = Object.values(kitMap).filter(function(k){ return !k.complete; });
+
+        // Sort by oldest inspectionDate first (most rested = use first)
+        completeKits.sort(function(a,b) {
             var da = a.inspectionDate ? a.inspectionDate.getTime() : 0;
             var db = b.inspectionDate ? b.inspectionDate.getTime() : 0;
             return da - db;
         });
-        var maxKits = kitList.length > 0 ? kitList.length : 2;
+
+        var kitList = completeKits;
+        var maxKits = kitList.length > 0 ? kitList.length : 1;
 
         var today       = new Date(); today.setHours(0,0,0,0);
         var forecastEnd = new Date(today); forecastEnd.setDate(forecastEnd.getDate() + forecastDays);
@@ -1462,6 +1509,16 @@ async function runEFSPlanner() {
         // Timeline
         html += efsTimeline(assignments, unschedulable, today, forecastDays, setDays, maxKits);
 
+        // Incomplete kit warning
+        if (incompleteKits.length > 0) {
+            html += '<div style="margin:0 0 16px;padding:14px 18px;background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.25);border-radius:10px;">'
+                + '<div style="font-family:monospace;font-size:11px;color:#ffd700;letter-spacing:2px;margin-bottom:8px;">INCOMPLETE KITS — NOT USED FOR SCHEDULING</div>';
+            incompleteKits.forEach(function(k) {
+                html += '<div style="font-size:12px;color:#c8d6e8;padding:3px 0;">SN <strong>' + k.sn + '</strong> — missing: <span style="color:#ff6b35;">' + k.missing.join(', ') + '</span></div>';
+            });
+            html += '</div>';
+        }
+
         // Conflict warning
         if (unschedulable.length > 0) {
             html += '<div style="margin:16px 0;padding:14px 18px;background:rgba(255,51,102,0.08);border:1px solid rgba(255,51,102,0.3);border-radius:10px;">'
@@ -1484,7 +1541,7 @@ async function runEFSPlanner() {
         resultsEl.innerHTML = html;
         var kitInfo = kitList.length > 0 ? kitList.map(function(k){ return k.sn + (k.inspectionDate ? ' (insp: ' + fmtDate(k.inspectionDate) + ')' : ''); }).join(' | ') : 'fallback 2 kits';
         var kcEl = document.getElementById('efs_kit_count');
-        if (kcEl) kcEl.textContent = maxKits + ' kit(s): ' + (kitList.length > 0 ? kitList.map(function(k){ return k.sn; }).join(', ') : 'auto');
+        if (kcEl) kcEl.textContent = maxKits + ' complete kit(s)' + (incompleteKits.length > 0 ? ' + ' + incompleteKits.length + ' incomplete' : '');
         statusEl.textContent = assignments.length + ' scheduled / ' + unschedulable.length + ' conflicts | Kits: ' + kitInfo;
 
     } catch(e) {
