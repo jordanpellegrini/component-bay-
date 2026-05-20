@@ -1314,26 +1314,25 @@ async function runEFSPlanner() {
             return hc === 'spare' && svc === 'serviceable';
         });
 
-        // Group by serialNumber
+        // Group by inspectionDate (same date = same physical kit)
+        // Fallback: use next18M/36M closest to today if no inspectionDate
         var kitMap = {};
         spareEFS.forEach(function(e) {
-            var sn = e.serialNumber || e.id || 'kit1';
-            if (!kitMap[sn]) kitMap[sn] = { sn: sn, efsList: [], refDate: null, complete: false, missing: [] };
-            kitMap[sn].efsList.push(e);
-            // refDate = inspectionDate or next18M/next36M closest to today
             var d = null;
             if (e.inspectionDate) {
-                d = new Date(e.inspectionDate);
+                d = new Date(e.inspectionDate); d.setHours(0,0,0,0);
             } else {
                 var cands = [];
                 if (e.next18M) cands.push(new Date(e.next18M));
                 if (e.next36M) cands.push(new Date(e.next36M));
                 if (cands.length) {
                     cands.sort(function(a,b){ return Math.abs(a-today)-Math.abs(b-today); });
-                    d = cands[0];
+                    d = new Date(cands[0]); d.setHours(0,0,0,0);
                 }
             }
-            if (d && (!kitMap[sn].refDate || d > kitMap[sn].refDate)) kitMap[sn].refDate = d;
+            var key = d ? d.toISOString().split('T')[0] : ('no-date-' + (e.serialNumber||e.id));
+            if (!kitMap[key]) kitMap[key] = { sn: key, efsList: [], refDate: d, complete: false, missing: [] };
+            kitMap[key].efsList.push(e);
         });
 
         // Validate completeness
@@ -1409,12 +1408,8 @@ async function runEFSPlanner() {
         var kits = completeKits.map(function(k) {
             return { sn: k.sn, refDate: k.refDate, freeDate: new Date(today) };
         });
-        if (kits.length === 0) {
-            resultsEl.innerHTML = '<div style="margin:20px;padding:16px 20px;background:rgba(255,51,102,0.08);border:1px solid rgba(255,51,102,0.3);border-radius:10px;font-family:monospace;font-size:13px;color:#ff3366;">NO COMPLETE SPARE KIT AVAILABLE</div>';
-            statusEl.textContent = 'No spare kit available';
-            showAIButton();
-            return;
-        }
+        var noKitAvailable = (kits.length === 0);
+        // If no kit: still show planning with NO KIT label on each card
 
         // Global constraints
         var monthSwapCount = {};   // "YYYY-MM" -> count of swaps starting that month
@@ -1468,56 +1463,63 @@ async function runEFSPlanner() {
         var unschedulable = [];
 
         hcList.forEach(function(insp) {
-            // Try each kit (sorted by oldest refDate = rotation)
-            var sortedKitIdxs = kits.map(function(_,i){ return i; }).sort(function(a,b){
-                var da = kits[a].refDate ? kits[a].refDate.getTime() : 0;
-                var db = kits[b].refDate ? kits[b].refDate.getTime() : 0;
-                return da - db;
-            });
+            var bestStart = null, bestEnd = null, kitSN = null, kitIdx = 0, afterDue = false;
 
-            var assigned = false;
-            for (var ki = 0; ki < sortedKitIdxs.length; ki++) {
-                var kitIdx = sortedKitIdxs[ki];
-                var kit    = kits[kitIdx];
-
-                var bestStart = findEarliestValid(kit.freeDate, insp.winStart, insp.winEnd, insp.dueDate);
-                if (!bestStart) continue;
-
-                var bestEnd = new Date(bestStart);
-                bestEnd.setDate(bestEnd.getDate() + setDays);
-
-                // Register this swap
-                var mk = getMonthKey(bestStart);
-                monthSwapCount[mk] = (monthSwapCount[mk] || 0) + 1;
+            if (noKitAvailable) {
+                // No kit: plan at earliest valid date (constraints still apply for spacing)
+                bestStart = findEarliestValid(new Date(today), insp.winStart, insp.winEnd, insp.dueDate);
+                if (!bestStart) bestStart = insp.effectiveStart < today ? new Date(today) : new Date(insp.effectiveStart);
+                bestEnd = new Date(bestStart); bestEnd.setDate(bestEnd.getDate() + setDays);
+                afterDue = bestStart > insp.dueDate;
+                // Register for spacing
+                var mk0 = getMonthKey(bestStart);
+                monthSwapCount[mk0] = (monthSwapCount[mk0] || 0) + 1;
                 allSwapDates.push(new Date(bestStart));
-
-                // Update kit
-                kit.freeDate = new Date(bestEnd);
-                kit.refDate  = new Date(bestEnd);
-
-                var daysFromToday  = Math.round((bestStart - today) / 86400000);
-                var daysToDeadline = Math.round((insp.winEnd - bestStart) / 86400000);
-                var afterDue       = bestStart > insp.dueDate;
-                var urgency = daysFromToday < 0   ? 'now'
-                            : daysFromToday <= 14 ? 'urgent'
-                            : daysFromToday <= 45 ? 'soon' : 'ok';
-
-                assignments.push({
-                    hc: insp.hc, efsList: insp.efsList,
-                    dueDate: insp.dueDate, type: insp.type,
-                    winStart: insp.winStart, winEnd: insp.winEnd,
-                    start: bestStart, end: bestEnd,
-                    kitSN: kit.sn, kitIdx: kitIdx + 1,
-                    daysFromToday: daysFromToday,
-                    daysToDeadline: daysToDeadline,
-                    afterDue: afterDue,
-                    urgency: urgency
+            } else {
+                // Try each kit sorted by oldest refDate (rotation)
+                var sortedKitIdxs = kits.map(function(_,i){ return i; }).sort(function(a,b){
+                    var da = kits[a].refDate ? kits[a].refDate.getTime() : 0;
+                    var db = kits[b].refDate ? kits[b].refDate.getTime() : 0;
+                    return da - db;
                 });
-                assigned = true;
-                break;
+
+                for (var ki = 0; ki < sortedKitIdxs.length; ki++) {
+                    var kIdx = sortedKitIdxs[ki];
+                    var kit  = kits[kIdx];
+                    var s = findEarliestValid(kit.freeDate, insp.winStart, insp.winEnd, insp.dueDate);
+                    if (!s) continue;
+                    bestStart = s;
+                    bestEnd = new Date(bestStart); bestEnd.setDate(bestEnd.getDate() + setDays);
+                    afterDue = bestStart > insp.dueDate;
+                    var mk = getMonthKey(bestStart);
+                    monthSwapCount[mk] = (monthSwapCount[mk] || 0) + 1;
+                    allSwapDates.push(new Date(bestStart));
+                    kit.freeDate = new Date(bestEnd);
+                    kit.refDate  = new Date(bestEnd);
+                    kitSN  = kit.sn;
+                    kitIdx = kIdx + 1;
+                    break;
+                }
+                if (!bestStart) { unschedulable.push(insp); return; }
             }
 
-            if (!assigned) unschedulable.push(insp);
+            var daysFromToday  = Math.round((bestStart - today) / 86400000);
+            var daysToDeadline = Math.round((insp.winEnd - bestStart) / 86400000);
+            var urgency = daysFromToday < 0   ? 'now'
+                        : daysFromToday <= 14 ? 'urgent'
+                        : daysFromToday <= 45 ? 'soon' : 'ok';
+
+            assignments.push({
+                hc: insp.hc, efsList: insp.efsList,
+                dueDate: insp.dueDate, type: insp.type,
+                winStart: insp.winStart, winEnd: insp.winEnd,
+                start: bestStart, end: bestEnd,
+                kitSN: kitSN, kitIdx: kitIdx,
+                noKit: noKitAvailable,
+                daysFromToday: daysFromToday,
+                daysToDeadline: daysToDeadline,
+                afterDue: afterDue, urgency: urgency
+            });
         });
         // Sort assignments by planned start date for display
         assignments.sort(function(a,b){ return a.start - b.start; });
@@ -1670,10 +1672,12 @@ function efsHCCard(a, today) {
         ? '<span style="background:rgba(255,107,53,0.15);color:#ff6b35;border:1px solid rgba(255,107,53,0.3);padding:2px 8px;border-radius:3px;font-family:monospace;font-size:10px;">+10% USED</span>'
         : '';
 
-    // Kit tag only if kit assigned
-    var kitTag = a.kitSN
-        ? '<span style="background:rgba(0,212,255,0.1);color:' + kitColor + ';border:1px solid ' + kitColor + ';padding:2px 8px;border-radius:3px;font-family:monospace;font-size:10px;">' + a.kitSN + '</span>'
-        : '';
+    // Kit tag
+    var kitTag = a.noKit
+        ? '<span style="background:rgba(255,51,102,0.12);color:#ff3366;border:1px solid rgba(255,51,102,0.4);padding:2px 8px;border-radius:3px;font-family:monospace;font-size:10px;">NO KIT AVAILABLE</span>'
+        : a.kitSN
+            ? '<span style="background:rgba(0,212,255,0.1);color:' + kitColor + ';border:1px solid ' + kitColor + ';padding:2px 8px;border-radius:3px;font-family:monospace;font-size:10px;">' + a.kitSN + '</span>'
+            : '';
 
     // EFS detail: P/N + S/N + dates, no designation
     var efsRows = '';
