@@ -1208,9 +1208,9 @@
 
                 var spares = normalizedWheels.filter(function(w) {
                     var svc = (w.serviceability || '').toLowerCase();
-                    var hc  = (w.hc || w.removeFrom || '').toLowerCase();
-                    console.log('Wheel:', w.serialNumber, '| svc:', svc, '| hc:', hc);
-                    return svc === 'serviceable' && (hc === 'spare' || hc === '' || hc === 'stock');
+                    var onHC = (w.installedOnHC || '').trim();
+                    // Spare = serviceable + not installed on any H/C
+                    return svc === 'serviceable' && onHC === '';
                 });
 
                 statusEl.textContent = allWheels.length + ' wheels loaded · ' + spares.length + ' spare serviceable';
