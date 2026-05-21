@@ -381,6 +381,7 @@
       <input type="number" id="forecastWeeks" value="12" min="4">
     </div>
     <button class="btn-run" id="btnRun" onclick="runOptimizer()">▶ RUN OPTIMIZER</button>
+    <button class="btn-run" id="btnAIOptimize" style="display:none;background:linear-gradient(135deg,#7c3aed,#a78bfa);margin-left:10px;" onclick="runAIOptimize()">🤖 AI OPTIMIZE</button>
   </div>
 
   <div class="status" id="status">Ready — click RUN OPTIMIZER to fetch data and compute recommendations</div>
@@ -401,7 +402,7 @@ const EDDY_NUMBERS = [5,8,10,12,14,16,17,18,19,20,21,22,23,24,25];
 const PN_DEFS = {
   'S324F1851861': { label: 'MLG WHEEL TTH', sub: 'Main Landing Gear – TTH', cadenceKey: 'cadenceMLGTTH' },
   'S324F1851856': { label: 'MLG WHEEL NFH', sub: 'Main Landing Gear – NFH', cadenceKey: 'cadenceMLGNFH' },
-  'S324F1851855': { label: 'MLG WHEEL TTH', sub: 'Main Landing Gear – TTH', cadenceKey: 'cadenceMLGTTH' },
+  // 'S324F1851855': MLG WHEEL TTH (ref occasionnelle) - masquee de l'optimizer
   'S324F1852853': { label: 'NLG WHEEL',     sub: 'Nose Landing Gear – TTH/NFH', cadenceKey: 'cadenceNLG'    },
 };
 
@@ -658,6 +659,13 @@ async function runOptimizer() {
 
     setStatus(`✓ Analysis complete · ${totalSpares} spares analyzed · ${atRisk} at immediate eddy current risk`);
 
+    // Store plan data for AI
+    window._wheelPlanData = { byPN, cadences, eddyDuration, forecastWeeks, spares };
+
+    // Show AI button + auto-run AI
+    document.getElementById('btnAIOptimize').style.display = 'inline-block';
+    setTimeout(() => runAIOptimize(), 300);
+
   } catch(e) {
     setStatus('ERROR: ' + e.message, 'error');
     console.error(e);
@@ -665,6 +673,133 @@ async function runOptimizer() {
 
   btn.disabled = false;
 }
+
+
+// ── AI OPTIMIZER ──────────────────────────────────────────────────────────────
+async function runAIOptimize() {
+  const btn = document.getElementById('btnAIOptimize');
+  if (btn) { btn.disabled = true; btn.textContent = '🤖 Analyzing...'; }
+  setStatus('AI analyzing wheel schedule...', 'loading');
+
+  const plan = window._wheelPlanData;
+  if (!plan) { setStatus('Run optimizer first', 'error'); return; }
+
+  try {
+    const prompt = buildWheelAIPrompt(plan);
+
+    const response = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content && data.content[0] ? data.content[0].text : '';
+
+    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/(\{[\s\S]*\})/);
+    let aiResult = null;
+    if (jsonMatch) { try { aiResult = JSON.parse(jsonMatch[1]); } catch(e) {} }
+
+    showWheelAIResult(aiResult, text);
+
+  } catch(e) {
+    setStatus('AI Error: ' + e.message, 'error');
+    console.error(e);
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = '🤖 AI OPTIMIZE'; }
+}
+
+function buildWheelAIPrompt(plan) {
+  const { byPN, cadences, eddyDuration, forecastWeeks } = plan;
+
+  const sections = Object.entries(PN_DEFS)
+    .filter(([pn]) => byPN[pn] && byPN[pn].length > 0)
+    .map(([pn, def]) => {
+      const list = (byPN[pn] || []).map(s => {
+        const weeksToEddy = weeksUntilEddy(s.numberTireChange, cadences[def.cadenceKey]);
+        const changesLeft = changesUntilEddy(s.numberTireChange);
+        const nextEddy = nextEddyNumber(s.numberTireChange);
+        const risk = computeRisk(s, byPN[pn] || [], cadences[def.cadenceKey], eddyDuration, forecastWeeks);
+        return {
+          sn: s.serialNumber,
+          tireChangeNumber: s.numberTireChange,
+          nextEddyAtChange: nextEddy,
+          changesBeforeEddy: changesLeft === Infinity ? 'none in forecast' : changesLeft,
+          weeksUntilEddy: weeksToEddy === Infinity ? 'none in forecast' : Math.round(weeksToEddy * 10) / 10,
+          riskScore: Math.round(risk)
+        };
+      }).sort((a, b) => a.riskScore - b.riskScore);
+      list.forEach((s, i) => s.algoRecommends = i === 0 ? 'DELIVER_FIRST' : 'STANDBY_' + i);
+      return { wheelType: def.label, pn, cadencePerMonth: cadences[def.cadenceKey], spares: list };
+    });
+
+  const lines = [
+    'You are an aviation maintenance expert for NH90 helicopter wheels.',
+    '',
+    'The algorithm ranked spare wheels by Eddy Current collision risk.',
+    'Eddy Current is triggered at change numbers: ' + JSON.stringify(EDDY_NUMBERS),
+    'Eddy Current inspection takes ' + eddyDuration + ' weeks (wheel unavailable).',
+    'Forecast window: ' + forecastWeeks + ' weeks.',
+    '',
+    'CURRENT ALGO PLAN:',
+    JSON.stringify(sections, null, 2),
+    '',
+    'TASK:',
+    '- Validate or correct delivery order for each wheel type',
+    '- Flag collision risks the algo may have missed',
+    '- If algo is optimal, confirm it',
+    '',
+    'Return ONLY this JSON:',
+    '```json',
+    '{ "optimized": true, "perType": [ { "wheelType": "MLG WHEEL TTH", "recommendedOrder": ["SN1","SN2"], "collisions": [], "reasoning": "short" } ], "summary": "Brief global summary" }',
+    '```'
+  ];
+  return lines.join('\n');
+}
+
+function showWheelAIResult(aiResult, rawText) {
+  const resultsEl = document.getElementById('results');
+  const existing = resultsEl.innerHTML;
+  let box = '';
+
+  if (aiResult && aiResult.optimized) {
+    const perTypeHTML = (aiResult.perType || []).map(t => {
+      const order = (t.recommendedOrder || []).map((sn, i) =>
+        '<span style="color:#a78bfa;font-family:monospace">#' + (i+1) + ' SN ' + sn + '</span>'
+      ).join(' &rarr; ');
+      const collisions = (t.collisions || []).length > 0
+        ? '<div style="color:#ff3366;margin-top:4px;">&#9888; Collisions: ' + t.collisions.join(', ') + '</div>'
+        : '';
+      return '<div style="margin-bottom:10px;">'
+        + '<div style="font-family:monospace;font-size:11px;color:#4a5a70;margin-bottom:4px;">' + t.wheelType + '</div>'
+        + '<div style="font-size:13px;color:#c8d6e8;">' + order + '</div>'
+        + collisions
+        + '<div style="font-size:12px;color:#4a5a70;margin-top:4px;">' + (t.reasoning || '') + '</div>'
+        + '</div>';
+    }).join('');
+
+    box = '<div style="margin-bottom:20px;padding:16px 20px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.3);border-radius:12px;">'
+      + '<div style="font-family:monospace;font-size:11px;color:#a78bfa;letter-spacing:2px;margin-bottom:12px;">🤖 AI OPTIMIZATION RESULT</div>'
+      + perTypeHTML
+      + '<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(124,58,237,0.2);font-size:13px;color:#c8d6e8;">' + (aiResult.summary || '') + '</div>'
+      + '</div>';
+  } else {
+    const clean = rawText.replace(/```json[\s\S]*?```/g, '').trim();
+    box = '<div style="margin-bottom:20px;padding:16px 20px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.3);border-radius:12px;">'
+      + '<div style="font-family:monospace;font-size:11px;color:#a78bfa;letter-spacing:2px;margin-bottom:8px;">🤖 AI ANALYSIS — SCHEDULE ALREADY OPTIMAL</div>'
+      + '<div style="font-size:13px;color:#c8d6e8;line-height:1.6;">' + clean + '</div>'
+      + '</div>';
+  }
+
+  resultsEl.innerHTML = box + existing;
+  setStatus('AI analysis complete');
+}
+// ── END AI OPTIMIZER ──────────────────────────────────────────────────────────
 
 // Auto-run on load
 runOptimizer();
