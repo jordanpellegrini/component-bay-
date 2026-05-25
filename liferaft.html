@@ -138,6 +138,10 @@
             </div>
             <div class="header-actions">
                 <button onclick="showAddLifeRaft()" class="btn btn-add">+ Add Life Raft</button>
+                <label style="cursor:pointer;" title="Import PDF logcards en masse (nom fichier = S/N)">
+                    <input type="file" accept=".pdf" multiple style="display:none;" onchange="bulkImportLogcards(this)">
+                    <span class="btn" style="background:#6c757d;color:#fff;padding:6px 12px;border-radius:6px;font-size:13px;">📥 Import Log Cards</span>
+                </label>
                 <button onclick="showAllLifeRafts()" class="btn">📋 View All Life Rafts</button>
             </div>
         </div>
@@ -198,7 +202,24 @@
                 
                 <!-- Main Life Raft Info -->
                 <div class="card" style="background: #f8f9fa; margin-bottom: 25px;">
-                    <h3 style="margin-bottom: 20px; color: #17a2b8;">Main Life Raft Information</h3>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                        <h3 style="margin:0;color:#17a2b8;">Main Life Raft Information</h3>
+                        <div id="logcardBtnZone" style="display:none;">
+                            <a id="logcardViewBtn" href="#" target="_blank" style="text-decoration:none;">
+                                <button type="button" style="background:#17a2b8;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">📄 Log Card</button>
+                            </a>
+                            <label style="margin-left:8px;cursor:pointer;">
+                                <input type="file" id="logcardFileInput" accept=".pdf" style="display:none;" onchange="uploadLogcard(this)">
+                                <span style="background:#6c757d;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">⬆ Remplacer</span>
+                            </label>
+                        </div>
+                        <div id="logcardUploadZone" style="display:none;">
+                            <label style="cursor:pointer;">
+                                <input type="file" id="logcardFileInput2" accept=".pdf" style="display:none;" onchange="uploadLogcard(this)">
+                                <span style="background:#17a2b8;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">📄 Ajouter Log Card</span>
+                            </label>
+                        </div>
+                    </div>
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Designation</label>
@@ -1210,8 +1231,9 @@
                     </div>
                     <div class="form-group">
                         <label>Serviceability</label>
-                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; display:flex; align-items:center; gap:12px;">
                             <span class="status-badge ${item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable'}">${item.serviceability || 'N/A'}</span>
+                            ${item.logcardUrl ? `<a href="${item.logcardUrl}" target="_blank" style="text-decoration:none;"><button type="button" style="background:#17a2b8;color:#fff;border:none;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;">📄 Log Card</button></a>` : '<span style="color:#aaa;font-size:12px;">Pas de log card</span>'}
                         </div>
                     </div>
                     ${item.reason ? `
@@ -1819,6 +1841,65 @@ Respond in the same language as the user. Be concise.`;
         document.getElementById('claudeSendBtn').disabled = false;
         document.getElementById('claudeInput').focus();
     }
+
+        // ── LOGCARD FUNCTIONS ─────────────────────────────────────────────────────────
+        function updateLogcardBtn(url) {
+            const btnZone    = document.getElementById('logcardBtnZone');
+            const uploadZone = document.getElementById('logcardUploadZone');
+            if (!btnZone || !uploadZone) return;
+            if (url) {
+                document.getElementById('logcardViewBtn').href = url;
+                btnZone.style.display    = 'flex';
+                uploadZone.style.display = 'none';
+            } else {
+                btnZone.style.display    = 'none';
+                uploadZone.style.display = editingLifeRaft ? 'block' : 'none';
+            }
+        }
+
+        async function uploadLogcard(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            if (!editingLifeRaft) { alert('Sauvegardez d abord la life raft avant d ajouter un log card.'); return; }
+            try {
+                const result = await window.ComponentsBayDB.uploadPDF(file);
+                editingLifeRaft.logcardUrl = result.downloadURL;
+                await window.ComponentsBayDB.save('liferafts', editingLifeRaft);
+                const idx = liferaftData.findIndex(i => i.id === editingLifeRaft.id);
+                if (idx >= 0) liferaftData[idx].logcardUrl = result.downloadURL;
+                updateLogcardBtn(result.downloadURL);
+                alert('Log card uploadee avec succes!');
+            } catch(e) {
+                alert('Erreur upload: ' + e.message);
+            }
+            input.value = '';
+        }
+
+        async function bulkImportLogcards(input) {
+            if (!input.files || !input.files.length) return;
+            const files = Array.from(input.files);
+            let ok = 0, notFound = [], errors = [];
+            for (const file of files) {
+                const sn = file.name.replace(/\.pdf$/i, '').trim();
+                const item = liferaftData.find(i => (i.serialNumber || '').trim() === sn);
+                if (!item) { notFound.push(file.name); continue; }
+                try {
+                    const result = await window.ComponentsBayDB.uploadPDF(file);
+                    item.logcardUrl = result.downloadURL;
+                    await window.ComponentsBayDB.save('liferafts', item);
+                    ok++;
+                } catch(e) {
+                    errors.push(file.name + ': ' + e.message);
+                }
+            }
+            let msg = ok + ' log card(s) importee(s) avec succes.';
+            if (notFound.length) msg += '\nS/N introuvable: ' + notFound.join(', ');
+            if (errors.length)   msg += '\nErreurs: ' + errors.join('\n');
+            alert(msg);
+            renderAll();
+            input.value = '';
+        }
+        // ── END LOGCARD FUNCTIONS ─────────────────────────────────────────────────────
 </script>
 
 
