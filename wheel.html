@@ -390,7 +390,7 @@
         }
 
         async function saveData(itemToSave = null) {
-            localStorage.setItem('componentsBayWheel', JSON.stringify(wheelData));
+            try { localStorage.setItem('componentsBayWheel', JSON.stringify(wheelData)); } catch(e) { localStorage.removeItem('componentsBayWheel'); }
             if (window.ComponentsBayDB) {
                 if (itemToSave) {
                     // Save only the specific item
@@ -934,7 +934,7 @@
         async function deleteItem(id) {
             if (confirm('Are you sure you want to delete this wheel item?')) {
                 wheelData = wheelData.filter(item => item.id !== id);
-                localStorage.setItem('componentsBayWheel', JSON.stringify(wheelData));
+                try { localStorage.setItem('componentsBayWheel', JSON.stringify(wheelData)); } catch(e) { localStorage.removeItem('componentsBayWheel'); }
                 if (window.ComponentsBayDB) {
                     try { await window.ComponentsBayDB.delete('wheels', id); } catch(e) { console.error('Wheel delete error:', e); }
                 }
