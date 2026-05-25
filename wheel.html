@@ -74,12 +74,15 @@
                 <input type="hidden" id="editId">
                 
                 <div class="form-grid">
-                    <!-- Row 1: Designation, P/N Tire, S/N -->
+                    <!-- Ligne 1: DESIGNATION | P/N WHEEL | P/N TIRE | SERIAL NUMBER | TYPE (petite) | POSITION (petite) -->
                     <div class="form-group">
                         <label>Designation</label>
-                        <input type="text" id="designation" class="form-control" placeholder="Auto-filled from tire P/N" readonly style="background: #f8f9fa;">
+                        <input type="text" id="designation" class="form-control" placeholder="Auto-filled from tire P/N" readonly style="background:#f8f9fa;">
                     </div>
-                    
+                    <div class="form-group">
+                        <label>P/N Wheel</label>
+                        <input type="text" id="pnWheel" class="form-control" placeholder="Auto-filled from tire" readonly style="background:#f8f9fa;">
+                    </div>
                     <div class="form-group">
                         <label>P/N Tire</label>
                         <select id="pnTire" class="form-control" onchange="handleTireSelection()">
@@ -90,78 +93,55 @@
                             <option value="S324F1121200">S324F1121200</option>
                         </select>
                     </div>
-                    
                     <div class="form-group">
                         <label>Serial Number (S/N)</label>
                         <input type="text" id="serialNumber" class="form-control" placeholder="Enter serial number">
                     </div>
-                    
-                    <!-- Row 2: P/N Wheel, Type, Position -->
-                    <div class="form-group">
-                        <label>P/N Wheel</label>
-                        <input type="text" id="pnWheel" class="form-control" placeholder="Auto-filled from tire" readonly style="background: #f8f9fa;">
-                    </div>
-                    
-                    <div class="form-group">
+                    <div class="form-group" style="max-width:90px;">
                         <label>Type</label>
-                        <input type="text" id="type" class="form-control" placeholder="Auto-filled from tire" readonly style="background: #f8f9fa;">
+                        <input type="text" id="type" class="form-control" placeholder="Auto" readonly style="background:#f8f9fa;width:80px;">
                     </div>
-                    
-                    <div class="form-group">
+                    <div class="form-group" style="max-width:90px;">
                         <label>Position</label>
-                        <input type="text" id="position" class="form-control" placeholder="Auto-filled from tire" readonly style="background: #f8f9fa;">
+                        <input type="text" id="position" class="form-control" placeholder="Auto" readonly style="background:#f8f9fa;width:80px;">
                     </div>
-                    
-                    <!-- Row 3: Number Tire Change, Flight Hours, Date of Removal -->
+
+                    <!-- Ligne 2: NUMBER TIRE CHANGE | FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM H/C -->
                     <div class="form-group">
                         <label>Number Tire Change</label>
                         <select id="numberTireChange" class="form-control" onchange="checkEddyCurrent()">
                             <option value="">Select number</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                            <option value="7">7</option>
-                            <option value="8">8</option>
-                            <option value="9">9</option>
-                            <option value="10">10</option>
-                            <option value="11">11</option>
-                            <option value="12">12</option>
-                            <option value="13">13</option>
-                            <option value="14">14</option>
-                            <option value="15">15</option>
-                            <option value="16">16</option>
-                            <option value="17">17</option>
-                            <option value="18">18</option>
-                            <option value="19">19</option>
-                            <option value="20">20</option>
+                            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                            <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                            <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                            <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+                            <option value="19">19</option><option value="20">20</option>
                         </select>
                     </div>
-                    
                     <div class="form-group">
                         <label>Flight Hours</label>
                         <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
                     </div>
-                    
                     <div class="form-group">
                         <label>Date of Removal</label>
                         <input type="date" id="dateOfRemoval" class="form-control">
-                    </div>
-                    
-                    <!-- Row 4: Installed on H/C, Remove from H/C -->
-                    <div class="form-group">
-                        <label>Installed on H/C</label>
-                        <input type="text" id="installedOnHC" class="form-control" placeholder="e.g. QA250" oninput="onHCInput(this.value)">
                     </div>
                     <div class="form-group">
                         <label>Remove from H/C</label>
                         <input type="text" id="removeFromHC" class="form-control" placeholder="Enter H/C registration">
                     </div>
+
+                    <!-- Ligne 3: ORDER | SR | BOOK | JCN | INSTALLED ON H/C | SERVICEABILITY -->
                     <div class="form-group">
-                        <label>JCN Number</label>
-                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN number">
+                        <label>Order</label>
+                        <input type="text" id="order" class="form-control" placeholder="Enter order number">
+                        <div id="orderNotice" class="message message-info hidden">Order automatically cleared when item becomes Serviceable</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Service Request (SR)</label>
+                        <input type="text" id="serviceRequest" class="form-control" placeholder="SR number">
                     </div>
                     <div class="form-group">
                         <label>Book</label>
@@ -175,7 +155,14 @@
                             <option value="Avionic Book">Avionic Book</option>
                         </select>
                     </div>
-                    
+                    <div class="form-group" style="max-width:120px;">
+                        <label>JCN Number</label>
+                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN" maxlength="3" style="width:90px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Installed on H/C</label>
+                        <input type="text" id="installedOnHC" class="form-control" placeholder="e.g. QA250" oninput="onHCInput(this.value)">
+                    </div>
                     <div class="form-group">
                         <label>Serviceability</label>
                         <select id="serviceability" class="form-control" onchange="handleServiceabilityChange()">
@@ -184,35 +171,28 @@
                             <option value="Unserviceable">Unserviceable</option>
                         </select>
                     </div>
-                    <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:8px;">
+
+                    <!-- Ligne 4: LOG CARD MISSING | WORK IN PROGRESS | EDDY CURRENT C/OUT -->
+                    <div class="form-group" style="display:flex;align-items:center;">
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
                             <input type="checkbox" id="logCardMissing_wheel" onchange="onLogCardMissing_wheel()">
                             <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
                         </label>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Order</label>
-                        <input type="text" id="order" class="form-control" placeholder="Enter order number">
-                        <div id="orderNotice" class="message message-info hidden">Order automatically cleared when item becomes Serviceable</div>
-                    </div>
-                    
-                    <!-- Row 5: Work in Progress, Eddy Current c/out -->
-                    <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 8px;">
+                    <div class="form-group" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
                             <input type="checkbox" id="workInProgress">
-                            Work in Progress
+                            <span style="font-weight:600;color:#555;">🔧 Work in Progress</span>
                         </label>
                     </div>
-                    
-                    <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 8px;">
+                    <div class="form-group" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
                             <input type="checkbox" id="eddyCurrentCout">
-                            Eddy current c/out
+                            <span style="font-weight:600;color:#555;">🔵 Eddy Current C/Out</span>
                         </label>
                     </div>
-                    
-                    <!-- Row 6: Comments (full width) -->
+
+                    <!-- COMMENTS pleine largeur -->
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="comments" class="form-control" placeholder="Enter detailed comments..." onchange="checkMissingLogcard()"></textarea>
@@ -606,6 +586,7 @@
                 installedOnHC: document.getElementById('installedOnHC') ? document.getElementById('installedOnHC').value.trim() : '',
                 removeFromHC: document.getElementById('removeFromHC').value.trim(),
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
+                serviceRequest: document.getElementById('serviceRequest') ? document.getElementById('serviceRequest').value.trim() : '',
                 jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
                 serviceability: document.getElementById('serviceability').value || 'Serviceable',
                 order: document.getElementById('order').value.trim(),
@@ -911,7 +892,8 @@
             document.getElementById('dateOfRemoval').value = editingItem.dateOfRemoval || '';
             if (document.getElementById('installedOnHC')) document.getElementById('installedOnHC').value = editingItem.installedOnHC || '';
             document.getElementById('removeFromHC').value = editingItem.removeFromHC || '';
-            try { document.getElementById('jcnNumber').value = editingItem.jcnNumber || ''; } catch(e) {}
+            try { document.getElementById('jcnNumber').value = editingItem.jcnNumber || '';
+            try { document.getElementById('serviceRequest').value = editingItem.serviceRequest || ''; } catch(e) {} } catch(e) {}
             try { document.getElementById('jcnBook').value = editingItem.jcnBook || ''; } catch(e) {}
             document.getElementById('serviceability').value = editingItem.serviceability || '';
             document.getElementById('order').value = editingItem.order || '';
