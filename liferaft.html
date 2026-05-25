@@ -202,74 +202,64 @@
                 
                 <!-- Main Life Raft Info -->
                 <div class="card" style="background: #f8f9fa; margin-bottom: 25px;">
+                    <!-- Titre + Log Card -->
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
                         <h3 style="margin:0;color:#17a2b8;">Main Life Raft Information</h3>
-                        <div id="logcardBtnZone" style="display:none;">
-                            <a id="logcardViewBtn" href="#" target="_blank" style="text-decoration:none;">
-                                <button type="button" style="background:#17a2b8;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">📄 Log Card</button>
-                            </a>
-                            <label style="margin-left:8px;cursor:pointer;">
-                                <input type="file" id="logcardFileInput" accept=".pdf" style="display:none;" onchange="uploadLogcard(this)">
-                                <span style="background:#6c757d;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">⬆ Remplacer</span>
-                            </label>
-                        </div>
-                        <div id="logcardUploadZone" style="display:none;">
-                            <label style="cursor:pointer;">
-                                <input type="file" id="logcardFileInput2" accept=".pdf" style="display:none;" onchange="uploadLogcard(this)">
-                                <span style="background:#17a2b8;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">📄 Ajouter Log Card</span>
-                            </label>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <div id="logcardBtnZone" style="display:none;">
+                                <a id="logcardViewBtn" href="#" target="_blank" style="text-decoration:none;">
+                                    <button type="button" style="background:#17a2b8;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">📄 Log Card</button>
+                                </a>
+                                <label style="margin-left:8px;cursor:pointer;">
+                                    <input type="file" id="logcardFileInput" accept=".pdf" style="display:none;" onchange="uploadLogcard(this)">
+                                    <span style="background:#6c757d;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">⬆ Remplacer</span>
+                                </label>
+                            </div>
+                            <div id="logcardUploadZone" style="display:none;">
+                                <label style="cursor:pointer;">
+                                    <input type="file" id="logcardFileInput2" accept=".pdf" style="display:none;" onchange="uploadLogcard(this)">
+                                    <span style="background:#17a2b8;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">📄 Ajouter Log Card</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
+
                     <div class="form-grid">
+                        <!-- Ligne 1: DESIGNATION | PART NUMBER | SERIAL NUMBER -->
                         <div class="form-group">
                             <label>Designation</label>
-                            <input type="text" id="liferaftDesignation" class="form-control" value="Life Raft" style="background: #f8f9fa;">
+                            <input type="text" id="liferaftDesignation" class="form-control" value="Life Raft" style="background:#f8f9fa;">
                         </div>
-                        
                         <div class="form-group required">
                             <label>Part Number (P/N)</label>
                             <input type="text" id="liferaftPartNumber" class="form-control" placeholder="Enter life raft part number" required>
                         </div>
-                        
                         <div class="form-group">
                             <label>Serial Number (S/N)</label>
                             <input type="text" id="liferaftSerialNumber" class="form-control" placeholder="Enter life raft serial number">
                         </div>
-                        
-                        <div class="form-group">
-                            <label>Order</label>
-                            <input type="text" id="liferaftOrder" class="form-control" placeholder="Enter order number">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label style="display: flex; align-items: center; gap: 8px;">
-                                <input type="checkbox" id="liferaftWorkInProgress">
-                                Work in Progress
-                            </label>
-                        </div>
-                        
+                        <!-- Vide pour aligner sur 4 colonnes -->
+                        <div class="form-group"></div>
+
+                        <!-- Ligne 2: INSPECTION DATE | INSPECTION INTERVAL | NEXT INSPECTION -->
                         <div class="form-group">
                             <label>Inspection Date</label>
                             <input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspection()">
                         </div>
-                        
                         <div class="form-group">
                             <label>Inspection Interval</label>
-                            <input type="text" id="inspectionInterval" class="form-control" value="12 months" style="background: #f8f9fa;">
+                            <input type="text" id="inspectionInterval" class="form-control" value="12 months" style="background:#f8f9fa;">
                         </div>
-                        
                         <div class="form-group">
                             <label>Next Inspection</label>
-                            <input type="date" id="nextInspection" class="form-control" style="background: #f8f9fa;">
+                            <input type="date" id="nextInspection" class="form-control" style="background:#f8f9fa;">
                         </div>
+                        <div class="form-group"></div>
 
+                        <!-- Ligne 3: ORDER | BOOK | JCN NUMBER | SERVICEABILITY -->
                         <div class="form-group">
                             <label>Order</label>
                             <input type="text" id="orderRef" class="form-control" placeholder="Enter order number">
-                        </div>
-                        <div class="form-group">
-                            <label>JCN Number</label>
-                            <input type="text" id="jcnNumber" class="form-control" placeholder="JCN number">
                         </div>
                         <div class="form-group">
                             <label>Book</label>
@@ -283,7 +273,10 @@
                                 <option value="Avionic Book">Avionic Book</option>
                             </select>
                         </div>
-                        
+                        <div class="form-group">
+                            <label>JCN Number</label>
+                            <input type="text" id="jcnNumber" class="form-control" placeholder="JCN number">
+                        </div>
                         <div class="form-group">
                             <label>Serviceability</label>
                             <select id="liferaftServiceability" class="form-control" onchange="onSvcChange()">
@@ -292,22 +285,34 @@
                             </select>
                         </div>
 
-                        <div class="form-group" style="display:flex;flex-direction:column;gap:10px;justify-content:center;">
-                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                        <!-- Ligne 4: LOG CARD MISSING | LIFE RAFT MISSING | WORK IN PROGRESS -->
+                        <div class="form-group" style="display:flex;align-items:center;">
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
                                 <input type="checkbox" id="logCardMissing" onchange="onLogCardMissing()">
                                 <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
                             </label>
-                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                        </div>
+                        <div class="form-group" style="display:flex;align-items:center;">
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
                                 <input type="checkbox" id="lifeRaftMissing" onchange="onLifeRaftMissing()">
                                 <span style="font-weight:600;color:#8e44ad;">🔍 Life Raft Missing</span>
                             </label>
                         </div>
+                        <div class="form-group" style="display:flex;align-items:center;">
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                                <input type="checkbox" id="liferaftWorkInProgress">
+                                <span style="font-weight:600;color:#555;">🔧 Work in Progress</span>
+                            </label>
+                        </div>
+                        <div class="form-group"></div>
 
-                        <div class="form-group">
+                        <!-- Champ caché REASON -->
+                        <div class="form-group" style="display:none;">
                             <label>Reason (if Unserviceable)</label>
                             <input type="text" id="liferaftReason" class="form-control" placeholder="Reason for unserviceability">
                         </div>
 
+                        <!-- Ligne 5: COMMENTS (pleine largeur) -->
                         <div class="form-group" style="grid-column: 1 / -1;">
                             <label>Comments</label>
                             <textarea id="liferaftComments" class="form-control" placeholder="Enter detailed comments about the life raft..."></textarea>
