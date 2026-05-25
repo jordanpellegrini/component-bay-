@@ -1310,6 +1310,8 @@
                 if (qtyE) { qtyE.value = sub.qty || ''; if (sub.qty) checkQty(index); }
             });
 
+            // Logcard button
+            updateLogcardBtn(editingLifeRaft.logcardUrl || null);
             showAddLifeRaft();
             closeModal();
             checkExpiryDates();
