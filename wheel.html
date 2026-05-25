@@ -469,7 +469,7 @@
                     <tr>
                         <td>${item.designation || '-'}</td>
                         <td>${item.pnWheel || '-'}</td>
-                        <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a>${item.snMismatch ? '<span title="S/N mismatch entre CARO et Kardex" style="margin-left:5px;background:#ff3366;color:#fff;font-size:9px;padding:1px 4px;border-radius:3px;vertical-align:middle;cursor:help;">⚠</span>' : ''}</td>
                         <td><span class="status-badge ${positionClass}">${item.position || '-'}</span></td>
                         <td><span class="status-badge ${reasonClass}">${reasonText}</span></td>
                         <td>
@@ -781,7 +781,7 @@
                     <tr>
                         <td>${item.designation || '-'}</td>
                         <td>${item.pnWheel || '-'}</td>
-                        <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a>${item.snMismatch ? '<span title="S/N mismatch entre CARO et Kardex" style="margin-left:5px;background:#ff3366;color:#fff;font-size:9px;padding:1px 4px;border-radius:3px;vertical-align:middle;cursor:help;">⚠</span>' : ''}</td>
                         <td>${item.installedOnHC || '-'}</td>
                         <td>${item.pnTire || '-'}</td>
                         <td>${item.type || '-'}</td>
