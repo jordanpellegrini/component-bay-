@@ -175,18 +175,23 @@ window.ComponentsBayDB = {
                 }));
             }
             
-            // Sync to localStorage for offline access (skip large datasets)
+            // Tables trop grandes pour localStorage - toujours depuis Supabase
+            const NO_CACHE_TABLES = ['wheels', 'efs', 'liferafts', 'pn_manufacturers'];
             const localKey = getLocalKey(tableName);
-            try {
-                const json = JSON.stringify(items);
-                // Only cache in localStorage if < 1MB (avoid quota errors with large datasets like pn_manufacturers)
-                if (json.length < 1024 * 1024) {
-                    localStorage.setItem(localKey, json);
-                } else {
-                    console.log(`⚠️ Skipping localStorage cache for ${tableName} (${(json.length / 1024 / 1024).toFixed(1)}MB too large)`);
+            if (NO_CACHE_TABLES.includes(tableName)) {
+                // Vider le cache pour eviter que les vieilles donnees reviennent
+                try { localStorage.removeItem(localKey); } catch(e) {}
+            } else {
+                try {
+                    const json = JSON.stringify(items);
+                    if (json.length < 512 * 1024) {
+                        localStorage.setItem(localKey, json);
+                    } else {
+                        localStorage.removeItem(localKey);
+                    }
+                } catch(e) {
+                    console.warn(`⚠️ localStorage quota exceeded for ${tableName}, skipping cache`);
                 }
-            } catch(e) {
-                console.warn(`⚠️ localStorage quota exceeded for ${tableName}, skipping cache`);
             }
             
             return items || [];
@@ -194,8 +199,14 @@ window.ComponentsBayDB = {
         } catch (error) {
             console.error(`💥 Load failed (${tableName}):`, error.message);
             
-            // Fallback to localStorage
+            // Pour les tables critiques, ne pas utiliser le cache localStorage
+            // (risque de recharger des donnees supprimees)
+            const NO_CACHE_TABLES = ['wheels', 'efs', 'liferafts', 'pn_manufacturers'];
             const localKey = getLocalKey(tableName);
+            if (NO_CACHE_TABLES.includes(tableName)) {
+                console.warn(`⚠️ Load failed for ${tableName} - not using localStorage cache to avoid stale data`);
+                return [];
+            }
             const localData = JSON.parse(localStorage.getItem(localKey) || '[]');
             console.log(`💾 Fallback: Loaded ${localData.length} items from localStorage (${tableName})`);
             return localData;
@@ -357,4 +368,4 @@ try { localStorage.removeItem('pnMfrCache'); } catch(e) {}
 try { localStorage.removeItem('componentsBayPnManufacturers'); } catch(e) {}
 
 // Clé API Claude — utilisée par les modules avec le bouton 🤖 Ask Claude
-window.CLAUDE_API_KEY = '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';
+window.CLAUDE_API_KEY = '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';
