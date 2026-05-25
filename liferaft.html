@@ -1896,7 +1896,8 @@ Respond in the same language as the user. Be concise.`;
             if (notFound.length) msg += '\nS/N introuvable: ' + notFound.join(', ');
             if (errors.length)   msg += '\nErreurs: ' + errors.join('\n');
             alert(msg);
-            renderAll();
+            if (typeof refreshTable === 'function') refreshTable();
+            if (typeof updateSummary === 'function') updateSummary();
             input.value = '';
         }
         // ── END LOGCARD FUNCTIONS ─────────────────────────────────────────────────────
