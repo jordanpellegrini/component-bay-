@@ -101,8 +101,7 @@
             <h2 id="formTitle">➕ Add IAFT/EAFT Item</h2>
             <div id="formMessage"></div>
             <form onsubmit="handleSubmit(event)">
-                                <div class="form-grid">
-                    <!-- L1: DESIGNATION | PART NUMBER | SERIAL NUMBER -->
+                                                <div class="form-grid">
                     <div class="form-group">
                         <label>Designation</label>
                         <input type="text" id="designation" class="form-control" readonly style="background:#f0f0f0;">
@@ -120,7 +119,6 @@
                         <input type="text" id="serialNumber" class="form-control" placeholder="Enter S/N">
                     </div>
                     <div class="form-group"></div>
-                    <!-- L2: INSPECTION DATE | PERFORMED | NEXT 24M | NEXT 60M | NEXT 360M -->
                     <div class="form-group">
                         <label>Inspection Date</label>
                         <input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspections()">
@@ -147,10 +145,8 @@
                         <input type="date" id="next360M" class="form-control" style="background:#f8f9fa;">
                     </div>
                     <div class="form-group"></div>
-                    <!-- Notes pleine largeur -->
                     <div id="note60M" class="inspection-note" style="grid-column:1/-1;">⚠️ <strong>Per SCS §D:</strong> First action after <strong>60 months</strong> — Perform selective preservation (internal wall oiling). After 60M is done, 24M cycle starts (interface check every 24 months).</div>
                     <div id="status60MDone" class="status-60m-done hidden" style="grid-column:1/-1;">✅ <strong>24M cycle active</strong> — 60M date has been reached. Check all interfaces for condition and clean if necessary every 24 months.</div>
-                    <!-- L3: FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM A/C -->
                     <div class="form-group">
                         <label>Flight Hours</label>
                         <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
@@ -164,7 +160,6 @@
                         <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
                     </div>
                     <div class="form-group"></div>
-                    <!-- L4: ORDER | SR NUMBER | JCN | BOOK | SERVICEABILITY -->
                     <div class="form-group">
                         <label>Order</label>
                         <input type="text" id="orderRef" class="form-control" placeholder="Enter order number">
@@ -197,7 +192,6 @@
                             <option value="Unserviceable">Unserviceable</option>
                         </select>
                     </div>
-                    <!-- L5: LOG CARD MISSING | WORK IN PROGRESS -->
                     <div class="form-group" style="display:flex;align-items:center;">
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
                             <input type="checkbox" id="logCardMissing_iaft_eaft" onchange="onLogCardMissing_iaft_eaft()">

@@ -72,8 +72,7 @@
             <form id="maintenanceForm" onsubmit="handleFormSubmit(event)">
                 <input type="hidden" id="editId">
                 
-                                <div class="form-grid">
-                    <!-- L1: DESIGNATION | PART NUMBER | SERIAL NUMBER | BOX NUMBER -->
+                                                <div class="form-grid">
                     <div class="form-group">
                         <label>Designation</label>
                         <input type="text" id="designation" class="form-control" placeholder="Enter component designation">
@@ -90,7 +89,6 @@
                         <label>Box Number</label>
                         <input type="text" id="boxNumber" class="form-control" placeholder="Enter box number">
                     </div>
-                    <!-- Life Raft Rack section (shown dynamically) -->
                     <div id="lifeRaftSection" style="display:none;grid-column:1/-1;background:#f0f7ff;border:1px solid #bdd7f5;border-radius:8px;padding:14px;margin:4px 0;">
                         <div style="font-weight:700;color:#1B2B4B;margin-bottom:10px;">🛟 Life Raft Rack — Auto Fill</div>
                         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
@@ -103,7 +101,6 @@
                         </div>
                         <div id="batteryWarning" style="display:none;margin-top:10px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;color:#856404;font-size:0.9em;">⚠️ Battery expired — comment auto-filled</div>
                     </div>
-                    <!-- L2: FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM A/C | LOG CARD -->
                     <div class="form-group">
                         <label>Flight Hours</label>
                         <input type="number" id="flightHours" class="form-control" placeholder="Enter flight hours">
@@ -120,7 +117,6 @@
                         <label>Log Card</label>
                         <select id="logCard" class="form-control"><option value="">Select option</option><option value="Yes">Yes</option><option value="No">No</option></select>
                     </div>
-                    <!-- L3: ORDER | SR NUMBER | JCN | BOOK | SERVICEABILITY -->
                     <div class="form-group">
                         <label>Order</label>
                         <input type="text" id="order" class="form-control" placeholder="Enter order number">
@@ -154,7 +150,6 @@
                             <option value="Unserviceable">Unserviceable</option>
                         </select>
                     </div>
-                    <!-- L4: WORK IN PROGRESS | LOG CARD MISSING -->
                     <div class="form-group" style="display:flex;align-items:center;">
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
                             <input type="checkbox" id="workInProgress">
@@ -169,7 +164,7 @@
                     </div>
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
-                        <textarea id="comments" class="form-control" placeholder="Enter detailed comments..."></textarea>
+                        <textarea id="comments" class="form-control" placeholder="Enter detailed comments..." onchange="checkMissingLogcard()"></textarea>
                     </div>
                 </div>
                 
