@@ -83,13 +83,13 @@
             <form id="seatForm" onsubmit="handleFormSubmit(event)">
                 <input type="hidden" id="editId">
 
-                <div class="form-grid">
-                    <!-- Ligne 1: DESIGNATION | PART NUMBER | SERIAL NUMBER | H/C -->
+                                <div class="form-grid">
+                    <!-- L1: DESIGNATION | PART NUMBER | SERIAL NUMBER | H/C -->
                     <div class="form-group">
                         <label>Designation</label>
                         <input type="text" id="designation" class="form-control" placeholder="Enter designation">
                     </div>
-                    <div class="form-group required">
+                    <div class="form-group">
                         <label>Part Number (P/N)</label>
                         <input type="text" id="partNumber" class="form-control" placeholder="Enter part number" required>
                     </div>
@@ -101,9 +101,8 @@
                         <label>H/C</label>
                         <input type="text" id="troopHC" class="form-control" placeholder="A/C number or Spare">
                     </div>
-
-                    <!-- Ligne 2: INSPECTION DATE | INTERVAL | NEXT INSPECTION -->
-                    <div class="form-group required">
+                    <!-- L2: INSPECTION DATE | INTERVAL | NEXT INSPECTION -->
+                    <div class="form-group">
                         <label>Inspection Date</label>
                         <input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspection()" required>
                     </div>
@@ -116,8 +115,7 @@
                         <input type="date" id="nextInspection" class="form-control" style="background:#f8f9fa;">
                     </div>
                     <div class="form-group"></div>
-
-                    <!-- Ligne 3: FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM A/C -->
+                    <!-- L3: FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM A/C -->
                     <div class="form-group">
                         <label>Flight Hours</label>
                         <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
@@ -131,8 +129,7 @@
                         <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
                     </div>
                     <div class="form-group"></div>
-
-                    <!-- Ligne 4: ORDER | SR NUMBER | JCN | BOOK | SERVICEABILITY -->
+                    <!-- L4: ORDER | SR NUMBER | JCN | BOOK | SERVICEABILITY -->
                     <div class="form-group">
                         <label>Order</label>
                         <input type="text" id="order" class="form-control" placeholder="Enter order number">
@@ -165,8 +162,7 @@
                             <option value="Unserviceable">Unserviceable</option>
                         </select>
                     </div>
-
-                    <!-- Ligne 5: LOG CARD MISSING | WORK IN PROGRESS -->
+                    <!-- L5: LOG CARD MISSING | WORK IN PROGRESS -->
                     <div class="form-group" style="display:flex;align-items:center;">
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
                             <input type="checkbox" id="logCardMissing_troop_seat" onchange="onLogCardMissing_troop_seat()">
@@ -179,8 +175,6 @@
                             <span style="font-weight:600;color:#555;">🔧 Work in Progress</span>
                         </label>
                     </div>
-
-                    <!-- COMMENTS pleine largeur -->
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="comments" class="form-control" placeholder="Enter comments..."></textarea>

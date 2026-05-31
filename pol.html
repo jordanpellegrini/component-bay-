@@ -147,8 +147,8 @@
             <h2 id="formTitle">➕ Add POL Item</h2>
             <div id="formMessage"></div>
             <form onsubmit="handleSubmit(event)">
-                <div class="form-grid">
-                    <!-- Ligne 1: DESIGNATION | BRAND | PART NUMBER | BATCH NUMBER -->
+                                <div class="form-grid">
+                    <!-- L1: DESIGNATION | BRAND | PART NUMBER | BATCH NUMBER -->
                     <div class="form-group">
                         <label>Designation *</label>
                         <input type="text" id="designation" class="form-control" placeholder="e.g. Hydraulic Fluid" required>
@@ -165,20 +165,18 @@
                         <label>Batch Number</label>
                         <input type="text" id="batchNumber" class="form-control" placeholder="Enter batch number">
                     </div>
-
-                    <!-- Ligne 2: MANUFACTURER / SHIPMENT DATE | EXPIRY DATE (auto +1Y) -->
+                    <!-- L2: MANUFACTURER / SHIPMENT DATE | EXPIRY DATE -->
                     <div class="form-group">
                         <label>Manufacturer / Shipment Date</label>
                         <input type="date" id="manufactureDate" class="form-control" onchange="calculateExpiryDate()">
                     </div>
                     <div class="form-group">
                         <label>Expiry Date (auto +1Y)</label>
-                        <input type="date" id="expiryDate" class="form-control" style="background:#f8f9fa;" readonly>
+                        <input type="date" id="expiryDate" class="form-control" readonly style="background:#f8f9fa;">
                     </div>
                     <div class="form-group"></div>
                     <div class="form-group"></div>
-
-                    <!-- Ligne 3: ORDER | SR NUMBER -->
+                    <!-- L3: ORDER | SR NUMBER -->
                     <div class="form-group">
                         <label>Order</label>
                         <input type="text" id="orderRef" class="form-control" placeholder="Enter order number">
@@ -187,11 +185,11 @@
                         <label>SR Number</label>
                         <input type="text" id="srNumber" class="form-control" placeholder="SR number">
                     </div>
-
-                    <!-- COMMENTS pleine largeur -->
+                    <div class="form-group"></div>
+                    <div class="form-group"></div>
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
-                        <textarea id="comments" class="form-control" rows="2"></textarea>
+                        <textarea id="comments" class="form-control" placeholder="Enter detailed comments..."></textarea>
                     </div>
                 </div>
                 <div class="mt-20">

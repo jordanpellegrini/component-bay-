@@ -97,8 +97,8 @@
             <form id="rotorForm" onsubmit="handleFormSubmit(event)">
                 <input type="hidden" id="editId">
 
-                <div class="form-grid">
-                    <!-- Ligne 1: DESIGNATION | PART NUMBER | SERIAL NUMBER -->
+                                <div class="form-grid">
+                    <!-- L1: DESIGNATION | PART NUMBER | SERIAL NUMBER -->
                     <div class="form-group">
                         <label>Designation</label>
                         <input type="text" id="designation" class="form-control" placeholder="Auto-filled from P/N" readonly style="background:#f8f9fa;">
@@ -107,27 +107,11 @@
                         <label>Part Number (P/N)</label>
                         <select id="partNumber" class="form-control" onchange="handlePNSelection()" required>
                             <option value="">Select P/N</option>
-                            <optgroup label="Main Gear Box (MGB)">
-                                <option value="N632G0020053">N632G0020053</option>
-                                <option value="N632G0040051">N632G0040051</option>
-                            </optgroup>
-                            <optgroup label="Rear Accessory Gear Box (RAGB)">
-                                <option value="S639A0001051">S639A0001051</option>
-                                <option value="S639A0001053">S639A0001053</option>
-                            </optgroup>
-                            <optgroup label="Intermediate Gear Box (IGB)">
-                                <option value="S653F1003053">S653F1003053</option>
-                            </optgroup>
-                            <optgroup label="Tail Gear Box (TGB)">
-                                <option value="S652A0000052">S652A0000052</option>
-                                <option value="S652A0000055">S652A0000055</option>
-                            </optgroup>
-                            <optgroup label="Swashplate">
-                                <option value="S623A2103051">S623A2103051</option>
-                                <option value="S623A2103052">S623A2103052</option>
-                                <option value="S623A2202051">S623A2202051</option>
-                                <option value="S623A2202052">S623A2202052</option>
-                            </optgroup>
+                            <optgroup label="Main Gear Box (MGB)"><option value="N632G0020053">N632G0020053</option><option value="N632G0040051">N632G0040051</option></optgroup>
+                            <optgroup label="Rear Accessory Gear Box (RAGB)"><option value="S639A0001051">S639A0001051</option><option value="S639A0001053">S639A0001053</option></optgroup>
+                            <optgroup label="Intermediate Gear Box (IGB)"><option value="S653F1003053">S653F1003053</option></optgroup>
+                            <optgroup label="Tail Gear Box (TGB)"><option value="S652A0000052">S652A0000052</option><option value="S652A0000055">S652A0000055</option></optgroup>
+                            <optgroup label="Swashplate"><option value="S623A2103051">S623A2103051</option><option value="S623A2103052">S623A2103052</option><option value="S623A2202051">S623A2202051</option><option value="S623A2202052">S623A2202052</option></optgroup>
                         </select>
                     </div>
                     <div class="form-group">
@@ -135,8 +119,7 @@
                         <input type="text" id="serialNumber" class="form-control" placeholder="Enter serial number" required>
                     </div>
                     <div class="form-group"></div>
-
-                    <!-- Ligne 2: INSPECTION DATE | INSPECTION TYPE | NEXT SHORT | NEXT LONG -->
+                    <!-- L2: INSPECTION DATE | INSPECTION PERFORMED | NEXT SHORT | NEXT LONG -->
                     <div class="form-group">
                         <label>Inspection Date</label>
                         <input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspections()">
@@ -150,15 +133,14 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label id="labelShort">Next Short Inspection</label>
+                        <label><span id="labelShort">Next Short Inspection</span></label>
                         <input type="date" id="nextShort" class="form-control" style="background:#f8f9fa;">
                     </div>
                     <div class="form-group">
-                        <label id="labelLong">Next Long Inspection</label>
+                        <label><span id="labelLong">Next Long Inspection</span></label>
                         <input type="date" id="nextLong" class="form-control" style="background:#f8f9fa;">
                     </div>
-
-                    <!-- Ligne 3: FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM A/C -->
+                    <!-- L3: FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM A/C -->
                     <div class="form-group">
                         <label>Flight Hours</label>
                         <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
@@ -172,8 +154,7 @@
                         <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
                     </div>
                     <div class="form-group"></div>
-
-                    <!-- Ligne 4: ORDER | SR NUMBER | JCN | BOOK | SERVICEABILITY -->
+                    <!-- L4: ORDER | SR NUMBER | JCN | BOOK | SERVICEABILITY -->
                     <div class="form-group">
                         <label>Order</label>
                         <input type="text" id="orderRef" class="form-control" placeholder="Enter order number">
@@ -206,8 +187,7 @@
                             <option value="Unserviceable">Unserviceable</option>
                         </select>
                     </div>
-
-                    <!-- Ligne 5: LOG CARD MISSING | WORK IN PROGRESS -->
+                    <!-- L5: LOG CARD MISSING | WORK IN PROGRESS -->
                     <div class="form-group" style="display:flex;align-items:center;">
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
                             <input type="checkbox" id="logCardMissing_rotor_bay" onchange="onLogCardMissing_rotor_bay()">
@@ -220,8 +200,6 @@
                             <span style="font-weight:600;color:#555;">🔧 Work in Progress</span>
                         </label>
                     </div>
-
-                    <!-- COMMENTS pleine largeur -->
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="comments" class="form-control" placeholder="Enter comments..."></textarea>
