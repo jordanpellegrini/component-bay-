@@ -136,42 +136,44 @@
                     </div>
 
                     <!-- Ligne 3: ORDER | SR | BOOK | JCN | INSTALLED ON H/C | SERVICEABILITY -->
-                    <div class="form-group">
-                        <label>Order</label>
-                        <input type="text" id="order" class="form-control" placeholder="Enter order number">
-                        <div id="orderNotice" class="message message-info hidden">Order automatically cleared when item becomes Serviceable</div>
-                    </div>
-                    <div class="form-group">
-                        <label>Service Request (SR)</label>
-                        <input type="text" id="serviceRequest" class="form-control" placeholder="SR number">
-                    </div>
-                    <div class="form-group">
-                        <label>Book</label>
-                        <select id="jcnBook" class="form-control">
-                            <option value="">-- Select --</option>
-                            <option value="EFS Book">EFS Book</option>
-                            <option value="Engine Bay Book">Engine Bay Book</option>
-                            <option value="Rotor Bay Book">Rotor Bay Book</option>
-                            <option value="Component Bay Book">Component Bay Book</option>
-                            <option value="Wheel Book">Wheel Book</option>
-                            <option value="Avionic Book">Avionic Book</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="max-width:120px;">
-                        <label>JCN Number</label>
-                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN" maxlength="3" style="width:90px;">
-                    </div>
-                    <div class="form-group">
-                        <label>Installed on H/C</label>
-                        <input type="text" id="installedOnHC" class="form-control" placeholder="e.g. QA250" oninput="onHCInput(this.value)">
-                    </div>
-                    <div class="form-group">
-                        <label>Serviceability</label>
-                        <select id="serviceability" class="form-control" onchange="handleServiceabilityChange()">
-                            <option value="">Select status</option>
-                            <option value="Serviceable">Serviceable</option>
-                            <option value="Unserviceable">Unserviceable</option>
-                        </select>
+                    <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(6,1fr);gap:8px;">
+                        <div class="form-group">
+                            <label>Order</label>
+                            <input type="text" id="order" class="form-control" placeholder="Enter order number">
+                            <div id="orderNotice" class="message message-info hidden">Order automatically cleared when item becomes Serviceable</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Service Request (SR)</label>
+                            <input type="text" id="serviceRequest" class="form-control" placeholder="SR number">
+                        </div>
+                        <div class="form-group">
+                            <label>Book</label>
+                            <select id="jcnBook" class="form-control">
+                                <option value="">-- Select --</option>
+                                <option value="EFS Book">EFS Book</option>
+                                <option value="Engine Bay Book">Engine Bay Book</option>
+                                <option value="Rotor Bay Book">Rotor Bay Book</option>
+                                <option value="Component Bay Book">Component Bay Book</option>
+                                <option value="Wheel Book">Wheel Book</option>
+                                <option value="Avionic Book">Avionic Book</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>JCN Number</label>
+                            <input type="text" id="jcnNumber" class="form-control" placeholder="JCN number">
+                        </div>
+                        <div class="form-group">
+                            <label>Installed on H/C</label>
+                            <input type="text" id="installedOnHC" class="form-control" placeholder="e.g. QA250" oninput="onHCInput(this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>Serviceability</label>
+                            <select id="serviceability" class="form-control" onchange="handleServiceabilityChange()">
+                                <option value="">Select status</option>
+                                <option value="Serviceable">Serviceable</option>
+                                <option value="Unserviceable">Unserviceable</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Ligne 4: LOG CARD MISSING | WORK IN PROGRESS | EDDY CURRENT C/OUT -->

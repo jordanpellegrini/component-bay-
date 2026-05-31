@@ -109,63 +109,67 @@
                     </div>
 
                     <!-- Ligne 2: INSPECTION DATE | INTERVAL | NEXT 18M | NEXT 36M -->
-                    <div class="form-group">
-                        <label>Inspection Date</label>
-                        <input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspection()">
-                    </div>
-                    <div class="form-group">
-                        <label>Inspection Interval</label>
-                        <select id="inspectionInterval" class="form-control" onchange="calculateNextInspection()">
-                            <option value="">Select interval</option>
-                            <option value="18">18M (18 months)</option>
-                            <option value="36">36M (36 months)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Next 18M Inspection</label>
-                        <input type="date" id="next18M" class="form-control" style="background:#f8f9fa;">
-                    </div>
-                    <div class="form-group">
-                        <label>Next 36M Inspection</label>
-                        <input type="date" id="next36M" class="form-control" style="background:#f8f9fa;">
-                    </div>
-                    <div class="form-group">
-                        <label>Serviceability</label>
-                        <select id="efsServiceability" class="form-control">
-                            <option value="">Select status</option>
-                            <option value="Serviceable">Serviceable</option>
-                            <option value="Unserviceable">Unserviceable</option>
-                        </select>
+                    <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+                        <div class="form-group">
+                            <label>Inspection Date</label>
+                            <input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspection()">
+                        </div>
+                        <div class="form-group">
+                            <label>Inspection Interval</label>
+                            <select id="inspectionInterval" class="form-control" onchange="calculateNextInspection()">
+                                <option value="">Select interval</option>
+                                <option value="18">18M (18 months)</option>
+                                <option value="36">36M (36 months)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Next 18M Inspection</label>
+                            <input type="date" id="next18M" class="form-control" style="background:#f8f9fa;">
+                        </div>
+                        <div class="form-group">
+                            <label>Next 36M Inspection</label>
+                            <input type="date" id="next36M" class="form-control" style="background:#f8f9fa;">
+                        </div>
+                        <div class="form-group">
+                            <label>Serviceability</label>
+                            <select id="efsServiceability" class="form-control">
+                                <option value="">Select status</option>
+                                <option value="Serviceable">Serviceable</option>
+                                <option value="Unserviceable">Unserviceable</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Ligne 3: BOOK | JCN | FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM A/C -->
-                    <div class="form-group">
-                        <label>Book</label>
-                        <select id="jcnBook" class="form-control">
-                            <option value="">-- Select --</option>
-                            <option value="EFS Book">EFS Book</option>
-                            <option value="Engine Bay Book">Engine Bay Book</option>
-                            <option value="Rotor Bay Book">Rotor Bay Book</option>
-                            <option value="Component Bay Book">Component Bay Book</option>
-                            <option value="Wheel Book">Wheel Book</option>
-                            <option value="Avionic Book">Avionic Book</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="max-width:120px;">
-                        <label>JCN Number</label>
-                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN" maxlength="3" style="width:90px;">
-                    </div>
-                    <div class="form-group">
-                        <label>Flight Hours</label>
-                        <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
-                    </div>
-                    <div class="form-group">
-                        <label>Date of Removal</label>
-                        <input type="date" id="dateOfRemoval" class="form-control">
-                    </div>
-                    <div class="form-group" style="max-width:150px;">
-                        <label>Remove from A/C</label>
-                        <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
+                    <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+                        <div class="form-group">
+                            <label>Book</label>
+                            <select id="jcnBook" class="form-control">
+                                <option value="">-- Select --</option>
+                                <option value="EFS Book">EFS Book</option>
+                                <option value="Engine Bay Book">Engine Bay Book</option>
+                                <option value="Rotor Bay Book">Rotor Bay Book</option>
+                                <option value="Component Bay Book">Component Bay Book</option>
+                                <option value="Wheel Book">Wheel Book</option>
+                                <option value="Avionic Book">Avionic Book</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="max-width:120px;">
+                            <label>JCN Number</label>
+                            <input type="text" id="jcnNumber" class="form-control" placeholder="JCN" maxlength="3" style="width:90px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Flight Hours</label>
+                            <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
+                        </div>
+                        <div class="form-group">
+                            <label>Date of Removal</label>
+                            <input type="date" id="dateOfRemoval" class="form-control">
+                        </div>
+                        <div class="form-group" style="max-width:150px;">
+                            <label>Remove from A/C</label>
+                            <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
+                        </div>
                     </div>
 
                     <!-- Ligne 4: ORDER | SERVICE REQUEST | LOG CARD MISSING | WORK IN PROGRESS -->

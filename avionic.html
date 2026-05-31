@@ -116,37 +116,39 @@
                     <div class="form-group"></div>
 
                     <!-- Ligne 3: ORDER | SR NUMBER | JCN | BOOK | SERVICEABILITY -->
-                    <div class="form-group">
-                        <label>Order</label>
-                        <input type="text" id="itemsOrder" class="form-control" placeholder="Enter order number">
-                    </div>
-                    <div class="form-group">
-                        <label>SR Number</label>
-                        <input type="text" id="itemsSrNumber" class="form-control" placeholder="SR number">
-                    </div>
-                    <div class="form-group" style="max-width:120px;">
-                        <label>JCN Number</label>
-                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN" maxlength="3" style="width:90px;">
-                    </div>
-                    <div class="form-group">
-                        <label>Book</label>
-                        <select id="jcnBook" class="form-control">
-                            <option value="">-- Select --</option>
-                            <option value="EFS Book">EFS Book</option>
-                            <option value="Engine Bay Book">Engine Bay Book</option>
-                            <option value="Rotor Bay Book">Rotor Bay Book</option>
-                            <option value="Component Bay Book">Component Bay Book</option>
-                            <option value="Wheel Book">Wheel Book</option>
-                            <option value="Avionic Book">Avionic Book</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Serviceability</label>
-                        <select id="itemsServiceability" class="form-control">
-                            <option value="">Select status</option>
-                            <option value="Serviceable">Serviceable</option>
-                            <option value="Unserviceable">Unserviceable</option>
-                        </select>
+                    <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+                        <div class="form-group">
+                            <label>Order</label>
+                            <input type="text" id="itemsOrder" class="form-control" placeholder="Enter order number">
+                        </div>
+                        <div class="form-group">
+                            <label>SR Number</label>
+                            <input type="text" id="itemsSrNumber" class="form-control" placeholder="SR number">
+                        </div>
+                        <div class="form-group" style="max-width:120px;">
+                            <label>JCN Number</label>
+                            <input type="text" id="jcnNumber" class="form-control" placeholder="JCN" maxlength="3" style="width:90px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Book</label>
+                            <select id="jcnBook" class="form-control">
+                                <option value="">-- Select --</option>
+                                <option value="EFS Book">EFS Book</option>
+                                <option value="Engine Bay Book">Engine Bay Book</option>
+                                <option value="Rotor Bay Book">Rotor Bay Book</option>
+                                <option value="Component Bay Book">Component Bay Book</option>
+                                <option value="Wheel Book">Wheel Book</option>
+                                <option value="Avionic Book">Avionic Book</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Serviceability</label>
+                            <select id="itemsServiceability" class="form-control">
+                                <option value="">Select status</option>
+                                <option value="Serviceable">Serviceable</option>
+                                <option value="Unserviceable">Unserviceable</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Ligne 4: LOG CARD MISSING -->
