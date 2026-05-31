@@ -85,34 +85,22 @@
             
             <form onsubmit="handleItemsSubmit(event)">
                 <div class="form-grid">
+                    <!-- Ligne 1: DESIGNATION | PART NUMBER | SERIAL NUMBER -->
                     <div class="form-group">
                         <label>Designation</label>
                         <input type="text" id="itemsDesignation" class="form-control" placeholder="Enter designation">
                     </div>
-                    
                     <div class="form-group required">
                         <label>Part Number (P/N)</label>
                         <input type="text" id="itemsPartNumber" class="form-control" placeholder="Enter part number" required>
                     </div>
-                    
                     <div class="form-group">
                         <label>Serial Number (S/N)</label>
                         <input type="text" id="itemsSerialNumber" class="form-control" placeholder="Enter serial number">
                     </div>
-                    
-                    <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="itemsWorkInProgress">
-                            Work in Progress
-                        </label>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Order</label>
-                        <input type="text" id="itemsOrder" class="form-control" placeholder="Enter order number">
-                    </div>
-                    
-                    
+                    <div class="form-group"></div>
+
+                    <!-- Ligne 2: FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM A/C -->
                     <div class="form-group">
                         <label>Flight Hours</label>
                         <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
@@ -125,9 +113,20 @@
                         <label>Remove from A/C</label>
                         <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
                     </div>
+                    <div class="form-group"></div>
+
+                    <!-- Ligne 3: ORDER | SR NUMBER | JCN | BOOK | SERVICEABILITY -->
                     <div class="form-group">
+                        <label>Order</label>
+                        <input type="text" id="itemsOrder" class="form-control" placeholder="Enter order number">
+                    </div>
+                    <div class="form-group">
+                        <label>SR Number</label>
+                        <input type="text" id="itemsSrNumber" class="form-control" placeholder="SR number">
+                    </div>
+                    <div class="form-group" style="max-width:120px;">
                         <label>JCN Number</label>
-                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN number">
+                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN" maxlength="3" style="width:90px;">
                     </div>
                     <div class="form-group">
                         <label>Book</label>
@@ -141,7 +140,25 @@
                             <option value="Avionic Book">Avionic Book</option>
                         </select>
                     </div>
-<div class="form-group" style="grid-column: 1 / -1;">
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <select id="itemsServiceability" class="form-control">
+                            <option value="">Select status</option>
+                            <option value="Serviceable">Serviceable</option>
+                            <option value="Unserviceable">Unserviceable</option>
+                        </select>
+                    </div>
+
+                    <!-- Ligne 4: LOG CARD MISSING -->
+                    <div class="form-group" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="itemsLogCardMissing">
+                            <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
+                        </label>
+                    </div>
+
+                    <!-- COMMENTS pleine largeur -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="itemsComments" class="form-control" placeholder="Enter detailed comments..."></textarea>
                     </div>
@@ -165,47 +182,26 @@
             
             <form onsubmit="handleBatterySubmit(event)">
                 <div class="form-grid">
+                    <!-- Ligne 1: DESIGNATION | PART NUMBER | SERIAL NUMBER -->
                     <div class="form-group">
-                        <label>Description</label>
-                        <input type="text" id="batteryDescription" class="form-control" placeholder="Enter battery description">
+                        <label>Designation</label>
+                        <input type="text" id="batteryDescription" class="form-control" placeholder="Enter battery designation">
                     </div>
-                    
                     <div class="form-group required">
                         <label>Part Number (P/N)</label>
                         <input type="text" id="batteryPartNumber" class="form-control" placeholder="Enter part number" required>
                     </div>
-                    
                     <div class="form-group">
                         <label>Serial Number (S/N)</label>
                         <input type="text" id="batterySerialNumber" class="form-control" placeholder="Enter serial number">
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Order</label>
-                        <input type="text" id="batteryOrder" class="form-control" placeholder="Enter order number">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Log Card</label>
-                        <select id="batteryLogCard" class="form-control">
-                            <option value="">Select option</option>
-                            <option value="Yes">Yes</option>
-                            <option value="No">No</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="batteryWorkInProgress">
-                            Work in Progress
-                        </label>
-                    </div>
-                    
+                    <div class="form-group"></div>
+
+                    <!-- Ligne 2: DATE | INSPECTION CYCLE | NEXT 1Y | NEXT 2Y -->
                     <div class="form-group">
                         <label>Date</label>
                         <input type="date" id="batteryDate" class="form-control" onchange="calculateBatteryInspections()">
                     </div>
-                    
                     <div class="form-group">
                         <label>Inspection Cycle</label>
                         <select id="batteryCycle" class="form-control" onchange="calculateBatteryInspections()">
@@ -214,17 +210,79 @@
                             <option value="2Y">2Y (includes both 1Y and 2Y)</option>
                         </select>
                     </div>
-                    
                     <div class="form-group">
                         <label>Next 1Y Inspection</label>
-                        <input type="date" id="batteryNext1Y" class="form-control" style="background: #f8f9fa;">
+                        <input type="date" id="batteryNext1Y" class="form-control" style="background:#f8f9fa;">
                     </div>
-                    
                     <div class="form-group">
                         <label>Next 2Y Inspection</label>
-                        <input type="date" id="batteryNext2Y" class="form-control" style="background: #f8f9fa;">
+                        <input type="date" id="batteryNext2Y" class="form-control" style="background:#f8f9fa;">
                     </div>
-                    
+
+                    <!-- Ligne 3: FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM A/C -->
+                    <div class="form-group">
+                        <label>Flight Hours</label>
+                        <input type="text" id="batteryFlightHours" class="form-control" placeholder="Enter flight hours">
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Removal</label>
+                        <input type="date" id="batteryDateOfRemoval" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Remove from A/C</label>
+                        <input type="text" id="batteryRemoveFromHC" class="form-control" placeholder="A/C or stock">
+                    </div>
+                    <div class="form-group"></div>
+
+                    <!-- Ligne 4: ORDER | SR NUMBER | JCN | BOOK | SERVICEABILITY -->
+                    <div class="form-group">
+                        <label>Order</label>
+                        <input type="text" id="batteryOrder" class="form-control" placeholder="Enter order number">
+                    </div>
+                    <div class="form-group">
+                        <label>SR Number</label>
+                        <input type="text" id="batterySrNumber" class="form-control" placeholder="SR number">
+                    </div>
+                    <div class="form-group" style="max-width:120px;">
+                        <label>JCN Number</label>
+                        <input type="text" id="batteryJcnNumber" class="form-control" placeholder="JCN" maxlength="3" style="width:90px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Book</label>
+                        <select id="batteryJcnBook" class="form-control">
+                            <option value="">-- Select --</option>
+                            <option value="EFS Book">EFS Book</option>
+                            <option value="Engine Bay Book">Engine Bay Book</option>
+                            <option value="Rotor Bay Book">Rotor Bay Book</option>
+                            <option value="Component Bay Book">Component Bay Book</option>
+                            <option value="Wheel Book">Wheel Book</option>
+                            <option value="Avionic Book">Avionic Book</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <select id="batteryServiceability" class="form-control">
+                            <option value="">Select status</option>
+                            <option value="Serviceable">Serviceable</option>
+                            <option value="Unserviceable">Unserviceable</option>
+                        </select>
+                    </div>
+
+                    <!-- Ligne 5: WORK IN PROGRESS | LOG CARD MISSING -->
+                    <div class="form-group" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="batteryWorkInProgress">
+                            <span style="font-weight:600;color:#555;">🔧 Work in Progress</span>
+                        </label>
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="batteryLogCardMissing">
+                            <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
+                        </label>
+                    </div>
+
+                    <!-- COMMENTS pleine largeur -->
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="batteryComments" class="form-control" placeholder="Enter detailed comments..." rows="4"></textarea>
@@ -237,9 +295,13 @@
                     • 2Y: Calculates both 1Y and 2Y inspections (2Y includes 1Y)
                 </div>
                 
-                <div class="mt-20 text-center">
-                    <button type="submit" class="btn btn-success" style="padding: 15px 30px; font-size: 1.1em; font-weight: 600;">💾 SAVE BATTERY</button>
-                    <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px; padding: 15px 30px;">❌ Cancel</button>
+                <div class="mt-20">
+                    <button type="submit" class="btn btn-success">💾 Save Battery</button>
+                    <button type="button" onclick="hideAllForms()" class="btn" style="margin-left:15px;">❌ Cancel</button>
+                    <span style="margin-left:15px;">
+                        <button type="button" onclick="generateTagForCurrent('serviceable')" class="btn" style="background:#27ae60;color:white;">📄 Serviceable Tag</button>
+                        <button type="button" onclick="generateTagForCurrent('unserviceable')" class="btn" style="background:#e74c3c;color:white;margin-left:5px;">📄 Unserviceable Tag</button>
+                    </span>
                 </div>
             </form>
         </div>
@@ -251,38 +313,56 @@
             
             <form onsubmit="handleSonarSubmit(event)">
                 <div class="form-grid">
+                    <!-- Ligne 1: DESIGNATION | PART NUMBER | SERIAL NUMBER -->
                     <div class="form-group">
                         <label>Designation</label>
-                        <input type="text" id="sonarDesignation" class="form-control" placeholder="Auto-filled from P/N" readonly style="background: #f8f9fa;">
+                        <input type="text" id="sonarDesignation" class="form-control" placeholder="Auto-filled from P/N" readonly style="background:#f8f9fa;">
                     </div>
-                    
                     <div class="form-group required">
                         <label>Part Number (P/N)</label>
                         <input type="text" id="sonarPartNumber" class="form-control" placeholder="Enter part number" onchange="setSonarDynamicFields()" required>
                     </div>
-                    
                     <div class="form-group">
                         <label>Serial Number (S/N)</label>
                         <input type="text" id="sonarSerialNumber" class="form-control" placeholder="Enter serial number">
                     </div>
-                    
-                    <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="sonarWorkInProgress">
-                            Work in Progress
-                        </label>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Order</label>
-                        <input type="text" id="sonarOrder" class="form-control" placeholder="Enter order number">
-                    </div>
-                    
-                    <!-- Dynamic fields container -->
-                    <div id="sonarDynamicFields" style="grid-column: 1 / -1;">
+                    <div class="form-group"></div>
+
+                    <!-- Ligne 2: Dynamic inspection fields (populated by setSonarDynamicFields) -->
+                    <div id="sonarDynamicFields" style="grid-column: 1 / -1; display:grid; grid-template-columns: repeat(4,1fr); gap:16px;">
                         <!-- Will be populated dynamically based on P/N -->
                     </div>
-                    
+
+                    <!-- Ligne 3: FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM A/C -->
+                    <div class="form-group">
+                        <label>Flight Hours</label>
+                        <input type="text" id="sonarFlightHours" class="form-control" placeholder="Enter flight hours">
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Removal</label>
+                        <input type="date" id="sonarDateOfRemoval" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Remove from A/C</label>
+                        <input type="text" id="sonarRemoveFromHC" class="form-control" placeholder="A/C or stock">
+                    </div>
+                    <div class="form-group"></div>
+
+                    <!-- Ligne 4: WORK IN PROGRESS | LOG CARD MISSING -->
+                    <div class="form-group" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="sonarWorkInProgress">
+                            <span style="font-weight:600;color:#555;">🔧 Work in Progress</span>
+                        </label>
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="sonarLogCardMissing">
+                            <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
+                        </label>
+                    </div>
+
+                    <!-- COMMENTS pleine largeur -->
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="sonarComments" class="form-control" placeholder="Enter detailed comments..."></textarea>
@@ -299,7 +379,11 @@
                 
                 <div class="mt-20">
                     <button type="submit" class="btn btn-success">💾 Save Sonar</button>
-                    <button type="button" onclick="hideAllForms()" class="btn" style="margin-left: 15px;">❌ Cancel</button>
+                    <button type="button" onclick="hideAllForms()" class="btn" style="margin-left:15px;">❌ Cancel</button>
+                    <span style="margin-left:15px;">
+                        <button type="button" onclick="generateTagForCurrent('serviceable')" class="btn" style="background:#27ae60;color:white;">📄 Serviceable Tag</button>
+                        <button type="button" onclick="generateTagForCurrent('unserviceable')" class="btn" style="background:#e74c3c;color:white;margin-left:5px;">📄 Unserviceable Tag</button>
+                    </span>
                 </div>
             </form>
         </div>
@@ -316,30 +400,33 @@
                 <div class="card" style="background: #f8f9fa; margin-bottom: 25px;">
                     <h3 style="margin-bottom: 20px; color: #17a2b8;">Main Console Information</h3>
                     <div class="form-grid">
+                        <!-- Ligne 1: DESIGNATION | PART NUMBER | SERIAL NUMBER -->
                         <div class="form-group">
                             <label>Designation</label>
                             <input type="text" id="consoleDesignation" class="form-control" placeholder="Enter console designation">
                         </div>
-                        
                         <div class="form-group required">
                             <label>Part Number (P/N)</label>
                             <input type="text" id="consolePartNumber" class="form-control" placeholder="Enter console part number" required>
                         </div>
-                        
                         <div class="form-group">
                             <label>Serial Number (S/N)</label>
                             <input type="text" id="consoleSerialNumber" class="form-control" placeholder="Enter console serial number">
                         </div>
-                        
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label>Comments</label>
-                            <textarea id="consoleComments" class="form-control" placeholder="Enter detailed comments about the console..."></textarea>
-                        </div>
-                        <div class="form-group" style="grid-column: 1 / -1; display:flex; align-items:center; gap:10px;">
+                        <div class="form-group"></div>
+
+                        <!-- LOG CARD MISSING -->
+                        <div class="form-group" style="display:flex;align-items:center;">
                             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
                                 <input type="checkbox" id="logCardMissing_avionic" onchange="onLogCardMissing_avionic()">
                                 <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
                             </label>
+                        </div>
+
+                        <!-- COMMENTS pleine largeur -->
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Comments</label>
+                            <textarea id="consoleComments" class="form-control" placeholder="Enter detailed comments about the console..."></textarea>
                         </div>
                     </div>
                 </div>

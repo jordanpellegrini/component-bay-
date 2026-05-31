@@ -148,9 +148,14 @@
             <div id="formMessage"></div>
             <form onsubmit="handleSubmit(event)">
                 <div class="form-grid">
+                    <!-- Ligne 1: DESIGNATION | BRAND | PART NUMBER | BATCH NUMBER -->
                     <div class="form-group">
                         <label>Designation *</label>
                         <input type="text" id="designation" class="form-control" placeholder="e.g. Hydraulic Fluid" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Brand</label>
+                        <input type="text" id="brand" class="form-control" placeholder="Enter brand">
                     </div>
                     <div class="form-group">
                         <label>Part Number (P/N) *</label>
@@ -160,48 +165,31 @@
                         <label>Batch Number</label>
                         <input type="text" id="batchNumber" class="form-control" placeholder="Enter batch number">
                     </div>
+
+                    <!-- Ligne 2: MANUFACTURER / SHIPMENT DATE | EXPIRY DATE (auto +1Y) -->
                     <div class="form-group">
-                        <label>Expiry Date *</label>
-                        <input type="date" id="expiryDate" class="form-control" required>
+                        <label>Manufacturer / Shipment Date</label>
+                        <input type="date" id="manufactureDate" class="form-control" onchange="calculateExpiryDate()">
                     </div>
                     <div class="form-group">
-                        <label>Brand</label>
-                        <input type="text" id="brand" class="form-control" placeholder="Enter brand">
+                        <label>Expiry Date (auto +1Y)</label>
+                        <input type="date" id="expiryDate" class="form-control" style="background:#f8f9fa;" readonly>
                     </div>
+                    <div class="form-group"></div>
+                    <div class="form-group"></div>
+
+                    <!-- Ligne 3: ORDER | SR NUMBER -->
                     <div class="form-group">
                         <label>Order</label>
                         <input type="text" id="orderRef" class="form-control" placeholder="Enter order number">
                     </div>
-                    
                     <div class="form-group">
-                        <label>Flight Hours</label>
-                        <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
+                        <label>SR Number</label>
+                        <input type="text" id="srNumber" class="form-control" placeholder="SR number">
                     </div>
-                    <div class="form-group">
-                        <label>Date of Removal</label>
-                        <input type="date" id="dateOfRemoval" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Remove from A/C</label>
-                        <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
-                    </div>
-                    <div class="form-group">
-                        <label>JCN Number</label>
-                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN number">
-                    </div>
-                    <div class="form-group">
-                        <label>Book</label>
-                        <select id="jcnBook" class="form-control">
-                            <option value="">-- Select --</option>
-                            <option value="EFS Book">EFS Book</option>
-                            <option value="Engine Bay Book">Engine Bay Book</option>
-                            <option value="Rotor Bay Book">Rotor Bay Book</option>
-                            <option value="Component Bay Book">Component Bay Book</option>
-                            <option value="Wheel Book">Wheel Book</option>
-                            <option value="Avionic Book">Avionic Book</option>
-                        </select>
-                    </div>
-<div class="form-group" style="grid-column: 1 / -1;">
+
+                    <!-- COMMENTS pleine largeur -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="comments" class="form-control" rows="2"></textarea>
                     </div>
@@ -449,6 +437,8 @@
                 expiryDate: document.getElementById('expiryDate').value,
                 brand: document.getElementById('brand').value.trim(),
                 orderRef: document.getElementById('orderRef').value.trim(),
+                srNumber: document.getElementById('srNumber') ? document.getElementById('srNumber').value.trim() : '',
+                manufactureDate: document.getElementById('manufactureDate') ? document.getElementById('manufactureDate').value : '',
                 comments: document.getElementById('comments').value.trim(),
                 logCardMissing: document.getElementById('logCardMissing_pol') ? document.getElementById('logCardMissing_pol').checked : false,
                 flightHours: document.getElementById('flightHours').value.trim(),
@@ -644,6 +634,8 @@
             document.getElementById('expiryDate').value = '';
             document.getElementById('brand').value = '';
             document.getElementById('orderRef').value = '';
+            try { document.getElementById('srNumber').value = ''; } catch(e) {}
+            try { document.getElementById('manufactureDate').value = ''; } catch(e) {}
             document.getElementById('comments').value = '';
             document.getElementById('formTitle').textContent = '➕ Add POL Item';
         }

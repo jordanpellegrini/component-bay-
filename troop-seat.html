@@ -84,69 +84,40 @@
                 <input type="hidden" id="editId">
 
                 <div class="form-grid">
+                    <!-- Ligne 1: DESIGNATION | PART NUMBER | SERIAL NUMBER | H/C -->
                     <div class="form-group">
                         <label>Designation</label>
                         <input type="text" id="designation" class="form-control" placeholder="Enter designation">
                     </div>
-
+                    <div class="form-group required">
+                        <label>Part Number (P/N)</label>
+                        <input type="text" id="partNumber" class="form-control" placeholder="Enter part number" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Serial Number (S/N)</label>
+                        <input type="text" id="serialNumber" class="form-control" placeholder="Enter serial number">
+                    </div>
                     <div class="form-group">
                         <label>H/C</label>
                         <input type="text" id="troopHC" class="form-control" placeholder="A/C number or Spare">
                     </div>
 
-                    <div class="form-group required">
-                        <label>P/N</label>
-                        <input type="text" id="partNumber" class="form-control" placeholder="Enter part number" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>S/N</label>
-                        <input type="text" id="serialNumber" class="form-control" placeholder="Enter serial number">
-                    </div>
-
+                    <!-- Ligne 2: INSPECTION DATE | INTERVAL | NEXT INSPECTION -->
                     <div class="form-group required">
                         <label>Inspection Date</label>
                         <input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspection()" required>
                     </div>
-
                     <div class="form-group">
                         <label>Inspection Interval</label>
-                        <input type="text" id="inspectionInterval" class="form-control" value="3Y (3 Years)" readonly style="background: #f8f9fa;">
+                        <input type="text" id="inspectionInterval" class="form-control" value="3Y (3 Years)" readonly style="background:#f8f9fa;">
                     </div>
-
                     <div class="form-group">
                         <label>Next Inspection</label>
-                        <input type="date" id="nextInspection" class="form-control" style="background: #f8f9fa;">
+                        <input type="date" id="nextInspection" class="form-control" style="background:#f8f9fa;">
                     </div>
+                    <div class="form-group"></div>
 
-                    <div class="form-group">
-                        <label>Serviceability</label>
-                        <select id="serviceability" class="form-control">
-                            <option value="">Select status</option>
-                            <option value="Serviceable">Serviceable</option>
-                            <option value="Unserviceable">Unserviceable</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:8px;">
-                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
-                            <input type="checkbox" id="logCardMissing_troop_seat" onchange="onLogCardMissing_troop_seat()">
-                            <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="workInProgress">
-                            Work in Progress
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Order</label>
-                        <input type="text" id="order" class="form-control" placeholder="Enter order number">
-                    </div>
-
-                    
+                    <!-- Ligne 3: FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM A/C -->
                     <div class="form-group">
                         <label>Flight Hours</label>
                         <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
@@ -159,9 +130,20 @@
                         <label>Remove from A/C</label>
                         <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
                     </div>
+                    <div class="form-group"></div>
+
+                    <!-- Ligne 4: ORDER | SR NUMBER | JCN | BOOK | SERVICEABILITY -->
                     <div class="form-group">
+                        <label>Order</label>
+                        <input type="text" id="order" class="form-control" placeholder="Enter order number">
+                    </div>
+                    <div class="form-group">
+                        <label>SR Number</label>
+                        <input type="text" id="srNumber" class="form-control" placeholder="SR number">
+                    </div>
+                    <div class="form-group" style="max-width:120px;">
                         <label>JCN Number</label>
-                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN number">
+                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN" maxlength="3" style="width:90px;">
                     </div>
                     <div class="form-group">
                         <label>Book</label>
@@ -175,7 +157,31 @@
                             <option value="Avionic Book">Avionic Book</option>
                         </select>
                     </div>
-<div class="form-group" style="grid-column: 1 / -1;">
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <select id="serviceability" class="form-control">
+                            <option value="">Select status</option>
+                            <option value="Serviceable">Serviceable</option>
+                            <option value="Unserviceable">Unserviceable</option>
+                        </select>
+                    </div>
+
+                    <!-- Ligne 5: LOG CARD MISSING | WORK IN PROGRESS -->
+                    <div class="form-group" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="logCardMissing_troop_seat" onchange="onLogCardMissing_troop_seat()">
+                            <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
+                        </label>
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="workInProgress">
+                            <span style="font-weight:600;color:#555;">🔧 Work in Progress</span>
+                        </label>
+                    </div>
+
+                    <!-- COMMENTS pleine largeur -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="comments" class="form-control" placeholder="Enter comments..."></textarea>
                     </div>
@@ -422,6 +428,7 @@
                 removeFromHC: document.getElementById('removeFromHC').value.trim(),
                 hc: document.getElementById('troopHC').value.trim(),
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
+                srNumber: document.getElementById('srNumber') ? document.getElementById('srNumber').value.trim() : '',
                 jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
                 reason: '',
                 lastModified: new Date().toISOString(),
@@ -487,7 +494,8 @@
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
             try { document.getElementById('troopHC').value = ''; } catch(e) {}
-            try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
+            try { document.getElementById('jcnNumber').value = '';
+            try { document.getElementById('srNumber').value = ''; } catch(e) {} } catch(e) {}
             try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             document.getElementById('seatForm').reset();
             editingItem = null;
@@ -602,7 +610,8 @@
             document.getElementById('dateOfRemoval').value = editingItem.dateOfRemoval || '';
             document.getElementById('removeFromHC').value = editingItem.removeFromHC || '';
             try { document.getElementById('troopHC').value = editingItem.hc || ''; } catch(e) {}
-            try { document.getElementById('jcnNumber').value = editingItem.jcnNumber || ''; } catch(e) {}
+            try { document.getElementById('jcnNumber').value = editingItem.jcnNumber || '';
+            try { document.getElementById('srNumber').value = editingItem.srNumber || ''; } catch(e) {} } catch(e) {}
             try { document.getElementById('jcnBook').value = editingItem.jcnBook || ''; } catch(e) {}
             document.getElementById('addForm').classList.remove('hidden');
             document.getElementById('viewAllSection').classList.add('hidden');

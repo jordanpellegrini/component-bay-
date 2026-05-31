@@ -102,6 +102,11 @@
             <div id="formMessage"></div>
             <form onsubmit="handleSubmit(event)">
                 <div class="form-grid">
+                    <!-- Ligne 1: DESIGNATION | PART NUMBER | SERIAL NUMBER -->
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <input type="text" id="designation" class="form-control" readonly style="background:#f0f0f0;">
+                    </div>
                     <div class="form-group">
                         <label>Part Number (P/N) *</label>
                         <select id="partNumber" class="form-control" onchange="handlePNChange()" required>
@@ -110,17 +115,16 @@
                             <option value="S281M80A1005">S281M80A1005 (IAFT)</option>
                         </select>
                     </div>
-                    <div class="form-group"><label>Designation</label><input type="text" id="designation" class="form-control" readonly style="background: #f0f0f0;"></div>
-                    <div class="form-group"><label>Serial Number (S/N)</label><input type="text" id="serialNumber" class="form-control" placeholder="Enter S/N"></div>
                     <div class="form-group">
-                        <label>Serviceability</label>
-                        <select id="serviceability" class="form-control"><option value="Serviceable">Serviceable</option><option value="Unserviceable">Unserviceable</option></select>
+                        <label>Serial Number (S/N)</label>
+                        <input type="text" id="serialNumber" class="form-control" placeholder="Enter S/N">
                     </div>
-                    <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:8px;">
-                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
-                            <input type="checkbox" id="logCardMissing_iaft_eaft" onchange="onLogCardMissing_iaft_eaft()">
-                            <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
-                        </label>
+                    <div class="form-group"></div>
+
+                    <!-- Ligne 2: INSPECTION DATE | INSPECTION PERFORMED | NEXT 24M | NEXT 60M | NEXT 360M -->
+                    <div class="form-group">
+                        <label>Inspection Date</label>
+                        <input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspections()">
                     </div>
                     <div class="form-group">
                         <label>Inspection Performed *</label>
@@ -131,15 +135,24 @@
                             <option value="360M">360M — Full overhaul (includes 60M + 24M)</option>
                         </select>
                     </div>
-                    <div class="form-group"><label>Inspection Date</label><input type="date" id="inspectionDate" class="form-control" onchange="calculateNextInspections()"></div>
+                    <div class="form-group" id="next24MGroup">
+                        <label>Next 24M Inspection</label>
+                        <input type="date" id="next24M" class="form-control" style="background:#f8f9fa;">
+                    </div>
+                    <div class="form-group">
+                        <label>Next 60M Inspection</label>
+                        <input type="date" id="next60M" class="form-control" style="background:#f8f9fa;">
+                    </div>
+                    <div class="form-group">
+                        <label>Next 360M Inspection</label>
+                        <input type="date" id="next360M" class="form-control" style="background:#f8f9fa;">
+                    </div>
+
+                    <!-- Notes inspection (pleine largeur) -->
                     <div id="note60M" class="inspection-note" style="grid-column: 1 / -1;">⚠️ <strong>Per SCS §D:</strong> First action after <strong>60 months</strong> — Perform selective preservation (internal wall oiling). After 60M is done, 24M cycle starts (interface check every 24 months).</div>
                     <div id="status60MDone" class="status-60m-done hidden" style="grid-column: 1 / -1;">✅ <strong>24M cycle active</strong> — 60M date has been reached. Check all interfaces for condition and clean if necessary every 24 months.</div>
-                    <div class="form-group"><label>Next 60M Inspection</label><input type="date" id="next60M" class="form-control" style="background: #f8f9fa;"></div>
-                    <div class="form-group" id="next24MGroup"><label>Next 24M Inspection</label><input type="date" id="next24M" class="form-control" style="background: #f8f9fa;"></div>
-                    <div class="form-group"><label>Next 360M Inspection</label><input type="date" id="next360M" class="form-control" style="background: #f8f9fa;"></div>
-                    <div class="form-group"><label>Order</label><input type="text" id="orderRef" class="form-control" placeholder="Enter order number"></div>
-                    <div class="form-group"><label>Work In Progress</label><input type="checkbox" id="workInProgress"></div>
-                    
+
+                    <!-- Ligne 3: FLIGHT HOURS | DATE OF REMOVAL | REMOVE FROM A/C -->
                     <div class="form-group">
                         <label>Flight Hours</label>
                         <input type="text" id="flightHours" class="form-control" placeholder="Enter flight hours">
@@ -152,9 +165,20 @@
                         <label>Remove from A/C</label>
                         <input type="text" id="removeFromHC" class="form-control" placeholder="A/C or stock">
                     </div>
+                    <div class="form-group"></div>
+
+                    <!-- Ligne 4: ORDER | SR NUMBER | JCN | BOOK | SERVICEABILITY -->
                     <div class="form-group">
+                        <label>Order</label>
+                        <input type="text" id="orderRef" class="form-control" placeholder="Enter order number">
+                    </div>
+                    <div class="form-group">
+                        <label>SR Number</label>
+                        <input type="text" id="srNumber" class="form-control" placeholder="SR number">
+                    </div>
+                    <div class="form-group" style="max-width:120px;">
                         <label>JCN Number</label>
-                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN number">
+                        <input type="text" id="jcnNumber" class="form-control" placeholder="JCN" maxlength="3" style="width:90px;">
                     </div>
                     <div class="form-group">
                         <label>Book</label>
@@ -168,7 +192,33 @@
                             <option value="Avionic Book">Avionic Book</option>
                         </select>
                     </div>
-<div class="form-group" style="grid-column: 1 / -1;"><label>Comments</label><textarea id="comments" class="form-control" rows="2"></textarea></div>
+                    <div class="form-group">
+                        <label>Serviceability</label>
+                        <select id="serviceability" class="form-control">
+                            <option value="Serviceable">Serviceable</option>
+                            <option value="Unserviceable">Unserviceable</option>
+                        </select>
+                    </div>
+
+                    <!-- Ligne 5: LOG CARD MISSING | WORK IN PROGRESS -->
+                    <div class="form-group" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="logCardMissing_iaft_eaft" onchange="onLogCardMissing_iaft_eaft()">
+                            <span style="font-weight:600;color:#e74c3c;">⚠️ Log Card Missing</span>
+                        </label>
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="workInProgress">
+                            <span style="font-weight:600;color:#555;">🔧 Work in Progress</span>
+                        </label>
+                    </div>
+
+                    <!-- COMMENTS pleine largeur -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Comments</label>
+                        <textarea id="comments" class="form-control" rows="2"></textarea>
+                    </div>
                 </div>
                 <div class="mt-20">
                     <button type="submit" class="btn btn-success">💾 Save</button>
@@ -427,6 +477,7 @@
                 dateOfRemoval: document.getElementById('dateOfRemoval').value,
                 removeFromHC: document.getElementById('removeFromHC').value.trim(),
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
+                srNumber: document.getElementById('srNumber') ? document.getElementById('srNumber').value.trim() : '',
                 jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
                 lastModified: new Date().toISOString(), modifiedBy: currentUser
             };
@@ -552,7 +603,8 @@
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
-            try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
+            try { document.getElementById('jcnNumber').value = '';
+            try { document.getElementById('srNumber').value = ''; } catch(e) {} } catch(e) {}
             try { document.getElementById('jcnBook').value = ''; } catch(e) {}
         }
 
