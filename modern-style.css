@@ -383,7 +383,7 @@ body {
 .panel-body { padding: 18px; }
 
 /* Forms */
-.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
 .form-group { display: flex; flex-direction: column; }
 .form-group label { font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
 .form-group.required label::after { content: ' *'; color: var(--red); }
