@@ -993,7 +993,7 @@
                 designation: 'Life Raft', // Always fixed
                 partNumber: partNumber,
                 serialNumber: document.getElementById('liferaftSerialNumber').value.trim(),
-                order: document.getElementById('liferaftOrder').value.trim(),
+                order: document.getElementById('orderRef') ? document.getElementById('orderRef').value.trim() : '',
                 workInProgress: document.getElementById('liferaftWorkInProgress').checked,
                 inspectionDate: document.getElementById('inspectionDate').value,
                 inspectionInterval: '12', // Always 12 months
