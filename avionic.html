@@ -409,7 +409,11 @@
                         </div>
                         <div class="form-group required">
                             <label>Part Number (P/N)</label>
-                            <input type="text" id="consolePartNumber" class="form-control" placeholder="Enter console part number" required>
+                            <select id="consolePartNumber" class="form-control" onchange="handleConsolePNChange()" required>
+                                <option value="">-- Select P/N --</option>
+                                <option value="N925G1622104">N925G1622104</option>
+                                <option value="S252C30T1004">S252C30T1004</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Serial Number (S/N)</label>
@@ -437,6 +441,7 @@
                 <div class="card" style="background: #f8f9fa; margin-bottom: 25px;">
                     <h3 style="margin-bottom: 20px; color: #17a2b8;">Console Sub-Components</h3>
                     <p style="color: #666; margin-bottom: 20px;">Fixed designations (admin only can modify)</p>
+                    <div id="consoleSubComponentsTitle" style="display:none;font-weight:600;color:#17a2b8;margin:12px 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Sub Components</div>
                     <div id="consoleSubComponents"></div>
                 </div>
                 
@@ -490,7 +495,50 @@
         let editingItem = null;
         let currentConsoleId = null;
 
-        const consoleSubComponents = ['TDU', 'DKU', 'MFD', 'CCU', 'MHCU', 'Control Panel', 'Light'];
+        const CONSOLE_DEFS = {
+            'N925G1622104': {
+                designation: 'Console NFH',
+                subItems: [
+                    { designation: 'TDU',           pn: '' },
+                    { designation: 'DKU',           pn: '' },
+                    { designation: 'MFD',           pn: '' },
+                    { designation: 'CCU',           pn: '' },
+                    { designation: 'MHCU',          pn: '' },
+                    { designation: 'Control Panel', pn: '' },
+                    { designation: 'Light',         pn: '' },
+                ]
+            },
+            'S252C30T1004': {
+                designation: 'Console TTH',
+                subItems: [
+                    { designation: 'DHCU',         pn: 'N936G20A4001' },
+                    { designation: 'Cable DHCU',   pn: 'N936G20A5001' },
+                    { designation: 'Light LH Green', pn: '706AS6840002' },
+                    { designation: 'Light RH White', pn: '706AS6840001' },
+                    { designation: 'Display Unit', pn: 'S252C30T1002' },
+                ]
+            }
+        };
+        let consoleSubComponents = []; // will be set dynamically
+        
+        function handleConsolePNChange() {
+            const pn = document.getElementById('consolePartNumber').value;
+            const desigField = document.getElementById('consoleDesignation');
+            const subContainer = document.getElementById('consoleSubComponents');
+            
+            if (CONSOLE_DEFS[pn]) {
+                const def = CONSOLE_DEFS[pn];
+                desigField.value = def.designation;
+                consoleSubComponents = def.subItems.map(s => s.designation);
+                generateConsoleSubComponents(def.subItems);
+                document.getElementById('consoleSubComponentsTitle').style.display = 'block';
+            } else {
+                desigField.value = '';
+                consoleSubComponents = [];
+                subContainer.innerHTML = '';
+                document.getElementById('consoleSubComponentsTitle').style.display = 'none';
+            }
+        }
 
         // Wait for ComponentsBayDB to be available (loaded as module)
         function waitForDB(maxWait = 3000) {
@@ -1117,30 +1165,31 @@
             document.getElementById('sonarDesignation').value = '';
         }
 
-        function generateConsoleSubComponents() {
+        function generateConsoleSubComponents(subItems) {
             const container = document.getElementById('consoleSubComponents');
             container.innerHTML = '';
+            if (!subItems || subItems.length === 0) return;
             
-            consoleSubComponents.forEach((component, index) => {
+            subItems.forEach((item, index) => {
                 const div = document.createElement('div');
                 div.className = 'form-grid';
-                div.style.marginBottom = '15px';
+                div.style.marginBottom = '10px';
                 div.innerHTML = `
                     <div class="form-group">
-                        <label style="font-weight: 600; color: #17a2b8;">${component}</label>
-                        <div style="color: #666; font-size: 0.9em; background: #f0f0f0; padding: 8px; border-radius: 4px;">Fixed designation</div>
+                        <label style="font-weight:600;color:#17a2b8;">${item.designation}</label>
+                        <div style="color:#666;font-size:0.9em;background:#f0f0f0;padding:7px 10px;border-radius:4px;">${item.designation}</div>
                     </div>
                     <div class="form-group">
                         <label>P/N</label>
-                        <input type="text" name="console_pn_${index}" class="form-control" placeholder="Enter part number">
+                        <input type="text" name="console_pn_${index}" class="form-control" placeholder="Enter part number" value="${item.pn || ''}">
                     </div>
                     <div class="form-group">
                         <label>S/N</label>
                         <input type="text" name="console_sn_${index}" class="form-control" placeholder="Enter serial number">
                     </div>
-                    <div class="form-group" style="display: flex; align-items: center; padding-top: 24px;">
-                        <label style="display: flex; align-items: center; gap: 8px; margin: 0; color: #ff4757; font-weight: 600;">
-                            <input type="checkbox" name="console_missing_${index}" onchange="checkConsoleMissing()" style="width: 20px; height: 20px;">
+                    <div class="form-group" style="display:flex;align-items:center;padding-top:24px;">
+                        <label style="display:flex;align-items:center;gap:8px;margin:0;color:#ff4757;font-weight:600;">
+                            <input type="checkbox" name="console_missing_${index}" onchange="checkConsoleMissing()" style="width:18px;height:18px;">
                             Missing
                         </label>
                     </div>
@@ -1271,6 +1320,9 @@
             try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             document.getElementById('consoleDesignation').value = '';
             document.getElementById('consolePartNumber').value = '';
+            consoleSubComponents = [];
+            document.getElementById('consoleSubComponents').innerHTML = '';
+            try { document.getElementById('consoleSubComponentsTitle').style.display = 'none'; } catch(e) {}
             document.getElementById('consoleSerialNumber').value = '';
             document.getElementById('consoleComments').value = '';
             document.getElementById('editConsoleId').value = '';
