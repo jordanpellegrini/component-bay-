@@ -1001,6 +1001,8 @@
                 serialNumber: document.getElementById('liferaftSerialNumber').value.trim(),
                 order: document.getElementById('orderRef') ? document.getElementById('orderRef').value.trim() : '',
                 workInProgress: document.getElementById('liferaftWorkInProgress').checked,
+                sentToWarehouse: document.getElementById('sentToWarehouse') ? document.getElementById('sentToWarehouse').checked : false,
+                logcardUrl: _currentEditingForLogcard ? (_currentEditingForLogcard.logcardUrl || '') : (editingLifeRaft ? (editingLifeRaft.logcardUrl || '') : ''),
                 inspectionDate: document.getElementById('inspectionDate').value,
                 inspectionInterval: '12', // Always 12 months
                 nextInspection: document.getElementById('nextInspection').value,

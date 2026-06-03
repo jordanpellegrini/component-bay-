@@ -487,6 +487,8 @@
                 next60M: document.getElementById('next60M').value, next360M: document.getElementById('next360M').value,
                 orderRef: document.getElementById('orderRef').value.trim(),
                 workInProgress: document.getElementById('workInProgress').checked,
+                sentToWarehouse: document.getElementById('sentToWarehouse') ? document.getElementById('sentToWarehouse').checked : false,
+                logcardUrl: _currentEditingForLogcard ? (_currentEditingForLogcard.logcardUrl || '') : (item ? (item.logcardUrl || '') : ''),
                 comments: document.getElementById('comments').value.trim(),
                 logCardMissing: document.getElementById('logCardMissing_iaft_eaft') ? document.getElementById('logCardMissing_iaft_eaft').checked : false,
                 flightHours: document.getElementById('flightHours').value.trim(),

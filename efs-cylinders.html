@@ -591,6 +591,8 @@
                 order: document.getElementById('efsOrder').value.trim(),
                 serviceability: document.getElementById('efsServiceability').value || 'Serviceable',
                 workInProgress: document.getElementById('efsWorkInProgress').checked,
+                sentToWarehouse: document.getElementById('sentToWarehouse') ? document.getElementById('sentToWarehouse').checked : false,
+                logcardUrl: _currentEditingForLogcard ? (_currentEditingForLogcard.logcardUrl || '') : (editingEFS ? (editingEFS.logcardUrl || '') : ''),
                 inspectionDate: document.getElementById('inspectionDate').value,
                 inspectionInterval: document.getElementById('inspectionInterval').value,
                 next18M: document.getElementById('next18M').value,

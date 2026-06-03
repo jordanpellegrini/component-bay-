@@ -436,6 +436,8 @@
                 nextInspection: document.getElementById('nextInspection').value,
                 serviceability: document.getElementById('serviceability').value || 'Serviceable',
                 workInProgress: document.getElementById('workInProgress').checked,
+                sentToWarehouse: document.getElementById('sentToWarehouse') ? document.getElementById('sentToWarehouse').checked : false,
+                logcardUrl: _currentEditingForLogcard ? (_currentEditingForLogcard.logcardUrl || '') : (editingItem ? (editingItem.logcardUrl || '') : ''),
                 order: document.getElementById('order').value.trim(),
                 comments: document.getElementById('comments').value.trim(),
                 logCardMissing: document.getElementById('logCardMissing_troop_seat') ? document.getElementById('logCardMissing_troop_seat').checked : false,

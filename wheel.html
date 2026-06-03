@@ -622,6 +622,8 @@
                 serviceability: document.getElementById('serviceability').value || 'Serviceable',
                 order: document.getElementById('order').value.trim(),
                 workInProgress: document.getElementById('workInProgress').checked,
+                sentToWarehouse: document.getElementById('sentToWarehouse') ? document.getElementById('sentToWarehouse').checked : false,
+                logcardUrl: _currentEditingForLogcard ? (_currentEditingForLogcard.logcardUrl || '') : (editingItem ? (editingItem.logcardUrl || '') : ''),
                 eddyCurrentCout: document.getElementById('eddyCurrentCout').checked,
                 comments: document.getElementById('comments').value.trim(),
                 logCardMissing: document.getElementById('logCardMissing_wheel') ? document.getElementById('logCardMissing_wheel').checked : false,

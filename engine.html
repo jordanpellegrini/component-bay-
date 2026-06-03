@@ -495,6 +495,8 @@
                 serviceability: document.getElementById('serviceability').value || 'Serviceable',
                 orderRef: document.getElementById('orderRef').value.trim(),
                 workInProgress: document.getElementById('workInProgress').checked,
+                sentToWarehouse: document.getElementById('sentToWarehouse') ? document.getElementById('sentToWarehouse').checked : false,
+                logcardUrl: _currentEditingForLogcard ? (_currentEditingForLogcard.logcardUrl || '') : (editingItem ? (editingItem.logcardUrl || '') : ''),
                 comments: document.getElementById('comments').value.trim(),
                 logCardMissing: document.getElementById('logCardMissing_engine') ? document.getElementById('logCardMissing_engine').checked : false,
                 flightHours: document.getElementById('flightHours').value.trim(),
