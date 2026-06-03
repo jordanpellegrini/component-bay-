@@ -77,7 +77,26 @@
 
         <!-- Add/Edit Form -->
         <div id="addForm" class="card hidden">
-            <h2 style="margin-bottom: 25px;">Add / Edit Troop Seat</h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:25px;">
+                <h2 style="margin:0;">Add / Edit Troop Seat</h2>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <div id="logcardBtnZone" style="display:none;">
+                        <a id="logcardViewBtn" href="#" target="_blank" style="text-decoration:none;">
+                            <button type="button" style="background:#17a2b8;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">📄 Log Card</button>
+                        </a>
+                        <label style="margin-left:8px;cursor:pointer;">
+                            <input type="file" id="logcardFileInput" accept=".pdf" style="display:none;" onchange="uploadLogcard(this)">
+                            <span style="background:#6c757d;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">⬆ Replace</span>
+                        </label>
+                    </div>
+                    <div id="logcardUploadZone" style="display:none;">
+                        <label style="cursor:pointer;">
+                            <input type="file" id="logcardFileInput2" accept=".pdf" style="display:none;" onchange="uploadLogcard(this)">
+                            <span style="background:#17a2b8;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">📄 Add Log Card</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div id="formMessage" class="hidden"></div>
 
             <form id="seatForm" onsubmit="handleFormSubmit(event)">
@@ -153,7 +172,7 @@
                     </div>
                     <div class="form-group">
                         <label>Serviceability</label>
-                        <select id="serviceability" class="form-control">
+                        <select id="serviceability" class="form-control" onchange="showWarehouseCheckbox(this.value)">
                             <option value="">Select status</option>
                             <option value="Serviceable">Serviceable</option>
                             <option value="Unserviceable">Unserviceable</option>
@@ -170,6 +189,12 @@
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
                             <input type="checkbox" id="workInProgress">
                             <span style="font-weight:600;color:#555;">🔧 Work in Progress</span>
+                        </label>
+                    </div>
+                    <div class="form-group" id="warehouseCheckGroup" style="display:none;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="sentToWarehouse">
+                            <span style="font-weight:600;color:#e67e22;">📦 Send to Warehouse</span>
                         </label>
                     </div>
                     <div class="form-group" style="grid-column: 1 / -1;">
@@ -365,7 +390,7 @@
         function updateSummary() {
             updateUpcoming90();
             const s = seatData.filter(i => i.serviceability === 'Serviceable').length;
-            const u = seatData.filter(i => i.serviceability === 'Unserviceable').length;
+            const u = seatData.filter(item => !item.sentToWarehouse).filter(i => !i.sentToWarehouse && i.serviceability === 'Unserviceable').length;
             document.getElementById('serviceableCount').textContent = s;
             document.getElementById('unserviceableCount').textContent = u;
             document.getElementById('totalCount').textContent = seatData.length;
@@ -373,7 +398,7 @@
         }
 
         function updateUnserviceableSection() {
-            const items = seatData.filter(i => i.serviceability === 'Unserviceable');
+            const items = seatData.filter(item => !item.sentToWarehouse).filter(i => !i.sentToWarehouse && i.serviceability === 'Unserviceable');
             const container = document.getElementById('unserviceableTable');
             document.getElementById('unserviceableBadge').textContent = items.length;
 
@@ -592,7 +617,9 @@
             document.getElementById('serialNumber').value = editingItem.serialNumber || '';
             document.getElementById('inspectionDate').value = editingItem.inspectionDate || '';
             document.getElementById('nextInspection').value = editingItem.nextInspection || '';
-            document.getElementById('serviceability').value = editingItem.serviceability || '';
+            document.getElementById('serviceability').value = editingItem.serviceability
+            _currentEditingForLogcard = editingItem;
+            try { document.getElementById('sentToWarehouse').checked = editingItem.sentToWarehouse || false; showWarehouseCheckbox(editingItem.serviceability || ''); updateLogcardBtn(editingItem.logcardUrl || null); } catch(e) {} || '';
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('order').value = editingItem.order || '';
             document.getElementById('comments').value = editingItem.comments || '';
@@ -913,6 +940,51 @@ Respond in the same language as the user. Be concise.`;
         document.getElementById('claudeSendBtn').disabled = false;
         document.getElementById('claudeInput').focus();
     }
+        // ── WAREHOUSE ─────────────────────────────────────────────────────────────────
+        let _currentEditingForLogcard = null;
+
+        function showWarehouseCheckbox(svcValue) {
+            const grp = document.getElementById('warehouseCheckGroup');
+            if (grp) grp.style.display = (svcValue === 'Unserviceable') ? 'flex' : 'none';
+            if (svcValue !== 'Unserviceable') {
+                const cb = document.getElementById('sentToWarehouse');
+                if (cb) cb.checked = false;
+            }
+        }
+        // ── END WAREHOUSE ──────────────────────────────────────────────────────────────
+
+        // ── LOGCARD (title-based, like Life Raft) ─────────────────────────────────────
+        function updateLogcardBtn(url) {
+            const btnZone = document.getElementById('logcardBtnZone');
+            const uploadZone = document.getElementById('logcardUploadZone');
+            if (!btnZone || !uploadZone) return;
+            if (url) {
+                document.getElementById('logcardViewBtn').href = url;
+                btnZone.style.display = 'flex';
+                uploadZone.style.display = 'none';
+            } else {
+                btnZone.style.display = 'none';
+                uploadZone.style.display = _currentEditingForLogcard ? 'block' : 'none';
+            }
+        }
+
+        async function uploadLogcard(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            if (!_currentEditingForLogcard) { alert('Save the item first before adding a log card.'); input.value=''; return; }
+            try {
+                const result = await window.ComponentsBayDB.uploadPDF(file);
+                _currentEditingForLogcard.logcardUrl = result.downloadURL;
+                updateLogcardBtn(result.downloadURL);
+                alert('Log card uploaded successfully!');
+            } catch(e) {
+                alert('Upload error: ' + e.message);
+            }
+            input.value = '';
+        }
+        // ── END LOGCARD ───────────────────────────────────────────────────────────────
+
+
 </script>
 
 </body>

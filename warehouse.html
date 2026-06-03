@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse — Components Bay</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <style>
+        .warehouse-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+        .module-badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; background:#2c3e50; color:#fff; }
+        .warehouse-table { width:100%; border-collapse:collapse; font-size:13px; }
+        .warehouse-table th { background:var(--bg-secondary); color:var(--text-secondary); font-size:10px; text-transform:uppercase; letter-spacing:.05em; padding:10px 12px; border-bottom:2px solid var(--border); text-align:left; }
+        .warehouse-table td { padding:10px 12px; border-bottom:1px solid var(--border); color:var(--text-primary); vertical-align:middle; }
+        .warehouse-table tr:hover td { background:var(--bg-secondary); }
+        .btn-restore { background:#27ae60; color:#fff; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:12px; }
+        .btn-restore:hover { background:#219a52; }
+        .empty-state { text-align:center; padding:60px 20px; color:var(--text-secondary); }
+        .filter-bar { display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+        .filter-bar select, .filter-bar input { padding:6px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; background:var(--bg-primary); color:var(--text-primary); }
+        .count-badge { background:var(--accent); color:#fff; border-radius:12px; padding:2px 8px; font-size:12px; font-weight:600; margin-left:8px; }
+        .logcard-btn { background:#17a2b8; color:#fff; border:none; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:11px; text-decoration:none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="warehouse-header">
+        <div>
+            <h1 style="margin:0;font-size:22px;">📦 Warehouse</h1>
+            <p style="margin:4px 0 0;color:var(--text-secondary);font-size:13px;">Unserviceable parts sent to warehouse — all modules</p>
+        </div>
+        <a href="index.html" class="btn" style="font-size:13px;">← Back to Main</a>
+    </div>
+
+    <div class="card">
+        <div class="filter-bar">
+            <select id="filterModule" onchange="applyFilters()">
+                <option value="">All modules</option>
+                <option value="EFS">EFS</option>
+                <option value="EFS Cylinders">EFS Cylinders</option>
+                <option value="Life Raft">Life Raft</option>
+                <option value="Wheel">Wheel</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Composite">Composite</option>
+                <option value="Engine">Engine</option>
+                <option value="Rotor Bay">Rotor Bay</option>
+                <option value="Troop Seat">Troop Seat</option>
+                <option value="IAFT/EAFT">IAFT/EAFT</option>
+            </select>
+            <input type="text" id="filterSearch" placeholder="Search P/N, S/N, designation..." oninput="applyFilters()" style="min-width:220px;">
+            <span id="countBadge" class="count-badge">0</span>
+        </div>
+
+        <div id="warehouseContent">
+            <div class="empty-state">⏳ Loading...</div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SUPABASE_URL = 'https://nwidtkiteamvnomewjux.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im53aWR0a2l0ZWFtdm5vbWV3anV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMTM3MDAsImV4cCI6MjA4Njg4OTcwMH0.fvKwq5B8Bdr2Hv67yvB6JRKA2Gu3xTIEgPmcmJj0nvI';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TABLES = [
+    { table: 'efs',         label: 'EFS' },
+    { table: 'efscylinders',label: 'EFS Cylinders' },
+    { table: 'liferafts',   label: 'Life Raft' },
+    { table: 'wheels',      label: 'Wheel' },
+    { table: 'maintenance', label: 'Maintenance' },
+    { table: 'composite',   label: 'Composite' },
+    { table: 'engine',      label: 'Engine' },
+    { table: 'rotorbay',    label: 'Rotor Bay' },
+    { table: 'troopseats',  label: 'Troop Seat' },
+    { table: 'iafteaft',    label: 'IAFT/EAFT' },
+];
+
+let allItems = [];
+
+async function loadAll() {
+    allItems = [];
+    for (const t of TABLES) {
+        try {
+            const { data, error } = await sb.from(t.table).select('*');
+            if (error || !data) continue;
+            for (const row of data) {
+                const d = row.data || {};
+                if (d.sentToWarehouse === true) {
+                    allItems.push({
+                        id: row.id,
+                        table: t.table,
+                        moduleLabel: t.label,
+                        designation: d.designation || d.description || '',
+                        partNumber: d.partNumber || d.pnWheel || d.pnTire || '',
+                        serialNumber: d.serialNumber || '',
+                        reason: d.reason || '',
+                        logcardUrl: d.logcardUrl || '',
+                        sentDate: row.updated_at || row.created_at || '',
+                        _raw: d,
+                    });
+                }
+            }
+        } catch(e) { console.warn(`Error loading ${t.table}:`, e); }
+    }
+    renderTable(allItems);
+}
+
+window.applyFilters = function() {
+    const mod = document.getElementById('filterModule').value;
+    const search = document.getElementById('filterSearch').value.toLowerCase();
+    const filtered = allItems.filter(item => {
+        const matchMod = !mod || item.moduleLabel === mod;
+        const matchSearch = !search ||
+            (item.designation||'').toLowerCase().includes(search) ||
+            (item.partNumber||'').toLowerCase().includes(search) ||
+            (item.serialNumber||'').toLowerCase().includes(search);
+        return matchMod && matchSearch;
+    });
+    renderTable(filtered);
+};
+
+window.restoreItem = async function(id, table) {
+    if (!confirm('Restore this item from warehouse?')) return;
+    try {
+        const { data: row } = await sb.from(table).select('*').eq('id', id).single();
+        if (!row) return;
+        const d = { ...(row.data || {}), sentToWarehouse: false };
+        await sb.from(table).update({ data: d }).eq('id', id);
+        await loadAll();
+    } catch(e) { alert('Error: ' + e.message); }
+};
+
+function renderTable(items) {
+    document.getElementById('countBadge').textContent = items.length;
+    const el = document.getElementById('warehouseContent');
+    if (items.length === 0) {
+        el.innerHTML = '<div class="empty-state">📭 No items in warehouse</div>';
+        return;
+    }
+    const rows = items.map(item => {
+        const date = item.sentDate ? new Date(item.sentDate).toLocaleDateString('fr-FR') : '-';
+        const logcard = item.logcardUrl
+            ? `<a href="${item.logcardUrl}" target="_blank" class="logcard-btn">📄 Log Card</a>`
+            : '<span style="color:#aaa;font-size:11px;">—</span>';
+        return `<tr>
+            <td><span class="module-badge">${item.moduleLabel}</span></td>
+            <td>${item.designation || '—'}</td>
+            <td style="font-family:monospace;font-size:12px;">${item.partNumber || '—'}</td>
+            <td style="font-family:monospace;font-size:12px;">${item.serialNumber || '—'}</td>
+            <td>${item.reason || '—'}</td>
+            <td>${logcard}</td>
+            <td style="color:var(--text-secondary);font-size:12px;">${date}</td>
+            <td><button class="btn-restore" onclick="restoreItem('${item.id}','${item.table}')">↩ Restore</button></td>
+        </tr>`;
+    }).join('');
+
+    el.innerHTML = `<table class="warehouse-table">
+        <thead><tr>
+            <th>Module</th><th>Designation</th><th>P/N</th><th>S/N</th>
+            <th>Reason</th><th>Log Card</th><th>Date</th><th>Action</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+}
+
+loadAll();
+</script>
+</body>
+</html>

@@ -279,7 +279,7 @@
                         </div>
                         <div class="form-group">
                             <label>Serviceability</label>
-                            <select id="liferaftServiceability" class="form-control" onchange="onSvcChange()">
+                            <select id="liferaftServiceability" class="form-control" onchange="onSvcChange(); showWarehouseCheckbox(this.value);">
                                 <option value="Serviceable">✅ Serviceable</option>
                                 <option value="Unserviceable">❌ Unserviceable</option>
                             </select>
@@ -313,7 +313,13 @@
                         </div>
 
                         <!-- Ligne 5: COMMENTS (pleine largeur) -->
-                        <div class="form-group" style="grid-column: 1 / -1;">
+                    <div class="form-group" id="warehouseCheckGroup" style="display:none;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="sentToWarehouse">
+                            <span style="font-weight:600;color:#e67e22;">📦 Send to Warehouse</span>
+                        </label>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
                             <label>Comments</label>
                             <textarea id="liferaftComments" class="form-control" placeholder="Enter detailed comments about the life raft..."></textarea>
                         </div>
@@ -580,7 +586,7 @@
             checkOverdueItems();
             
             const serviceable = liferaftData.filter(item => item.serviceability === 'Serviceable').length;
-            const unserviceable = liferaftData.filter(item => item.serviceability === 'Unserviceable').length;
+            const unserviceable = liferaftData.filter(item => !item.sentToWarehouse).filter(item => item.serviceability === 'Unserviceable').length;
             
             document.getElementById('serviceableCount').textContent = serviceable;
             document.getElementById('unserviceableCount').textContent = unserviceable;
@@ -1047,7 +1053,9 @@
             document.getElementById('orderRef').value = '';
             try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = ''; } catch(e) {}
-            try { document.getElementById('liferaftServiceability').value = 'Serviceable'; } catch(e) {}
+            try { document.getElementById('liferaftServiceability').value = 'Serviceable';
+            _currentEditingForLogcard = null;
+            try { document.getElementById('sentToWarehouse').checked = false; showWarehouseCheckbox(''); } catch(e) {}
             try { document.getElementById('liferaftReason').value = ''; } catch(e) {}
             try { document.getElementById('logCardMissing').checked = false; } catch(e) {}
             try { document.getElementById('lifeRaftMissing').checked = false; } catch(e) {}
@@ -1317,6 +1325,7 @@
 
             // Logcard button
             updateLogcardBtn(editingLifeRaft.logcardUrl || null);
+            try { document.getElementById('sentToWarehouse').checked = editingLifeRaft.sentToWarehouse || false; showWarehouseCheckbox(editingLifeRaft.serviceability || ''); } catch(e) {}
             showAddLifeRaft();
             closeModal();
             checkExpiryDates();
@@ -2161,7 +2170,15 @@ Respond in the same language as the user. Be concise.`;
             setTimeout(() => URL.revokeObjectURL(url), 1000);
             if (typeof showMessage === 'function') showMessage('Log Card PDF downloaded', 'success', 'liferaftMessage');
         }
-    </script>
+
+
+        function showWarehouseCheckbox(svcValue) {
+            const grp = document.getElementById('warehouseCheckGroup');
+            if (grp) grp.style.display = (svcValue === 'Unserviceable') ? 'flex' : 'none';
+            if (svcValue !== 'Unserviceable') { const cb = document.getElementById('sentToWarehouse'); if (cb) cb.checked = false; }
+        }
+
+</script>
 
 </body>
 </html>

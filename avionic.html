@@ -80,7 +80,26 @@
 
         <!-- Add Items Form -->
         <div id="addItemsForm" class="card hidden">
-            <h2 style="margin-bottom: 25px;">Add Items</h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:25px;">
+                <h2 style="margin:0;">Add Items</h2>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <div id="logcardBtnZone_items" style="display:none;">
+                        <a id="logcardViewBtn_items" href="#" target="_blank" style="text-decoration:none;">
+                            <button type="button" style="background:#17a2b8;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">📄 Log Card</button>
+                        </a>
+                        <label style="margin-left:8px;cursor:pointer;">
+                            <input type="file" id="logcardFile_items" accept=".pdf" style="display:none;" onchange="uploadAvionicLogcard(this,'items')">
+                            <span style="background:#6c757d;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">⬆ Replace</span>
+                        </label>
+                    </div>
+                    <div id="logcardUploadZone_items" style="display:none;">
+                        <label style="cursor:pointer;">
+                            <input type="file" id="logcardFile2_items" accept=".pdf" style="display:none;" onchange="uploadAvionicLogcard(this,'items')">
+                            <span style="background:#17a2b8;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">📄 Add Log Card</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div id="itemsMessage" class="hidden"></div>
             
             <form onsubmit="handleItemsSubmit(event)">
@@ -160,6 +179,12 @@
                     </div>
 
                     <!-- COMMENTS pleine largeur -->
+                                        <div class="form-group" id="warehouseCheckGroup_items" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="sentToWarehouse_items">
+                            <span style="font-weight:600;color:#e67e22;">📦 Send to Warehouse</span>
+                        </label>
+                    </div>
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="itemsComments" class="form-control" placeholder="Enter detailed comments..."></textarea>
@@ -179,7 +204,26 @@
 
         <!-- Add Battery Form -->
         <div id="addBatteryForm" class="card hidden">
-            <h2 style="margin-bottom: 25px;">Add Battery</h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:25px;">
+                <h2 style="margin:0;">Add Battery</h2>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <div id="logcardBtnZone_battery" style="display:none;">
+                        <a id="logcardViewBtn_battery" href="#" target="_blank" style="text-decoration:none;">
+                            <button type="button" style="background:#17a2b8;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">📄 Log Card</button>
+                        </a>
+                        <label style="margin-left:8px;cursor:pointer;">
+                            <input type="file" id="logcardFile_battery" accept=".pdf" style="display:none;" onchange="uploadAvionicLogcard(this,'battery')">
+                            <span style="background:#6c757d;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">⬆ Replace</span>
+                        </label>
+                    </div>
+                    <div id="logcardUploadZone_battery" style="display:none;">
+                        <label style="cursor:pointer;">
+                            <input type="file" id="logcardFile2_battery" accept=".pdf" style="display:none;" onchange="uploadAvionicLogcard(this,'battery')">
+                            <span style="background:#17a2b8;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">📄 Add Log Card</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div id="batteryMessage" class="hidden"></div>
             
             <form onsubmit="handleBatterySubmit(event)">
@@ -285,6 +329,12 @@
                     </div>
 
                     <!-- COMMENTS pleine largeur -->
+                                        <div class="form-group" id="warehouseCheckGroup_battery" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="sentToWarehouse_battery">
+                            <span style="font-weight:600;color:#e67e22;">📦 Send to Warehouse</span>
+                        </label>
+                    </div>
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="batteryComments" class="form-control" placeholder="Enter detailed comments..." rows="4"></textarea>
@@ -310,7 +360,26 @@
 
         <!-- Add Sonar Form -->
         <div id="addSonarForm" class="card hidden">
-            <h2 style="margin-bottom: 25px;">Add Sonar</h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:25px;">
+                <h2 style="margin:0;">Add Sonar</h2>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <div id="logcardBtnZone_sonar" style="display:none;">
+                        <a id="logcardViewBtn_sonar" href="#" target="_blank" style="text-decoration:none;">
+                            <button type="button" style="background:#17a2b8;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">📄 Log Card</button>
+                        </a>
+                        <label style="margin-left:8px;cursor:pointer;">
+                            <input type="file" id="logcardFile_sonar" accept=".pdf" style="display:none;" onchange="uploadAvionicLogcard(this,'sonar')">
+                            <span style="background:#6c757d;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">⬆ Replace</span>
+                        </label>
+                    </div>
+                    <div id="logcardUploadZone_sonar" style="display:none;">
+                        <label style="cursor:pointer;">
+                            <input type="file" id="logcardFile2_sonar" accept=".pdf" style="display:none;" onchange="uploadAvionicLogcard(this,'sonar')">
+                            <span style="background:#17a2b8;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">📄 Add Log Card</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div id="sonarMessage" class="hidden"></div>
             
             <form onsubmit="handleSonarSubmit(event)">
@@ -365,6 +434,12 @@
                     </div>
 
                     <!-- COMMENTS pleine largeur -->
+                                        <div class="form-group" id="warehouseCheckGroup_sonar" style="display:flex;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="sentToWarehouse_sonar">
+                            <span style="font-weight:600;color:#e67e22;">📦 Send to Warehouse</span>
+                        </label>
+                    </div>
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Comments</label>
                         <textarea id="sonarComments" class="form-control" placeholder="Enter detailed comments..."></textarea>
@@ -392,7 +467,26 @@
 
         <!-- Add Console Form -->
         <div id="addConsoleForm" class="card hidden">
-            <h2 style="margin-bottom: 25px;">Add Console System</h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:25px;">
+                <h2 style="margin:0;">Add Console System</h2>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <div id="logcardBtnZone_console" style="display:none;">
+                        <a id="logcardViewBtn_console" href="#" target="_blank" style="text-decoration:none;">
+                            <button type="button" style="background:#17a2b8;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">📄 Log Card</button>
+                        </a>
+                        <label style="margin-left:8px;cursor:pointer;">
+                            <input type="file" id="logcardFile_console" accept=".pdf" style="display:none;" onchange="uploadAvionicLogcard(this,'console')">
+                            <span style="background:#6c757d;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">⬆ Replace</span>
+                        </label>
+                    </div>
+                    <div id="logcardUploadZone_console" style="display:none;">
+                        <label style="cursor:pointer;">
+                            <input type="file" id="logcardFile2_console" accept=".pdf" style="display:none;" onchange="uploadAvionicLogcard(this,'console')">
+                            <span style="background:#17a2b8;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">📄 Add Log Card</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div id="consoleMessage" class="hidden"></div>
             
             <form onsubmit="handleConsoleSubmit(event)">
@@ -493,6 +587,7 @@
         let editingSonar = null;
         let editingBattery = null;
         let editingItem = null;
+        let _avionicLogcards = { items:'', battery:'', sonar:'', console:'' };
         let currentConsoleId = null;
 
         const CONSOLE_DEFS = {
@@ -716,7 +811,7 @@
         }
 
         function updateUnserviceableSection() {
-            const unserviceableItems = consoleData.filter(item => item.serviceability === 'Unserviceable');
+            const unserviceableItems = consoleData.filter(item => item.serviceability === 'Unserviceable' && !item.sentToWarehouse);
             const tableContainer = document.getElementById('unserviceableTable');
             document.getElementById('unserviceableBadge').textContent = unserviceableItems.length;
 
@@ -789,12 +884,14 @@
         function showAddItems() {
             hideAllForms();
             document.getElementById('addItemsForm').classList.remove('hidden');
+            if (!editingItem) { _avionicLogcards.items=''; updateAvionicLogcardBtn('items', null); } else { updateAvionicLogcardBtn('items', editingItem.logcardUrl || null); }
         }
 
         function showAddBattery() {
             console.log('DEBUG showAddBattery - editingBattery AVANT:', editingBattery);
             hideAllForms();
             document.getElementById('addBatteryForm').classList.remove('hidden');
+            if (!editingBattery) { _avionicLogcards.battery=''; updateAvionicLogcardBtn('battery', null); } else { updateAvionicLogcardBtn('battery', editingBattery.logcardUrl || null); }
             // Only reset form if not editing
             if (!editingBattery) {
                 console.log('DEBUG showAddBattery - NO editingBattery, resetting form');
@@ -820,6 +917,7 @@
             console.log('DEBUG showAddSonar - editingSonar AVANT:', editingSonar);
             hideAllForms();
             document.getElementById('addSonarForm').classList.remove('hidden');
+            if (!editingSonar) { _avionicLogcards.sonar=''; updateAvionicLogcardBtn('sonar', null); } else { updateAvionicLogcardBtn('sonar', editingSonar.logcardUrl || null); }
             // Only reset form if not editing
             if (!editingSonar) {
                 console.log('DEBUG showAddSonar - NO editingSonar, resetting form');
@@ -866,7 +964,9 @@
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser,
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
-                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : ''
+                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
+                sentToWarehouse: document.getElementById('sentToWarehouse_items') ? document.getElementById('sentToWarehouse_items').checked : false,
+                logcardUrl: editingItem ? (editingItem.logcardUrl || '') : (_avionicLogcards.items || '')
             };
 
             consoleData.push(formData);
@@ -930,7 +1030,9 @@
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser,
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
-                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : ''
+                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
+                sentToWarehouse: document.getElementById('sentToWarehouse_battery') ? document.getElementById('sentToWarehouse_battery').checked : false,
+                logcardUrl: editingBattery ? (editingBattery.logcardUrl || '') : (_avionicLogcards.battery || '')
             };
 
             if (editingBattery) {
@@ -1139,7 +1241,9 @@
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser,
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
-                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : ''
+                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
+                sentToWarehouse: document.getElementById('sentToWarehouse_sonar') ? document.getElementById('sentToWarehouse_sonar').checked : false,
+                logcardUrl: editingSonar ? (editingSonar.logcardUrl || '') : (_avionicLogcards.sonar || '')
             };
 
             if (editingSonar) {
@@ -2073,6 +2177,41 @@ Respond in the same language as the user. Be concise.`;
         document.getElementById('claudeSendBtn').disabled = false;
         document.getElementById('claudeInput').focus();
     }
+
+        // ── AVIONIC LOGCARD & WAREHOUSE ───────────────────────────────────────────────
+
+        function updateAvionicLogcardBtn(suffix, url) {
+            const btnZone = document.getElementById('logcardBtnZone_' + suffix);
+            const uploadZone = document.getElementById('logcardUploadZone_' + suffix);
+            if (!btnZone || !uploadZone) return;
+            if (url) {
+                document.getElementById('logcardViewBtn_' + suffix).href = url;
+                btnZone.style.display = 'flex';
+                uploadZone.style.display = 'none';
+            } else {
+                btnZone.style.display = 'none';
+                uploadZone.style.display = 'block';
+            }
+        }
+
+        async function uploadAvionicLogcard(input, suffix) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            try {
+                const result = await window.ComponentsBayDB.uploadPDF(file);
+                _avionicLogcards[suffix] = result.downloadURL;
+                // also store on editing object if present
+                const editMap = { items: editingItem, battery: editingBattery, sonar: editingSonar, console: editingConsole };
+                if (editMap[suffix]) editMap[suffix].logcardUrl = result.downloadURL;
+                updateAvionicLogcardBtn(suffix, result.downloadURL);
+                alert('Log card uploaded successfully!');
+            } catch(e) {
+                alert('Upload error: ' + e.message);
+            }
+            input.value = '';
+        }
+        // ── END AVIONIC LOGCARD & WAREHOUSE ───────────────────────────────────────────
+
 </script>
 
 </body>
