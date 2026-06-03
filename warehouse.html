@@ -55,6 +55,17 @@
             <div class="empty-state">⏳ Loading...</div>
         </div>
     </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+        <div style="background:var(--bg-primary);border-radius:12px;max-width:600px;width:90%;max-height:85vh;overflow-y:auto;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                <h2 style="margin:0;font-size:18px;" id="detailTitle">Part Details</h2>
+                <button onclick="closeDetail()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-secondary);">&times;</button>
+            </div>
+            <div id="detailBody"></div>
+        </div>
+    </div>
 </div>
 
 <script type="module">
@@ -148,7 +159,7 @@ function renderTable(items) {
             <td><span class="module-badge">${item.moduleLabel}</span></td>
             <td>${item.designation || '—'}</td>
             <td style="font-family:monospace;font-size:12px;">${item.partNumber || '—'}</td>
-            <td style="font-family:monospace;font-size:12px;">${item.serialNumber || '—'}</td>
+            <td style="font-family:monospace;font-size:12px;"><a href="#" onclick="showDetail('${item.id}','${item.table}');return false;" style="color:#3498db;text-decoration:underline;cursor:pointer;">${item.serialNumber || '—'}</a></td>
             <td>${item.reason || '—'}</td>
             <td>${logcard}</td>
             <td style="color:var(--text-secondary);font-size:12px;">${date}</td>
@@ -164,6 +175,45 @@ function renderTable(items) {
         <tbody>${rows}</tbody>
     </table>`;
 }
+
+
+window.showDetail = function(id, table) {
+    const item = allItems.find(i => i.id === id && i.table === table);
+    if (!item) return;
+    const d = item._raw || {};
+    const fields = [
+        ['Designation', d.designation || d.description || ''],
+        ['Part Number', d.partNumber || d.pnWheel || d.pnTire || ''],
+        ['Serial Number', d.serialNumber || ''],
+        ['Serviceability', d.serviceability || ''],
+        ['Reason', d.reason || ''],
+        ['Flight Hours', d.flightHours || ''],
+        ['Date of Removal', d.dateOfRemoval || ''],
+        ['Remove from A/C', d.removeFromHC || ''],
+        ['Installed on H/C', d.installedOnHC || ''],
+        ['Inspection Date', d.inspectionDate || ''],
+        ['Order', d.order || d.orderRef || ''],
+        ['SR Number', d.srNumber || d.serviceRequest || ''],
+        ['JCN Number', d.jcnNumber || ''],
+        ['Book', d.jcnBook || ''],
+        ['Comments', d.comments || ''],
+    ].filter(f => f[1] !== '' && f[1] != null);
+
+    const rows = fields.map(f =>
+        `<tr><td style="padding:8px 12px;font-weight:600;color:var(--text-secondary);font-size:12px;text-transform:uppercase;width:40%;">${f[0]}</td><td style="padding:8px 12px;">${f[1]}</td></tr>`
+    ).join('');
+
+    document.getElementById('detailTitle').textContent = (d.designation || d.partNumber || 'Part') + ' — ' + item.moduleLabel;
+    document.getElementById('detailBody').innerHTML = `
+        <table style="width:100%;border-collapse:collapse;">${rows}</table>
+        ${item.logcardUrl ? `<div style="margin-top:16px;"><a href="${item.logcardUrl}" target="_blank" class="logcard-btn" style="display:inline-block;padding:8px 16px;">📄 View Log Card</a></div>` : ''}
+    `;
+    document.getElementById('detailModal').style.display = 'flex';
+};
+
+window.closeDetail = function() {
+    document.getElementById('detailModal').style.display = 'none';
+};
 
 loadAll();
 </script>
