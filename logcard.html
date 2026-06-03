@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Card Library — Components Bay</title>
+    <link rel="stylesheet" href="modern-style.css">
+    <style>
+        .lc-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+        .lc-table { width:100%; border-collapse:collapse; font-size:13px; }
+        .lc-table th { background:var(--bg-secondary); color:var(--text-secondary); font-size:10px; text-transform:uppercase; letter-spacing:.05em; padding:10px 12px; border-bottom:2px solid var(--border); text-align:left; }
+        .lc-table td { padding:10px 12px; border-bottom:1px solid var(--border); color:var(--text-primary); vertical-align:middle; }
+        .lc-table tr:hover td { background:var(--bg-secondary); }
+        .empty-state { text-align:center; padding:60px 20px; color:var(--text-secondary); }
+        .filter-bar { display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+        .filter-bar input { padding:6px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; background:var(--bg-primary); color:var(--text-primary); }
+        .count-badge { background:var(--accent); color:#fff; border-radius:12px; padding:2px 8px; font-size:12px; font-weight:600; margin-left:8px; }
+        .lc-view-btn { background:#17a2b8; color:#fff; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:12px; text-decoration:none; }
+        .lc-del-btn { background:#e74c3c; color:#fff; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:12px; }
+        .upload-form { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; align-items:end; margin-bottom:8px; }
+        .upload-form .form-group { margin:0; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="lc-header">
+        <div>
+            <h1 style="margin:0;font-size:22px;">📋 Log Card Library</h1>
+            <p style="margin:4px 0 0;color:var(--text-secondary);font-size:13px;">Central storage for all log cards (PDF)</p>
+        </div>
+        <a href="index.html" class="btn" style="font-size:13px;">← Back to Main</a>
+    </div>
+
+    <!-- Upload form -->
+    <div class="card" style="margin-bottom:20px;">
+        <h3 style="margin:0 0 16px;color:#17a2b8;font-size:15px;">➕ Add a Log Card</h3>
+        <div class="upload-form">
+            <div class="form-group">
+                <label>Part Number (P/N) *</label>
+                <input type="text" id="lcPartNumber" class="form-control" placeholder="Enter P/N">
+            </div>
+            <div class="form-group">
+                <label>Serial Number (S/N) *</label>
+                <input type="text" id="lcSerialNumber" class="form-control" placeholder="Enter S/N">
+            </div>
+            <div class="form-group">
+                <label>Designation (optional)</label>
+                <input type="text" id="lcDesignation" class="form-control" placeholder="Designation">
+            </div>
+            <div class="form-group">
+                <label>Log Card PDF *</label>
+                <input type="file" id="lcFile" accept=".pdf" class="form-control" style="padding:5px;">
+            </div>
+        </div>
+        <button onclick="addLogCard()" class="btn btn-success" style="margin-top:12px;">💾 Save Log Card</button>
+        <span id="lcMessage" style="margin-left:12px;font-size:13px;"></span>
+    </div>
+
+    <!-- Library -->
+    <div class="card">
+        <div class="filter-bar">
+            <input type="text" id="filterSearch" placeholder="Search P/N, S/N, designation..." oninput="applyFilters()" style="min-width:260px;">
+            <span id="countBadge" class="count-badge">0</span>
+        </div>
+        <div id="lcContent"><div class="empty-state">⏳ Loading...</div></div>
+    </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SUPABASE_URL = 'https://nwidtkiteamvnomewjux.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im53aWR0a2l0ZWFtdm5vbWV3anV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMTM3MDAsImV4cCI6MjA4Njg4OTcwMH0.fvKwq5B8Bdr2Hv67yvB6JRKA2Gu3xTIEgPmcmJj0nvI';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let allCards = [];
+
+async function loadCards() {
+    try {
+        const { data, error } = await sb.from('logcards').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        allCards = (data || []).map(row => ({
+            id: row.id,
+            partNumber: (row.data||{}).partNumber || '',
+            serialNumber: (row.data||{}).serialNumber || '',
+            designation: (row.data||{}).designation || '',
+            url: (row.data||{}).url || '',
+            date: row.created_at || '',
+        }));
+        renderTable(allCards);
+    } catch(e) {
+        document.getElementById('lcContent').innerHTML = `<div class="empty-state">⚠️ Error loading: ${e.message}<br><small>Make sure the "logcards" table exists in Supabase.</small></div>`;
+    }
+}
+
+window.addLogCard = async function() {
+    const pn = document.getElementById('lcPartNumber').value.trim();
+    const sn = document.getElementById('lcSerialNumber').value.trim();
+    const desig = document.getElementById('lcDesignation').value.trim();
+    const fileInput = document.getElementById('lcFile');
+    const msg = document.getElementById('lcMessage');
+
+    if (!pn || !sn) { msg.textContent = '❌ P/N and S/N are required'; msg.style.color = '#e74c3c'; return; }
+    if (!fileInput.files || !fileInput.files[0]) { msg.textContent = '❌ Please select a PDF'; msg.style.color = '#e74c3c'; return; }
+
+    msg.textContent = '⏳ Uploading...'; msg.style.color = '#666';
+
+    try {
+        const file = fileInput.files[0];
+        const fileName = `${Date.now()}_${file.name}`;
+        const filePath = `logcards/${fileName}`;
+        const { error: upErr } = await sb.storage.from('documents').upload(filePath, file);
+        if (upErr) throw upErr;
+        const { data: urlData } = sb.storage.from('documents').getPublicUrl(filePath);
+
+        const id = Date.now().toString();
+        const { error: dbErr } = await sb.from('logcards').insert({
+            id,
+            data: { partNumber: pn, serialNumber: sn, designation: desig, url: urlData.publicUrl },
+            created_at: new Date().toISOString()
+        });
+        if (dbErr) throw dbErr;
+
+        msg.textContent = '✅ Log card saved!'; msg.style.color = '#27ae60';
+        document.getElementById('lcPartNumber').value = '';
+        document.getElementById('lcSerialNumber').value = '';
+        document.getElementById('lcDesignation').value = '';
+        fileInput.value = '';
+        await loadCards();
+        setTimeout(() => { msg.textContent = ''; }, 3000);
+    } catch(e) {
+        msg.textContent = '❌ Error: ' + e.message; msg.style.color = '#e74c3c';
+    }
+};
+
+window.deleteLogCard = async function(id) {
+    if (!confirm('Delete this log card?')) return;
+    try {
+        await sb.from('logcards').delete().eq('id', id);
+        await loadCards();
+    } catch(e) { alert('Error: ' + e.message); }
+};
+
+window.applyFilters = function() {
+    const search = document.getElementById('filterSearch').value.toLowerCase();
+    const filtered = allCards.filter(c =>
+        !search ||
+        (c.partNumber||'').toLowerCase().includes(search) ||
+        (c.serialNumber||'').toLowerCase().includes(search) ||
+        (c.designation||'').toLowerCase().includes(search)
+    );
+    renderTable(filtered);
+};
+
+function renderTable(cards) {
+    document.getElementById('countBadge').textContent = cards.length;
+    const el = document.getElementById('lcContent');
+    if (cards.length === 0) {
+        el.innerHTML = '<div class="empty-state">📭 No log cards yet</div>';
+        return;
+    }
+    const rows = cards.map(c => {
+        const date = c.date ? new Date(c.date).toLocaleDateString('fr-FR') : '-';
+        return `<tr>
+            <td style="font-family:monospace;font-size:12px;">${c.partNumber || '—'}</td>
+            <td style="font-family:monospace;font-size:12px;">${c.serialNumber || '—'}</td>
+            <td>${c.designation || '—'}</td>
+            <td>${c.url ? `<a href="${c.url}" target="_blank" class="lc-view-btn">📄 View</a>` : '—'}</td>
+            <td style="color:var(--text-secondary);font-size:12px;">${date}</td>
+            <td><button class="lc-del-btn" onclick="deleteLogCard('${c.id}')">🗑 Delete</button></td>
+        </tr>`;
+    }).join('');
+    el.innerHTML = `<table class="lc-table">
+        <thead><tr><th>P/N</th><th>S/N</th><th>Designation</th><th>Log Card</th><th>Date</th><th>Action</th></tr></thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+}
+
+loadCards();
+</script>
+</body>
+</html>
