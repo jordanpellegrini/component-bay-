@@ -926,9 +926,9 @@
             try { document.getElementById('jcnNumber').value = editingItem.jcnNumber || '';
             try { document.getElementById('serviceRequest').value = editingItem.serviceRequest || ''; } catch(e) {} } catch(e) {}
             try { document.getElementById('jcnBook').value = editingItem.jcnBook || ''; } catch(e) {}
-            document.getElementById('serviceability').value = editingItem.serviceability
+            document.getElementById('serviceability').value = editingItem.serviceability || '';
             _currentEditingForLogcard = editingItem;
-            try { document.getElementById('sentToWarehouse').checked = editingItem.sentToWarehouse || false; showWarehouseCheckbox(editingItem.serviceability || ''); updateLogcardBtn(editingItem.logcardUrl || null); } catch(e) {} || '';
+            try { document.getElementById('sentToWarehouse').checked = editingItem.sentToWarehouse || false; showWarehouseCheckbox(editingItem.serviceability || ''); updateLogcardBtn(editingItem.logcardUrl || null); } catch(e) {}
             document.getElementById('order').value = editingItem.order || '';
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('eddyCurrentCout').checked = editingItem.eddyCurrentCout || false;

@@ -588,9 +588,9 @@
             editingItem = itemsData.find(i => i.id === id); if (!editingItem) return;
             document.getElementById('partNumber').value = editingItem.partNumber; handlePNChange();
             document.getElementById('serialNumber').value = editingItem.serialNumber || '';
-            document.getElementById('serviceability').value = editingItem.serviceability
+            document.getElementById('serviceability').value = editingItem.serviceability || '';
             _currentEditingForLogcard = item;
-            try { document.getElementById('sentToWarehouse').checked = item.sentToWarehouse || false; showWarehouseCheckbox(item.serviceability || ''); updateLogcardBtn(item.logcardUrl || null); } catch(e) {} || 'Serviceable';
+            try { document.getElementById('sentToWarehouse').checked = item.sentToWarehouse || false; showWarehouseCheckbox(item.serviceability || ''); updateLogcardBtn(item.logcardUrl || null); } catch(e) {}
             document.getElementById('inspectionPerformed').value = editingItem.inspectionPerformed || '';
             document.getElementById('inspectionDate').value = editingItem.inspectionDate || '';
             document.getElementById('next24M').value = editingItem.next24M || '';

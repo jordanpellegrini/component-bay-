@@ -647,9 +647,9 @@
             document.getElementById('order').value = editingItem.order || '';
             document.getElementById('srNumber').value = editingItem.srNumber || '';
             document.getElementById('logCard').value = editingItem.logCard || '';
-            document.getElementById('serviceability').value = editingItem.serviceability
+            document.getElementById('serviceability').value = editingItem.serviceability || '';
             _currentEditingForLogcard = editingItem;
-            try { document.getElementById('sentToWarehouse').checked = editingItem.sentToWarehouse || false; showWarehouseCheckbox(editingItem.serviceability || ''); updateLogcardBtn(editingItem.logcardUrl || null); } catch(e) {} || '';
+            try { document.getElementById('sentToWarehouse').checked = editingItem.sentToWarehouse || false; showWarehouseCheckbox(editingItem.serviceability || ''); updateLogcardBtn(editingItem.logcardUrl || null); } catch(e) {}
             document.getElementById('workInProgress').value = editingItem.workInProgress || '';
             document.getElementById('comments').value = editingItem.comments || '';
             if (document.getElementById('logCardMissing_composite')) document.getElementById('logCardMissing_composite').checked = editingItem.logCardMissing || false;

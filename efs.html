@@ -847,9 +847,9 @@
             document.getElementById('efsPartNumber').value = editingEFS.partNumber || '';
             document.getElementById('efsSerialNumber').value = editingEFS.serialNumber || '';
             document.getElementById('efsOrder').value = editingEFS.order || '';
-            document.getElementById('efsServiceability').value = editingEFS.serviceability
+            document.getElementById('efsServiceability').value = editingEFS.serviceability || '';
             _currentEditingForLogcard = editingEFS;
-            try { document.getElementById('sentToWarehouse').checked = editingEFS.sentToWarehouse || false; showWarehouseCheckbox(editingEFS.serviceability || ''); updateLogcardBtn(editingEFS.logcardUrl || null); } catch(e) {} || '';
+            try { document.getElementById('sentToWarehouse').checked = editingEFS.sentToWarehouse || false; showWarehouseCheckbox(editingEFS.serviceability || ''); updateLogcardBtn(editingEFS.logcardUrl || null); } catch(e) {}
             document.getElementById('efsWorkInProgress').checked = editingEFS.workInProgress || false;
             document.getElementById('inspectionDate').value = editingEFS.inspectionDate || '';
             document.getElementById('inspectionInterval').value = editingEFS.inspectionInterval || '';

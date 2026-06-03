@@ -679,9 +679,9 @@
             document.getElementById('inspectionDate').value = editingItem.inspectionDate || '';
             document.getElementById('nextShort').value = editingItem.nextShort || '';
             document.getElementById('nextLong').value = editingItem.nextLong || '';
-            document.getElementById('serviceability').value = editingItem.serviceability
+            document.getElementById('serviceability').value = editingItem.serviceability || '';
             _currentEditingForLogcard = editingItem;
-            try { document.getElementById('sentToWarehouse').checked = editingItem.sentToWarehouse || false; showWarehouseCheckbox(editingItem.serviceability || ''); updateLogcardBtn(editingItem.logcardUrl || null); } catch(e) {} || '';
+            try { document.getElementById('sentToWarehouse').checked = editingItem.sentToWarehouse || false; showWarehouseCheckbox(editingItem.serviceability || ''); updateLogcardBtn(editingItem.logcardUrl || null); } catch(e) {}
             document.getElementById('orderRef').value = editingItem.orderRef || '';
             document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('comments').value = editingItem.comments || '';

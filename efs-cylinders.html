@@ -851,9 +851,9 @@
             document.getElementById('efsPartNumber').value = editingEFS.partNumber || '';
             document.getElementById('efsSerialNumber').value = editingEFS.serialNumber || '';
             document.getElementById('efsOrder').value = editingEFS.order || '';
-            document.getElementById('efsServiceability').value = editingEFS.serviceability
+            document.getElementById('efsServiceability').value = editingEFS.serviceability || '';
             _currentEditingForLogcard = editingEFS;
-            try { document.getElementById('sentToWarehouse').checked = editingEFS.sentToWarehouse || false; showWarehouseCheckbox(editingEFS.serviceability || ''); updateLogcardBtn(editingEFS.logcardUrl || null); } catch(e) {} || '';
+            try { document.getElementById('sentToWarehouse').checked = editingEFS.sentToWarehouse || false; showWarehouseCheckbox(editingEFS.serviceability || ''); updateLogcardBtn(editingEFS.logcardUrl || null); } catch(e) {}
             document.getElementById('efsWorkInProgress').checked = editingEFS.workInProgress || false;
             document.getElementById('inspectionDate').value = editingEFS.inspectionDate || '';
             document.getElementById('inspectionInterval').value = editingEFS.inspectionInterval || '';
@@ -1211,13 +1211,13 @@ Respond in the same language as the user. Be concise.`;
                         }
                     } else if ((action.type === 'add' || action.type === 'create') && action.fields) {
                         if (!action.fields.partNumber || !action.fields.serialNumber) {
-                            reply = reply.replace(/<action>[\\s\\S]*?<\\/action>/, '').trim();
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim();
                             reply += '\\n\\n❌ P/N et S/N obligatoires.';
                         } else if (window.ComponentsBayDB) {
                             const newItem = { id: Date.now().toString() + '-' + Math.random().toString(36).substr(2,6), serviceability: action.fields.serviceability || 'Serviceable', createdAt: new Date().toISOString(), createdBy: localStorage.getItem('componentsBayCurrentUser') || 'unknown', lastModified: new Date().toISOString(), ...action.fields };
                             await window.ComponentsBayDB.save('efs_cylinders', newItem);
                             efsData.push(newItem);
-                            reply = reply.replace(/<action>[\\s\\S]*?<\\/action>/, '').trim();
+                            reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim();
                             reply += '\\n\\n✅ Item créé et sauvegardé.';
                             updateSummary();
                             if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
