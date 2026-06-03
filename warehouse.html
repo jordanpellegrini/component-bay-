@@ -45,6 +45,7 @@
                 <option value="Rotor Bay">Rotor Bay</option>
                 <option value="Troop Seat">Troop Seat</option>
                 <option value="IAFT/EAFT">IAFT/EAFT</option>
+                <option value="Avionic">Avionic</option>
             </select>
             <input type="text" id="filterSearch" placeholder="Search P/N, S/N, designation..." oninput="applyFilters()" style="min-width:220px;">
             <span id="countBadge" class="count-badge">0</span>
@@ -63,16 +64,17 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TABLES = [
-    { table: 'efs',         label: 'EFS' },
-    { table: 'efscylinders',label: 'EFS Cylinders' },
-    { table: 'liferafts',   label: 'Life Raft' },
-    { table: 'wheels',      label: 'Wheel' },
-    { table: 'maintenance', label: 'Maintenance' },
-    { table: 'composite',   label: 'Composite' },
-    { table: 'engine',      label: 'Engine' },
-    { table: 'rotorbay',    label: 'Rotor Bay' },
-    { table: 'troopseats',  label: 'Troop Seat' },
-    { table: 'iafteaft',    label: 'IAFT/EAFT' },
+    { table: 'efs',           label: 'EFS' },
+    { table: 'efs_cylinders', label: 'EFS Cylinders' },
+    { table: 'liferafts',     label: 'Life Raft' },
+    { table: 'wheels',        label: 'Wheel' },
+    { table: 'maintenance',   label: 'Maintenance' },
+    { table: 'composite',     label: 'Composite' },
+    { table: 'engine',        label: 'Engine' },
+    { table: 'rotorbay',      label: 'Rotor Bay' },
+    { table: 'troopseats',    label: 'Troop Seat' },
+    { table: 'iafteaft',      label: 'IAFT/EAFT' },
+    { table: 'avionic',       label: 'Avionic' },
 ];
 
 let allItems = [];
