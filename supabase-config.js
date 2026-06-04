@@ -150,15 +150,28 @@ window.ComponentsBayDB = {
         try {
             console.log(`📥 Loading from ${tableName}...`);
 
-            const { data, error } = await supabase
-                .from(tableName)
-                .select('*')
-                .order('created_at', { ascending: false });
+            // Pagination: Supabase limite a 1000 lignes par requete.
+            // On boucle par tranches de 1000 pour tout recuperer (ex: pn_manufacturers ~22000 lignes)
+            const PAGE_SIZE = 1000;
+            let allRows = [];
+            let from = 0;
+            while (true) {
+                const { data: pageData, error } = await supabase
+                    .from(tableName)
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .range(from, from + PAGE_SIZE - 1);
 
-            if (error) {
-                console.error(`❌ Supabase load error (${tableName}):`, error);
-                throw error;
+                if (error) {
+                    console.error(`❌ Supabase load error (${tableName}):`, error);
+                    throw error;
+                }
+                if (!pageData || pageData.length === 0) break;
+                allRows = allRows.concat(pageData);
+                if (pageData.length < PAGE_SIZE) break; // derniere page
+                from += PAGE_SIZE;
             }
+            const data = allRows;
 
             console.log(`✅ Loaded ${data.length} items from ${tableName}`);
 
