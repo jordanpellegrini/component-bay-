@@ -168,7 +168,20 @@
         } else {
             document.getElementById('userInfo').textContent = `👤 ${currentUser} (Admin)`;
             initDragDrop();
-            loadMappings();
+            // Attendre que le module supabase-config.js (type=module, differe) soit charge
+            waitForDB(() => loadMappings());
+        }
+
+        function waitForDB(callback, attempts) {
+            attempts = attempts || 0;
+            if (window.ComponentsBayDB && window.ComponentsBayDB.load) {
+                callback();
+            } else if (attempts < 100) {
+                setTimeout(() => waitForDB(callback, attempts + 1), 50);
+            } else {
+                console.error('ComponentsBayDB never loaded after 5s');
+                callback(); // try anyway (will fallback to localStorage)
+            }
         }
 
         // === DRAG & DROP ===
