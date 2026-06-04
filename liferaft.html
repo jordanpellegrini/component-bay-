@@ -279,7 +279,7 @@
                         </div>
                         <div class="form-group">
                             <label>Serviceability</label>
-                            <select id="liferaftServiceability" class="form-control" onchange="onSvcChange(); showWarehouseCheckbox(this.value);">
+                            <select id="liferaftServiceability" class="form-control" onchange="showWarehouseCheckbox(this.value)" onchange="onSvcChange()">
                                 <option value="Serviceable">✅ Serviceable</option>
                                 <option value="Unserviceable">❌ Unserviceable</option>
                             </select>
@@ -313,6 +313,26 @@
                         </div>
 
                         <!-- Ligne 5: COMMENTS (pleine largeur) -->
+                        <div class="form-group" style="grid-column:1/-1;">
+                        <label>Log Card</label>
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <div id="logcardViewBtnGroup" style="display:none;align-items:center;gap:8px;">
+                                <a id="logcardViewBtn" href="#" target="_blank" style="text-decoration:none;">
+                                    <button type="button" class="btn" style="background:#17a2b8;color:#fff;padding:6px 14px;font-size:13px;">📄 View Log Card</button>
+                                </a>
+                                <label style="cursor:pointer;margin:0;">
+                                    <input type="file" id="logcardUploadInput" accept=".pdf" style="display:none;" onchange="uploadModuleLogcard(this)">
+                                    <span class="btn" style="background:#6c757d;color:#fff;padding:6px 14px;font-size:13px;cursor:pointer;">⬆ Replace</span>
+                                </label>
+                            </div>
+                            <div id="logcardUploadBtnGroup">
+                                <label style="cursor:pointer;margin:0;">
+                                    <input type="file" id="logcardUploadInput2" accept=".pdf" style="display:none;" onchange="uploadModuleLogcard(this)">
+                                    <span class="btn" style="background:#17a2b8;color:#fff;padding:6px 14px;font-size:13px;cursor:pointer;">📄 Upload Log Card</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                     <div class="form-group" id="warehouseCheckGroup" style="display:none;align-items:center;">
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
                             <input type="checkbox" id="sentToWarehouse">
@@ -1001,8 +1021,6 @@
                 serialNumber: document.getElementById('liferaftSerialNumber').value.trim(),
                 order: document.getElementById('orderRef') ? document.getElementById('orderRef').value.trim() : '',
                 workInProgress: document.getElementById('liferaftWorkInProgress').checked,
-                sentToWarehouse: document.getElementById('sentToWarehouse') ? document.getElementById('sentToWarehouse').checked : false,
-                logcardUrl: _currentEditingForLogcard ? (_currentEditingForLogcard.logcardUrl || '') : (editingLifeRaft ? (editingLifeRaft.logcardUrl || '') : ''),
                 inspectionDate: document.getElementById('inspectionDate').value,
                 inspectionInterval: '12', // Always 12 months
                 nextInspection: document.getElementById('nextInspection').value,
@@ -1055,7 +1073,7 @@
             document.getElementById('orderRef').value = '';
             try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = ''; } catch(e) {}
-            try { document.getElementById('liferaftServiceability').value = 'Serviceable';
+            try { document.getElementById('liferaftServiceability').value = 'Serviceable'; } catch(e) {}
             _currentEditingForLogcard = null;
             try { document.getElementById('sentToWarehouse').checked = false; showWarehouseCheckbox(''); } catch(e) {}
             try { document.getElementById('liferaftReason').value = ''; } catch(e) {}
@@ -1327,7 +1345,6 @@
 
             // Logcard button
             updateLogcardBtn(editingLifeRaft.logcardUrl || null);
-            try { document.getElementById('sentToWarehouse').checked = editingLifeRaft.sentToWarehouse || false; showWarehouseCheckbox(editingLifeRaft.serviceability || ''); } catch(e) {}
             showAddLifeRaft();
             closeModal();
             checkExpiryDates();
@@ -2172,13 +2189,53 @@ Respond in the same language as the user. Be concise.`;
             setTimeout(() => URL.revokeObjectURL(url), 1000);
             if (typeof showMessage === 'function') showMessage('Log Card PDF downloaded', 'success', 'liferaftMessage');
         }
+    
+        // ── WAREHOUSE & LOGCARD ───────────────────────────────────────────────────────
+        let _currentEditingForLogcard = null;
 
+        function onWarehouseChange() {
+            // handled at save time
+        }
 
         function showWarehouseCheckbox(svcValue) {
             const grp = document.getElementById('warehouseCheckGroup');
             if (grp) grp.style.display = (svcValue === 'Unserviceable') ? 'flex' : 'none';
-            if (svcValue !== 'Unserviceable') { const cb = document.getElementById('sentToWarehouse'); if (cb) cb.checked = false; }
+            if (svcValue !== 'Unserviceable') {
+                const cb = document.getElementById('sentToWarehouse');
+                if (cb) cb.checked = false;
+            }
         }
+
+        function updateLogcardUI(url) {
+            const viewGrp = document.getElementById('logcardViewBtnGroup');
+            const uploadGrp = document.getElementById('logcardUploadBtnGroup');
+            if (url) {
+                const btn = document.getElementById('logcardViewBtn');
+                if (btn) btn.href = url;
+                if (viewGrp) viewGrp.style.display = 'flex';
+                if (uploadGrp) uploadGrp.style.display = 'none';
+            } else {
+                if (viewGrp) viewGrp.style.display = 'none';
+                if (uploadGrp) uploadGrp.style.display = 'block';
+            }
+        }
+
+        async function uploadModuleLogcard(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            try {
+                const result = await window.ComponentsBayDB.uploadPDF(file);
+                if (_currentEditingForLogcard) {
+                    _currentEditingForLogcard.logcardUrl = result.downloadURL;
+                    updateLogcardUI(result.downloadURL);
+                }
+                alert('Log card uploadée avec succès!');
+            } catch(e) {
+                alert('Erreur upload: ' + e.message);
+            }
+            input.value = '';
+        }
+        // ── END WAREHOUSE & LOGCARD ───────────────────────────────────────────────────
 
 </script>
 
