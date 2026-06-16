@@ -1000,8 +1000,19 @@
             let logCardHistory = (editingLifeRaft && editingLifeRaft.logCardHistory) ? [...editingLifeRaft.logCardHistory] : [];
             if (editingLifeRaft && editingLifeRaft.subItems) {
                 subItemsData.forEach((newSub, index) => {
-                    const oldSub = editingLifeRaft.subItems[index];
-                    if (!oldSub) return;
+                    // MATCH PAR NOM (pas par index) pour eviter le decalage
+                    const oldSub = editingLifeRaft.subItems.find(s => s.item === newSub.item)
+                                || editingLifeRaft.subItems.find(s => s.partNumber === newSub.partNumber);
+                    if (!oldSub) {
+                        // Nouveau sous-element jamais enregistre auparavant
+                        if (newSub.serialNumber && newSub.manufacturerDate) {
+                            logCardHistory.push({ type:'installation', item:newSub.item, partNumber:newSub.partNumber,
+                                serialNumber:newSub.serialNumber, manufacturerDate:newSub.manufacturerDate,
+                                expiryDate:newSub.expiryDate||'', installDate:today });
+                            newSub.installDate = today;
+                        }
+                        return;
+                    }
                     const changed = (newSub.serialNumber && oldSub.serialNumber && newSub.serialNumber !== oldSub.serialNumber)
                         || (newSub.manufacturerDate && oldSub.manufacturerDate && newSub.manufacturerDate !== oldSub.manufacturerDate);
                     if (changed) {
@@ -1343,8 +1354,15 @@
             try { document.getElementById('logCardMissing').checked = editingLifeRaft.logCardMissing || false; } catch(e) {}
             try { document.getElementById('lifeRaftMissing').checked = editingLifeRaft.lifeRaftMissing || false; } catch(e) {}
 
-            // Fill sub-items — recalculate expiry from current intervalMonths
-            editingLifeRaft.subItems.forEach((sub, index) => {
+            // Fill sub-items — MATCH PAR NOM D'ITEM (pas par index)
+            // Evite le decalage quand l'ordre/le nombre de sous-elements change
+            editingLifeRaft.subItems.forEach((sub) => {
+                // Retrouver la position actuelle de ce sous-element par son nom
+                let index = subItems.findIndex(s => s.item === sub.item);
+                // Fallback : si pas trouve par nom, essayer par partNumber
+                if (index === -1) index = subItems.findIndex(s => s.partNumber === sub.partNumber);
+                if (index === -1) return; // sous-element inconnu, on ignore
+
                 const snE = document.getElementById('subitem_sn_' + index); if (snE) snE.value = sub.serialNumber || '';
                 setDateISO(index, 'mfg', sub.manufacturerDate || '');
                 // Recalc expiry from mfg + current interval (catches interval changes)
