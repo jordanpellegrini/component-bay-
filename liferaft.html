@@ -236,7 +236,7 @@
                         </div>
                         <div class="form-group">
                             <label>Serial Number (S/N)</label>
-                            <input type="text" id="liferaftSerialNumber" class="form-control" placeholder="Enter life raft serial number">
+                            <input type="text" id="liferaftSerialNumber" class="form-control" placeholder="Enter life raft serial number" oninput="syncMainRaftSN()">
                         </div>
                         <!-- Vide pour aligner sur 4 colonnes -->
                         <div class="form-group"></div>
@@ -439,6 +439,7 @@
         let currentLifeRaftId = null;
 
         const subItems = [
+            { item: 'LifeRaft',                          partNumber: '45457001',           mfgMode:'yes', intervalMonths:60,   qtyTheoric:1, isMainRaft:true },
             { item: 'SLEEVE, RATIONS',                   partNumber: '05829010',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
             { item: 'CARD, EMERGENCY PACK CONTENTS',     partNumber: '05804018',           mfgMode:'no',  intervalMonths:'NA', qtyTheoric:1  },
             { item: 'SACHET, WATER 500 ML',              partNumber: '05163009',           mfgMode:'yes', intervalMonths:60,   qtyTheoric:1  },
@@ -890,11 +891,16 @@
                 const noMfg    = item.mfgMode === 'no';
                 const noExpiry = item.intervalMonths === 'NA';
                 const isCyl    = item.item.toUpperCase().includes('CYLINDER');
+                const isMain   = item.isMainRaft === true;
                 const row = document.createElement('tr');
+                // Le S/N du LifeRaft principal est repris automatiquement du champ serialNumber (lecture seule)
+                const snCell = isMain
+                    ? '<td><input type="text" id="subitem_sn_' + index + '" placeholder="(auto from main S/N)" readonly style="width:100%;box-sizing:border-box;background:#eef5ff;color:#1B2B4B;font-weight:600;"></td>'
+                    : '<td><input type="text" id="subitem_sn_' + index + '" placeholder="S/N or Batch N°" style="width:100%;box-sizing:border-box;"></td>';
                 row.innerHTML =
                     '<td style="font-weight:600;font-size:12px;">' + item.item + '</td>' +
                     '<td style="background:#f0f0f0;color:#666;font-size:10px;">' + item.partNumber + '</td>' +
-                    '<td><input type="text" id="subitem_sn_' + index + '" placeholder="S/N or Batch N°" style="width:100%;box-sizing:border-box;"></td>' +
+                    snCell +
                     '<td>' + (noMfg
                         ? '<input type="date" disabled style="' + gs + '">'
                         : '<input type="date" id="subitem_mfg_' + index + '" style="width:100%;box-sizing:border-box;" onchange="fixDateYear(this);calcExpiryFromInterval(' + index + ')" onblur="fixDateYear(this);calcExpiryFromInterval(' + index + ')" min="2000-01-01" max="2099-12-31">'
@@ -911,6 +917,16 @@
                     '<td id="subitem_status_' + index + '" style="text-align:center;font-size:12px;color:#16a34a;font-weight:bold;">✓ OK</td>';
                 tbody.appendChild(row);
             });
+            syncMainRaftSN();
+        }
+
+        // Synchronise le S/N du sous-element "LifeRaft" avec le S/N principal
+        function syncMainRaftSN() {
+            const mainSN = (document.getElementById('liferaftSerialNumber')?.value || '').trim();
+            const idx = subItems.findIndex(s => s.isMainRaft === true);
+            if (idx === -1) return;
+            const field = document.getElementById('subitem_sn_' + idx);
+            if (field) field.value = mainSN;
         }
 
         function checkExpiryDates() {
@@ -965,7 +981,11 @@
             const today = new Date().toISOString().slice(0,10);
 
             subItems.forEach((item, index) => {
-                const sn  = document.getElementById(`subitem_sn_${index}`)?.value?.trim() || '';
+                let sn  = document.getElementById(`subitem_sn_${index}`)?.value?.trim() || '';
+                // Le sous-element LifeRaft reprend toujours le S/N principal
+                if (item.isMainRaft) {
+                    sn = (document.getElementById('liferaftSerialNumber')?.value || '').trim();
+                }
                 const mfg = item.mfgMode === 'no' ? '' : (getDateISO(index,'mfg') || '');
                 const interval = item.intervalMonths === 'NA' ? 'N/A' : (typeof item.intervalMonths === 'number' ? item.intervalMonths+'M' : '');
                 const expiry = item.intervalMonths === 'NA' ? '' : (getDateISO(index,'exp') || '');
@@ -1342,6 +1362,9 @@
                 const qtyE = document.getElementById('subitem_qty_' + index);
                 if (qtyE) { qtyE.value = sub.qty || ''; if (sub.qty) checkQty(index); }
             });
+
+            // Sync du S/N LifeRaft principal vers le sous-element
+            syncMainRaftSN();
 
             // Logcard button
             updateLogcardBtn(editingLifeRaft.logcardUrl || null);
