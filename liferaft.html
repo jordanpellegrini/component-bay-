@@ -1980,28 +1980,39 @@ Respond in the same language as the user. Be concise.`;
             function fmt(iso) { return iso ? new Date(iso).toLocaleDateString('fr-FR') : ''; }
 
             // Build rows
+            // PRINCIPE : on imprime TOUJOURS l'etat actuel complet (tous les subItems remplis),
+            // PLUS les elements retires de l'historique (lignes barrees / removalDate).
+            // Ainsi un element non modifie (ex: cylinder) reste TOUJOURS present.
             const history = lrData.logCardHistory || [];
+            const removals = history.filter(h => h.type === 'removal');
             let allRows = [];
-            if (history.length === 0) {
-                (lrData.subItems || []).forEach(sub => {
-                    if (sub.serialNumber && sub.manufacturerDate) {
-                        allRows.push({ designation: sub.item, partNumber: sub.partNumber,
-                            serialNumber: sub.serialNumber, installDate: inspDate,
-                            mfgDate: sub.manufacturerDate, expiryDate: sub.expiryDate || '',
-                            removalDate: '', isRemoved: false });
-                    }
-                });
-            } else {
-                const installs = history.filter(h => h.type === 'installation');
-                const removals = history.filter(h => h.type === 'removal');
-                installs.forEach(inst => {
-                    const removal = removals.find(r => r.serialNumber === inst.serialNumber && r.item === inst.item);
-                    allRows.push({ designation: inst.item, partNumber: inst.partNumber,
-                        serialNumber: inst.serialNumber, installDate: fmt(inst.installDate),
-                        mfgDate: inst.manufacturerDate, expiryDate: inst.expiryDate || '',
-                        removalDate: removal ? fmt(removal.removalDate) : '', isRemoved: !!removal });
-                });
-            }
+
+            // 1. Etat actuel : tous les subItems avec S/N + manufacturerDate
+            (lrData.subItems || []).forEach(sub => {
+                if (sub.serialNumber && sub.manufacturerDate) {
+                    // date d'installation : celle de l'historique si dispo, sinon inspDate
+                    const instDate = sub.installDate ? fmt(sub.installDate) : inspDate;
+                    allRows.push({ designation: sub.item, partNumber: sub.partNumber,
+                        serialNumber: sub.serialNumber, installDate: instDate,
+                        mfgDate: sub.manufacturerDate, expiryDate: sub.expiryDate || '',
+                        removalDate: '', isRemoved: false });
+                }
+            });
+
+            // 2. Elements retires (historique) qui ne sont plus dans l'etat actuel
+            removals.forEach(rem => {
+                // eviter les doublons : ne pas re-ajouter si deja present (meme S/N + item) dans l'etat actuel
+                const stillPresent = allRows.some(r => r.serialNumber === rem.serialNumber && r.designation === rem.item && !r.isRemoved);
+                if (!stillPresent) {
+                    // retrouver la date d'installation correspondante dans l'historique
+                    const inst = history.find(h => h.type === 'installation' && h.serialNumber === rem.serialNumber && h.item === rem.item);
+                    allRows.push({ designation: rem.item, partNumber: rem.partNumber,
+                        serialNumber: rem.serialNumber, installDate: inst ? fmt(inst.installDate) : '',
+                        mfgDate: rem.manufacturerDate, expiryDate: rem.expiryDate || '',
+                        removalDate: fmt(rem.removalDate), isRemoved: true });
+                }
+            });
+
             if (allRows.length === 0) { alert('No sub-components with S/N and Manufacturer Date filled.'); return; }
 
             const ROWS_PER_PAGE = 13;
