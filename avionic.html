@@ -1917,23 +1917,58 @@
         });
     
         function generateTagForCurrent(type) {
-            // Get current form data to generate tag
-            const item = {
-                partNumber: document.getElementById('partNumber') ? document.getElementById('partNumber').value : '',
-                serialNumber: document.getElementById('serialNumber') ? document.getElementById('serialNumber').value : '',
-                designation: document.getElementById('designation') ? document.getElementById('designation').value : '',
-                comments: document.getElementById('comments') ? document.getElementById('comments').value : '',
-                orderRef: document.getElementById('orderRef') ? document.getElementById('orderRef').value : '',
-                flightHours: document.getElementById('flightHours') ? document.getElementById('flightHours').value : '',
-                dateOfRemoval: document.getElementById('dateOfRemoval') ? document.getElementById('dateOfRemoval').value : '',
-                removeFromHC: document.getElementById('removeFromHC') ? document.getElementById('removeFromHC').value : ''
+            // Avionic a 4 sous-formulaires avec des IDs prefixes.
+            // On detecte lequel est visible et on lit les bons champs.
+            const val = (id) => { const e = document.getElementById(id); return e ? e.value : ''; };
+            const isVisible = (id) => {
+                const f = document.getElementById(id);
+                return f && !f.classList.contains('hidden');
             };
-            if (!item.partNumber) { alert('No item data available'); return; }
-            // JCN + Book for Work Order
+
+            let item = {};
+            if (isVisible('addConsoleForm')) {
+                item = {
+                    designation: val('consoleDesignation'),
+                    partNumber:  val('consolePartNumber'),
+                    serialNumber:val('consoleSerialNumber'),
+                    comments:    val('consoleComments'),
+                };
+            } else if (isVisible('addBatteryForm')) {
+                item = {
+                    designation: val('batteryDescription'),
+                    partNumber:  val('batteryPartNumber'),
+                    serialNumber:val('batterySerialNumber'),
+                    orderRef:    val('batteryOrder'),
+                    comments:    val('batteryComments'),
+                };
+            } else if (isVisible('addSonarForm')) {
+                item = {
+                    designation: val('sonarDesignation'),
+                    partNumber:  val('sonarPartNumber'),
+                    serialNumber:val('sonarSerialNumber'),
+                    comments:    val('sonarComments'),
+                };
+            } else if (isVisible('addItemsForm')) {
+                item = {
+                    designation: val('itemsDesignation'),
+                    partNumber:  val('itemsPartNumber'),
+                    serialNumber:val('itemsSerialNumber'),
+                    orderRef:    val('itemsOrder'),
+                    comments:    val('itemsComments'),
+                };
+            } else {
+                alert('Ouvrez un formulaire (Console / Battery / Sonar / Items) avant de générer un tag.');
+                return;
+            }
+
+            if (!item.partNumber) { alert('No item data available — remplissez au moins le P/N.'); return; }
+
+            // JCN + Book (uniquement sur le formulaire Items)
             const jcnEl = document.getElementById('jcnNumber');
             const bookEl = document.getElementById('jcnBook');
             if (jcnEl) item.jcnNumber = jcnEl.value.trim();
             if (bookEl) item.jcnBook = bookEl.value;
+
             generateTag(type, item);
         }
     </script>
