@@ -900,7 +900,7 @@
                 document.getElementById('batteryPartNumber').value = '';
                 document.getElementById('batterySerialNumber').value = '';
                 document.getElementById('batteryOrder').value = '';
-                document.getElementById('batteryLogCard').value = '';
+                if (document.getElementById('batteryLogCard')) document.getElementById('batteryLogCard').value = '';
                 document.getElementById('batteryWorkInProgress').checked = false;
                 document.getElementById('batteryDate').value = '';
                 document.getElementById('batteryCycle').value = '';
@@ -925,7 +925,7 @@
                 document.getElementById('sonarDesignation').value = '';
                 document.getElementById('sonarPartNumber').value = '';
                 document.getElementById('sonarSerialNumber').value = '';
-                document.getElementById('sonarOrder').value = '';
+                if (document.getElementById('sonarOrder')) document.getElementById('sonarOrder').value = '';
                 document.getElementById('sonarWorkInProgress').checked = false;
                 document.getElementById('sonarComments').value = '';
                 const container = document.getElementById('sonarDynamicFields');
@@ -957,7 +957,7 @@
                 designation: document.getElementById('itemsDesignation').value.trim(),
                 partNumber: partNumber,
                 serialNumber: document.getElementById('itemsSerialNumber').value.trim(),
-                workInProgress: document.getElementById('itemsWorkInProgress').checked,
+                workInProgress: document.getElementById('itemsWorkInProgress') ? document.getElementById('itemsWorkInProgress').checked : false,
                 order: document.getElementById('itemsOrder').value.trim(),
                 comments: document.getElementById('itemsComments').value.trim(),
                 serviceability: 'Serviceable',
@@ -975,7 +975,7 @@
             updateUnserviceableSection();
             showMessage('Item saved successfully', 'success', 'itemsMessage');
             event.target.reset();
-            document.getElementById('itemsWorkInProgress').checked = false;
+            if (document.getElementById('itemsWorkInProgress')) document.getElementById('itemsWorkInProgress').checked = false;
         }
 
         function calculateBatteryInspections() {
@@ -1019,7 +1019,7 @@
                 partNumber: partNumber,
                 serialNumber: document.getElementById('batterySerialNumber').value.trim(),
                 order: document.getElementById('batteryOrder').value.trim(),
-                logCard: document.getElementById('batteryLogCard').value,
+                logCard: document.getElementById('batteryLogCard') ? document.getElementById('batteryLogCard').value : '',
                 workInProgress: document.getElementById('batteryWorkInProgress').checked,
                 date: document.getElementById('batteryDate').value,
                 cycle: document.getElementById('batteryCycle').value,
@@ -1233,7 +1233,7 @@
                 partNumber: partNumber,
                 serialNumber: document.getElementById('sonarSerialNumber').value.trim(),
                 workInProgress: document.getElementById('sonarWorkInProgress').checked,
-                order: document.getElementById('sonarOrder').value.trim(),
+                order: document.getElementById('sonarOrder') ? document.getElementById('sonarOrder').value.trim() : '',
                 inspectionData: inspectionData,
                 availableInspections: mapping.inspections,
                 comments: document.getElementById('sonarComments').value.trim(),
@@ -1738,7 +1738,7 @@
                 document.getElementById('batteryPartNumber').value = itemToEdit.partNumber || '';
                 document.getElementById('batterySerialNumber').value = itemToEdit.serialNumber || '';
                 document.getElementById('batteryOrder').value = itemToEdit.order || '';
-                document.getElementById('batteryLogCard').value = itemToEdit.logCard || '';
+                if (document.getElementById('batteryLogCard')) document.getElementById('batteryLogCard').value = itemToEdit.logCard || '';
                 document.getElementById('batteryWorkInProgress').checked = itemToEdit.workInProgress || false;
                 document.getElementById('batteryDate').value = itemToEdit.date || '';
                 document.getElementById('batteryCycle').value = itemToEdit.cycle || '';
@@ -1756,7 +1756,7 @@
                 document.getElementById('sonarDesignation').value = itemToEdit.designation || '';
                 document.getElementById('sonarPartNumber').value = itemToEdit.partNumber || '';
                 document.getElementById('sonarSerialNumber').value = itemToEdit.serialNumber || '';
-                document.getElementById('sonarOrder').value = itemToEdit.order || '';
+                if (document.getElementById('sonarOrder')) document.getElementById('sonarOrder').value = itemToEdit.order || '';
                 document.getElementById('sonarWorkInProgress').checked = itemToEdit.workInProgress || false;
                 document.getElementById('sonarComments').value = itemToEdit.comments || '';
                 
@@ -1782,7 +1782,7 @@
                 document.getElementById('itemsPartNumber').value = itemToEdit.partNumber || '';
                 document.getElementById('itemsSerialNumber').value = itemToEdit.serialNumber || '';
                 document.getElementById('itemsOrder').value = itemToEdit.order || '';
-                document.getElementById('itemsWorkInProgress').checked = itemToEdit.workInProgress || false;
+                if (document.getElementById('itemsWorkInProgress')) document.getElementById('itemsWorkInProgress').checked = itemToEdit.workInProgress || false;
                 document.getElementById('itemsComments').value = itemToEdit.comments || '';
                 
                 showAddItems();
