@@ -1711,6 +1711,9 @@
                 document.getElementById('consoleComments').value = itemToEdit.comments || '';
                 if (document.getElementById('logCardMissing_avionic')) document.getElementById('logCardMissing_avionic').checked = itemToEdit.logCardMissing || false;
 
+                // IMPORTANT : generer les sous-composants en fonction du P/N (sinon les champs n'existent pas)
+                handleConsolePNChange();
+
                 // Fill sub-components - wait for form to be visible first
                 setTimeout(() => {
                     if (itemToEdit.components && itemToEdit.components.length > 0) {
