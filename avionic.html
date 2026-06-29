@@ -581,8 +581,8 @@
 
     <script>
         let consoleData = [];
-        let currentUser = sessionStorage.getItem('componentsBayCurrentUser') || sessionStorage.getItem('currentUser') || 'Unknown User';
-        let userRole = sessionStorage.getItem('componentsBayUserRole') || sessionStorage.getItem('userRole') || 'user';
+        let currentUser = localStorage.getItem('componentsBayCurrentUser') || sessionStorage.getItem('componentsBayCurrentUser') || sessionStorage.getItem('currentUser') || 'Unknown User';
+        let userRole = localStorage.getItem('componentsBayUserRole') || sessionStorage.getItem('componentsBayUserRole') || sessionStorage.getItem('userRole') || 'user';
         let editingConsole = null;
         let editingSonar = null;
         let editingBattery = null;
