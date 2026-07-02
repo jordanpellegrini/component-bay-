@@ -848,7 +848,7 @@
                     <tr>
                         <td>${item.designation || '-'}</td>
                         <td>${item.partNumber}</td>
-                        <td><a href="#" class="clickable" onclick="showConsoleDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
+                        <td><a href="#" class="clickable" onclick="showItemDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
                         <td><span class="status-badge ${reasonClass}">${reasonText}</span></td>
                         <td>
                             <button class="btn" onclick="editConsole('${item.id}')" style="padding: 6px 12px; font-size: 12px;">✏️ Edit</button>
@@ -952,15 +952,20 @@
             }
 
             const formData = {
-                id: Date.now().toString(),
+                id: editingItem ? editingItem.id : Date.now().toString(),
                 type: 'item',
                 designation: document.getElementById('itemsDesignation').value.trim(),
                 partNumber: partNumber,
                 serialNumber: document.getElementById('itemsSerialNumber').value.trim(),
                 workInProgress: document.getElementById('itemsWorkInProgress') ? document.getElementById('itemsWorkInProgress').checked : false,
                 order: document.getElementById('itemsOrder').value.trim(),
+                srNumber: document.getElementById('itemsSrNumber') ? document.getElementById('itemsSrNumber').value.trim() : '',
+                flightHours: document.getElementById('flightHours') ? document.getElementById('flightHours').value.trim() : '',
+                dateOfRemoval: document.getElementById('dateOfRemoval') ? document.getElementById('dateOfRemoval').value : '',
+                removeFromHC: document.getElementById('removeFromHC') ? document.getElementById('removeFromHC').value.trim() : '',
+                serviceability: document.getElementById('itemsServiceability') ? (document.getElementById('itemsServiceability').value || 'Serviceable') : 'Serviceable',
+                logCardMissing: document.getElementById('itemsLogCardMissing') ? document.getElementById('itemsLogCardMissing').checked : false,
                 comments: document.getElementById('itemsComments').value.trim(),
-                serviceability: 'Serviceable',
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser,
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
@@ -969,11 +974,18 @@
                 logcardUrl: editingItem ? (editingItem.logcardUrl || '') : (_avionicLogcards.items || '')
             };
 
-            consoleData.push(formData);
+            if (editingItem) {
+                const index = consoleData.findIndex(item => item.id === editingItem.id);
+                if (index !== -1) consoleData[index] = formData;
+                editingItem = null;
+                showMessage('Item updated successfully', 'success', 'itemsMessage');
+            } else {
+                consoleData.push(formData);
+                showMessage('Item saved successfully', 'success', 'itemsMessage');
+            }
             saveData();
             updateSummary();
             updateUnserviceableSection();
-            showMessage('Item saved successfully', 'success', 'itemsMessage');
             event.target.reset();
             if (document.getElementById('itemsWorkInProgress')) document.getElementById('itemsWorkInProgress').checked = false;
         }
@@ -1016,21 +1028,27 @@
                 id: editingBattery ? editingBattery.id : Date.now().toString(),
                 type: 'battery',
                 description: document.getElementById('batteryDescription').value.trim(),
+                designation: document.getElementById('batteryDescription').value.trim(),
                 partNumber: partNumber,
                 serialNumber: document.getElementById('batterySerialNumber').value.trim(),
                 order: document.getElementById('batteryOrder').value.trim(),
+                srNumber: document.getElementById('batterySrNumber') ? document.getElementById('batterySrNumber').value.trim() : '',
+                flightHours: document.getElementById('batteryFlightHours') ? document.getElementById('batteryFlightHours').value.trim() : '',
+                dateOfRemoval: document.getElementById('batteryDateOfRemoval') ? document.getElementById('batteryDateOfRemoval').value : '',
+                removeFromHC: document.getElementById('batteryRemoveFromHC') ? document.getElementById('batteryRemoveFromHC').value.trim() : '',
                 logCard: document.getElementById('batteryLogCard') ? document.getElementById('batteryLogCard').value : '',
+                logCardMissing: document.getElementById('batteryLogCardMissing') ? document.getElementById('batteryLogCardMissing').checked : false,
                 workInProgress: document.getElementById('batteryWorkInProgress').checked,
                 date: document.getElementById('batteryDate').value,
                 cycle: document.getElementById('batteryCycle').value,
                 next1Y: document.getElementById('batteryNext1Y').value,
                 next2Y: document.getElementById('batteryNext2Y').value,
                 comments: document.getElementById('batteryComments').value.trim(),
-                serviceability: 'Serviceable',
+                serviceability: document.getElementById('batteryServiceability') ? (document.getElementById('batteryServiceability').value || 'Serviceable') : 'Serviceable',
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser,
-                jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
-                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
+                jcnNumber: document.getElementById('batteryJcnNumber') ? document.getElementById('batteryJcnNumber').value.trim() : '',
+                jcnBook: document.getElementById('batteryJcnBook') ? document.getElementById('batteryJcnBook').value : '',
                 sentToWarehouse: document.getElementById('sentToWarehouse_battery') ? document.getElementById('sentToWarehouse_battery').checked : false,
                 logcardUrl: editingBattery ? (editingBattery.logcardUrl || '') : (_avionicLogcards.battery || '')
             };
@@ -1234,14 +1252,19 @@
                 serialNumber: document.getElementById('sonarSerialNumber').value.trim(),
                 workInProgress: document.getElementById('sonarWorkInProgress').checked,
                 order: document.getElementById('sonarOrder') ? document.getElementById('sonarOrder').value.trim() : '',
+                srNumber: document.getElementById('sonarSrNumber') ? document.getElementById('sonarSrNumber').value.trim() : '',
+                flightHours: document.getElementById('sonarFlightHours') ? document.getElementById('sonarFlightHours').value.trim() : '',
+                dateOfRemoval: document.getElementById('sonarDateOfRemoval') ? document.getElementById('sonarDateOfRemoval').value : '',
+                removeFromHC: document.getElementById('sonarRemoveFromHC') ? document.getElementById('sonarRemoveFromHC').value.trim() : '',
+                logCardMissing: document.getElementById('sonarLogCardMissing') ? document.getElementById('sonarLogCardMissing').checked : false,
                 inspectionData: inspectionData,
                 availableInspections: mapping.inspections,
                 comments: document.getElementById('sonarComments').value.trim(),
-                serviceability: 'Serviceable',
+                serviceability: document.getElementById('sonarServiceability') ? (document.getElementById('sonarServiceability').value || 'Serviceable') : 'Serviceable',
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser,
-                jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
-                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
+                jcnNumber: document.getElementById('sonarJcnNumber') ? document.getElementById('sonarJcnNumber').value.trim() : (document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : ''),
+                jcnBook: document.getElementById('sonarJcnBook') ? document.getElementById('sonarJcnBook').value : (document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : ''),
                 sentToWarehouse: document.getElementById('sentToWarehouse_sonar') ? document.getElementById('sentToWarehouse_sonar').checked : false,
                 logcardUrl: editingSonar ? (editingSonar.logcardUrl || '') : (_avionicLogcards.sonar || '')
             };
@@ -1364,7 +1387,9 @@
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser,
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
-                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : ''
+                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
+                sentToWarehouse: document.getElementById('sentToWarehouse_console') ? document.getElementById('sentToWarehouse_console').checked : false,
+                logcardUrl: editingConsole ? (editingConsole.logcardUrl || '') : (_avionicLogcards.console || '')
             };
 
             if (editingConsole) {
@@ -1737,11 +1762,19 @@
                 console.log('DEBUG editConsole - editingBattery SET to:', editingBattery);
                 
                 // Fill battery form
-                document.getElementById('batteryDescription').value = itemToEdit.description || '';
+                document.getElementById('batteryDescription').value = itemToEdit.description || itemToEdit.designation || '';
                 document.getElementById('batteryPartNumber').value = itemToEdit.partNumber || '';
                 document.getElementById('batterySerialNumber').value = itemToEdit.serialNumber || '';
                 document.getElementById('batteryOrder').value = itemToEdit.order || '';
+                if (document.getElementById('batterySrNumber')) document.getElementById('batterySrNumber').value = itemToEdit.srNumber || '';
+                if (document.getElementById('batteryFlightHours')) document.getElementById('batteryFlightHours').value = itemToEdit.flightHours || '';
+                if (document.getElementById('batteryDateOfRemoval')) document.getElementById('batteryDateOfRemoval').value = itemToEdit.dateOfRemoval || '';
+                if (document.getElementById('batteryRemoveFromHC')) document.getElementById('batteryRemoveFromHC').value = itemToEdit.removeFromHC || '';
                 if (document.getElementById('batteryLogCard')) document.getElementById('batteryLogCard').value = itemToEdit.logCard || '';
+                if (document.getElementById('batteryLogCardMissing')) document.getElementById('batteryLogCardMissing').checked = itemToEdit.logCardMissing || false;
+                if (document.getElementById('batteryServiceability')) document.getElementById('batteryServiceability').value = itemToEdit.serviceability || 'Serviceable';
+                if (document.getElementById('batteryJcnNumber')) document.getElementById('batteryJcnNumber').value = itemToEdit.jcnNumber || '';
+                if (document.getElementById('batteryJcnBook')) document.getElementById('batteryJcnBook').value = itemToEdit.jcnBook || '';
                 document.getElementById('batteryWorkInProgress').checked = itemToEdit.workInProgress || false;
                 document.getElementById('batteryDate').value = itemToEdit.date || '';
                 document.getElementById('batteryCycle').value = itemToEdit.cycle || '';
@@ -1760,6 +1793,10 @@
                 document.getElementById('sonarPartNumber').value = itemToEdit.partNumber || '';
                 document.getElementById('sonarSerialNumber').value = itemToEdit.serialNumber || '';
                 if (document.getElementById('sonarOrder')) document.getElementById('sonarOrder').value = itemToEdit.order || '';
+                if (document.getElementById('sonarFlightHours')) document.getElementById('sonarFlightHours').value = itemToEdit.flightHours || '';
+                if (document.getElementById('sonarDateOfRemoval')) document.getElementById('sonarDateOfRemoval').value = itemToEdit.dateOfRemoval || '';
+                if (document.getElementById('sonarRemoveFromHC')) document.getElementById('sonarRemoveFromHC').value = itemToEdit.removeFromHC || '';
+                if (document.getElementById('sonarLogCardMissing')) document.getElementById('sonarLogCardMissing').checked = itemToEdit.logCardMissing || false;
                 document.getElementById('sonarWorkInProgress').checked = itemToEdit.workInProgress || false;
                 document.getElementById('sonarComments').value = itemToEdit.comments || '';
                 
@@ -1780,14 +1817,22 @@
                 
                 showAddSonar();
             } else if (itemToEdit.type === 'item') {
+                // Set editing variable for item
+                editingItem = itemToEdit;
                 // Fill items form
                 document.getElementById('itemsDesignation').value = itemToEdit.designation || '';
                 document.getElementById('itemsPartNumber').value = itemToEdit.partNumber || '';
                 document.getElementById('itemsSerialNumber').value = itemToEdit.serialNumber || '';
                 document.getElementById('itemsOrder').value = itemToEdit.order || '';
+                if (document.getElementById('itemsSrNumber')) document.getElementById('itemsSrNumber').value = itemToEdit.srNumber || '';
                 if (document.getElementById('itemsWorkInProgress')) document.getElementById('itemsWorkInProgress').checked = itemToEdit.workInProgress || false;
+                if (document.getElementById('itemsLogCardMissing')) document.getElementById('itemsLogCardMissing').checked = itemToEdit.logCardMissing || false;
+                if (document.getElementById('itemsServiceability')) document.getElementById('itemsServiceability').value = itemToEdit.serviceability || 'Serviceable';
+                if (document.getElementById('flightHours')) document.getElementById('flightHours').value = itemToEdit.flightHours || '';
+                if (document.getElementById('dateOfRemoval')) document.getElementById('dateOfRemoval').value = itemToEdit.dateOfRemoval || '';
+                if (document.getElementById('removeFromHC')) document.getElementById('removeFromHC').value = itemToEdit.removeFromHC || '';
                 document.getElementById('itemsComments').value = itemToEdit.comments || '';
-                
+                updateAvionicLogcardBtn('items', itemToEdit.logcardUrl || null);
                 showAddItems();
             }
             
@@ -1796,9 +1841,6 @@
             try { document.getElementById('jcnBook').value = itemToEdit.jcnBook || ''; } catch(e) {}
             
             closeModal();
-            if (currentConsoleId) {
-                editConsole(currentConsoleId);
-            }
         }
 
         async function deleteConsole(id) {
@@ -1834,12 +1876,13 @@
             }
 
             const data = consoleData.map(item => ({
-                'Designation': item.designation || '',
+                'Type': (item.type || 'console').toUpperCase(),
+                'Designation': item.designation || item.description || '',
                 'Part Number': item.partNumber,
                 'Serial Number': item.serialNumber || '',
                 'Serviceability': item.serviceability || '',
                 'Reason': item.reason || '',
-                'Components': item.components.map(c => `${c.designation}: ${c.partNumber || '-'} (${c.serialNumber || '-'})${c.missing ? ' [MISSING]' : ''}`).join(' | '),
+                'Components': item.components ? item.components.map(c => `${c.designation}: ${c.partNumber || '-'} (${c.serialNumber || '-'})${c.missing ? ' [MISSING]' : ''}`).join(' | ') : '',
                 'Comments': item.comments || '',
                 'Last Modified': new Date(item.lastModified).toLocaleString(),
                 'Modified By': item.modifiedBy || ''
@@ -2034,7 +2077,7 @@
 
     function clearAttachment() {
         _claudeAttachment = null;
-        var preview = document.getElementById('claudeAttachmentPreview');
+        var preview = document.getElementById('claudeAttachPreview');
         if (preview) preview.style.display = 'none';
     }
 
@@ -2045,10 +2088,10 @@
         reader.onload = function(e) {
             const base64 = e.target.result.split(',')[1];
             _claudeAttachment = { type: 'image', name: file.name, mimeType: file.type, data: base64 };
-            var preview = document.getElementById('claudeAttachmentPreview');
+            var preview = document.getElementById('claudeAttachPreview');
             if (preview) {
-                preview.innerHTML = '📷 ' + file.name + ' <span onclick="clearAttachment();document.getElementById(\'claudePhotoInput\').value=\'\';" style="cursor:pointer;color:#ef4444;font-weight:bold;margin-left:6px;">✕</span>';
-                preview.style.display = 'block';
+                document.getElementById('claudeAttachName').textContent = '📷 ' + file.name;
+                preview.style.display = 'flex';
             }
         };
         reader.readAsDataURL(file);

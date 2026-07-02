@@ -765,7 +765,7 @@
                         <td>${item.designation || '-'}</td>
                         <td>${item.partNumber}</td>
                         <td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
-                        <td>${item.nextInspection || '-'}</td>
+                        <td>${[item.next18M ? '18M:'+item.next18M : '', item.next36M ? '36M:'+item.next36M : ''].filter(Boolean).join(' / ') || item.nextInspection || '-'}</td>
                         <td>${item.inspectionInterval ? item.inspectionInterval + 'M' : '-'}</td>
                         <td><span class="status-badge ${statusClass}">${item.serviceability || 'N/A'}</span></td>
                         <td>${item.workInProgress ? 'Yes' : 'No'}</td>
@@ -808,7 +808,7 @@
                     </div>
                     <div class="form-group">
                         <label>Next Inspection</label>
-                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.nextInspection || '-'}</div>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${[item.next18M ? '18M: '+item.next18M : '', item.next36M ? '36M: '+item.next36M : ''].filter(Boolean).join(' / ') || item.nextInspection || '-'}</div>
                     </div>
                     <div class="form-group">
                         <label>Inspection Interval</label>
@@ -865,9 +865,9 @@
             document.getElementById('flightHours').value = editingEFS.flightHours || '';
             document.getElementById('dateOfRemoval').value = editingEFS.dateOfRemoval || '';
             document.getElementById('removeFromHC').value = editingEFS.removeFromHC || '';
-            try { document.getElementById('jcnNumber').value = editingEFS.jcnNumber || '';
-            try { document.getElementById('efsServiceRequest').value = editingEFS.serviceRequest || ''; } catch(e) {} } catch(e) {}
+            try { document.getElementById('jcnNumber').value = editingEFS.jcnNumber || ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = editingEFS.jcnBook || ''; } catch(e) {}
+            try { document.getElementById('efsServiceRequest').value = editingEFS.serviceRequest || ''; } catch(e) {}
 
             showAddEFS();
             closeModal();
@@ -916,11 +916,20 @@
                 'Designation': item.designation || '',
                 'Part Number': item.partNumber,
                 'Serial Number': item.serialNumber || '',
-                'Next Inspection': item.nextInspection || '',
-                'Inspection Interval': item.inspectionInterval ? item.inspectionInterval + 'M' : '',
+                'Inspection Date': item.inspectionDate || '',
+                'Interval': item.inspectionInterval ? item.inspectionInterval + 'M' : '',
+                'Next 18M': item.next18M || '',
+                'Next 36M': item.next36M || '',
                 'Serviceability': item.serviceability || '',
                 'Work in Progress': item.workInProgress ? 'Yes' : 'No',
+                'Log Card Missing': item.logCardMissing ? 'Yes' : 'No',
                 'Order': item.order || '',
+                'SR': item.serviceRequest || '',
+                'JCN': item.jcnNumber || '',
+                'Book': item.jcnBook || '',
+                'Flight Hours': item.flightHours || '',
+                'Date of Removal': item.dateOfRemoval || '',
+                'Remove From A/C': item.removeFromHC || '',
                 'Comments': item.comments || '',
                 'Last Modified': new Date(item.lastModified).toLocaleString(),
                 'Modified By': item.modifiedBy || ''
@@ -1774,6 +1783,136 @@ function showAIAnalysis(text, planData) {
     </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+    function downloadTemplate() {
+        const headers = [
+            'H/C', 'Part Number', 'Serial Number',
+            'Inspection Date', 'Interval (18 or 36)',
+            'Next 18M', 'Next 36M',
+            'Serviceability', 'Order', 'SR',
+            'JCN', 'Book', 'Flight Hours',
+            'Date of Removal', 'Remove From A/C', 'Comments'
+        ];
+        const example = [
+            'QA250', 'S956A20A1004', 'SN12345',
+            '2024-01-15', '18',
+            '2025-07-15', '',
+            'Serviceable', '', '',
+            '', '', '',
+            '', '', ''
+        ];
+        const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+        // Column widths
+        ws['!cols'] = headers.map((h, i) => ({ wch: Math.max(h.length + 2, 14) }));
+        // Style header row
+        headers.forEach((h, i) => {
+            const cell = XLSX.utils.encode_cell({ r: 0, c: i });
+            if (!ws[cell]) return;
+            ws[cell].s = { font: { bold: true }, fill: { fgColor: { rgb: 'D0E4FF' } } };
+        });
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'EFS Template');
+        XLSX.writeFile(wb, 'EFS_Float_Template.xlsx');
+        showMessage('Template downloaded', 'success', 'efsMessage');
+    }
+
+    function importFromExcel(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const wb = XLSX.read(e.target.result, { type: 'binary', cellDates: true });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+                if (!rows.length) { alert('File is empty or unreadable.'); return; }
+
+                let imported = 0, skipped = 0;
+                for (const row of rows) {
+                    const pn = (row['Part Number'] || '').toString().trim();
+                    const sn = (row['Serial Number'] || '').toString().trim();
+                    if (!pn) { skipped++; continue; }
+
+                    // Date helper: handles Date objects or YYYY-MM-DD strings
+                    const fmtDate = (v) => {
+                        if (!v) return '';
+                        if (v instanceof Date) return v.toISOString().split('T')[0];
+                        return v.toString().trim();
+                    };
+
+                    const interval = (row['Interval (18 or 36)'] || '').toString().trim().replace('M','');
+                    const inspDate = fmtDate(row['Inspection Date']);
+                    let next18M = fmtDate(row['Next 18M']);
+                    let next36M = fmtDate(row['Next 36M']);
+
+                    // Auto-calculate if dates missing but inspDate + interval provided
+                    if (inspDate && interval && (!next18M || !next36M)) {
+                        const base = new Date(inspDate);
+                        if (!next18M) {
+                            const d = new Date(base); d.setMonth(d.getMonth() + 18);
+                            next18M = d.toISOString().split('T')[0];
+                        }
+                        if (interval === '36' && !next36M) {
+                            const d = new Date(base); d.setMonth(d.getMonth() + 36);
+                            next36M = d.toISOString().split('T')[0];
+                        }
+                    }
+
+                    const svcRaw = (row['Serviceability'] || 'Serviceable').toString().trim();
+                    const svc = svcRaw === 'Unserviceable' ? 'Unserviceable' : 'Serviceable';
+
+                    // Check for existing item (same P/N + S/N)
+                    const existing = efsData.find(i => i.partNumber === pn && i.serialNumber === sn);
+                    const formData = {
+                        id: existing ? existing.id : (Date.now().toString() + '-' + Math.random().toString(36).substr(2,5)),
+                        designation: efsMapping[pn] || (row['Designation'] || '').toString().trim() || '',
+                        hc: (row['H/C'] || 'Spare').toString().trim(),
+                        partNumber: pn,
+                        serialNumber: sn,
+                        inspectionDate: inspDate,
+                        inspectionInterval: interval,
+                        next18M: next18M,
+                        next36M: next36M,
+                        order: (row['Order'] || '').toString().trim(),
+                        serviceRequest: (row['SR'] || '').toString().trim(),
+                        jcnNumber: (row['JCN'] || '').toString().trim(),
+                        jcnBook: (row['Book'] || '').toString().trim(),
+                        flightHours: (row['Flight Hours'] || '').toString().trim(),
+                        dateOfRemoval: fmtDate(row['Date of Removal']),
+                        removeFromHC: (row['Remove From A/C'] || '').toString().trim(),
+                        comments: (row['Comments'] || '').toString().trim(),
+                        serviceability: svc,
+                        workInProgress: false,
+                        logCardMissing: false,
+                        sentToWarehouse: false,
+                        logcardUrl: existing ? (existing.logcardUrl || '') : '',
+                        lastModified: new Date().toISOString(),
+                        modifiedBy: currentUser
+                    };
+
+                    if (existing) {
+                        const idx = efsData.findIndex(i => i.id === existing.id);
+                        efsData[idx] = formData;
+                    } else {
+                        efsData.push(formData);
+                    }
+                    imported++;
+                }
+
+                await saveData();
+                updateSummary();
+                updateUnserviceableSection();
+                if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
+                showMessage(`Import complete: ${imported} item(s) imported, ${skipped} skipped (no P/N).`, 'success', 'efsMessage');
+            } catch(err) {
+                alert('Import error: ' + err.message);
+            }
+            event.target.value = '';
+        };
+        reader.readAsBinaryString(file);
+    }
+</script>
+<script>
     (function() {
         var s = document.createElement('script');
         s.src = 'generate-tag.js';
@@ -1832,7 +1971,7 @@ function showAIAnalysis(text, planData) {
 
     function clearAttachment() {
         _claudeAttachment = null;
-        var preview = document.getElementById('claudeAttachmentPreview');
+        var preview = document.getElementById('claudeAttachPreview');
         if (preview) preview.style.display = 'none';
     }
 
@@ -1843,10 +1982,10 @@ function showAIAnalysis(text, planData) {
         reader.onload = function(e) {
             const base64 = e.target.result.split(',')[1];
             _claudeAttachment = { type: 'image', name: file.name, mimeType: file.type, data: base64 };
-            var preview = document.getElementById('claudeAttachmentPreview');
+            var preview = document.getElementById('claudeAttachPreview');
             if (preview) {
-                preview.innerHTML = '📷 ' + file.name + ' <span onclick="clearAttachment();document.getElementById(\'claudePhotoInput\').value=\'\';" style="cursor:pointer;color:#ef4444;font-weight:bold;margin-left:6px;">✕</span>';
-                preview.style.display = 'block';
+                document.getElementById('claudeAttachName').textContent = '📷 ' + file.name;
+                preview.style.display = 'flex';
             }
         };
         reader.readAsDataURL(file);

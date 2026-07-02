@@ -187,7 +187,7 @@
                         </div>
                         <div class="form-group">
                             <label>Serviceability</label>
-                            <select id="serviceability" class="form-control" onchange="showWarehouseCheckbox(this.value)" onchange="handleServiceabilityChange()">
+                            <select id="serviceability" class="form-control" onchange="showWarehouseCheckbox(this.value); handleServiceabilityChange();">
                                 <option value="">Select status</option>
                                 <option value="Serviceable">Serviceable</option>
                                 <option value="Unserviceable">Unserviceable</option>
@@ -429,7 +429,7 @@
 
         function updateSummary() {
             const serviceable = wheelData.filter(item => item.serviceability === 'Serviceable').length;
-            const unserviceable = wheelData.filter(item => !item.sentToWarehouse).filter(item => item.serviceability === 'Unserviceable').length;
+            const unserviceable = wheelData.filter(item => !item.sentToWarehouse && item.serviceability === 'Unserviceable').length;
             
             document.getElementById('serviceableCount').textContent = serviceable;
             document.getElementById('unserviceableCount').textContent = unserviceable;
@@ -439,7 +439,7 @@
         }
 
         function updateUnserviceableSection() {
-            const unserviceableItems = wheelData.filter(item => !item.sentToWarehouse).filter(item => item.serviceability === 'Unserviceable');
+            const unserviceableItems = wheelData.filter(item => !item.sentToWarehouse && item.serviceability === 'Unserviceable');
             const tableContainer = document.getElementById('unserviceableTable');
             document.getElementById('unserviceableBadge').textContent = unserviceableItems.length;
 
@@ -552,8 +552,7 @@
                 if (eddyCurrentChecked) {
                     // Eddy current done -> Serviceable
                     document.getElementById('serviceability').value = 'Serviceable';
-            _currentEditingForLogcard = null;
-            try { document.getElementById('sentToWarehouse').checked = false; showWarehouseCheckbox(''); updateLogcardBtn(null); } catch(e) {}
+                    showWarehouseCheckbox('Serviceable');
                 } else {
                     // Eddy current needed but not done -> Unserviceable
                     document.getElementById('serviceability').value = 'Unserviceable';
@@ -717,6 +716,8 @@
 
         function resetForm() {
             resetLogCardMissing_wheel();
+            _currentEditingForLogcard = null;
+            try { updateLogcardBtn(null); } catch(e) {}
             document.getElementById('wheelForm').reset();
             editingItem = null;
             document.getElementById('editId').value = '';
@@ -925,8 +926,8 @@
             document.getElementById('dateOfRemoval').value = editingItem.dateOfRemoval || '';
             if (document.getElementById('installedOnHC')) document.getElementById('installedOnHC').value = editingItem.installedOnHC || '';
             document.getElementById('removeFromHC').value = editingItem.removeFromHC || '';
-            try { document.getElementById('jcnNumber').value = editingItem.jcnNumber || '';
-            try { document.getElementById('serviceRequest').value = editingItem.serviceRequest || ''; } catch(e) {} } catch(e) {}
+            try { document.getElementById('jcnNumber').value = editingItem.jcnNumber || ''; } catch(e) {}
+            try { document.getElementById('serviceRequest').value = editingItem.serviceRequest || ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = editingItem.jcnBook || ''; } catch(e) {}
             document.getElementById('serviceability').value = editingItem.serviceability || '';
             _currentEditingForLogcard = editingItem;
@@ -1525,7 +1526,7 @@
 
     function clearAttachment() {
         _claudeAttachment = null;
-        var preview = document.getElementById('claudeAttachmentPreview');
+        var preview = document.getElementById('claudeAttachPreview');
         if (preview) preview.style.display = 'none';
     }
 
@@ -1575,9 +1576,12 @@
         const today = new Date().toISOString().split('T')[0];
         
         const dataSnapshot = (typeof wheelData !== 'undefined' ? wheelData : []).slice(0, 100).map(i => ({
-            id: i.id, designation: i.designation, partNumber: i.partNumber,
-            serialNumber: i.serialNumber, serviceability: i.serviceability,
-            nextInspection: i.nextInspection, reason: i.reason, comments: i.comments
+            id: i.id, designation: i.designation,
+            pnTire: i.pnTire, pnWheel: i.pnWheel,
+            serialNumber: i.serialNumber, type: i.type, position: i.position,
+            numberTireChange: i.numberTireChange, installedOnHC: i.installedOnHC,
+            serviceability: i.serviceability, eddyCurrentCout: i.eddyCurrentCout,
+            reason: i.reason, comments: i.comments
         }));
         const dataStr = JSON.stringify(dataSnapshot, null, 2);
         const totalUS = (typeof wheelData !== 'undefined' ? wheelData : []).filter(i => i.serviceability === 'Unserviceable').length;

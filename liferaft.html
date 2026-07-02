@@ -279,7 +279,7 @@
                         </div>
                         <div class="form-group">
                             <label>Serviceability</label>
-                            <select id="liferaftServiceability" class="form-control" onchange="showWarehouseCheckbox(this.value)" onchange="onSvcChange()">
+                            <select id="liferaftServiceability" class="form-control" onchange="showWarehouseCheckbox(this.value); onSvcChange();">
                                 <option value="Serviceable">✅ Serviceable</option>
                                 <option value="Unserviceable">❌ Unserviceable</option>
                             </select>
@@ -1046,7 +1046,9 @@
                 logCardMissing: document.getElementById('logCardMissing') ? document.getElementById('logCardMissing').checked : false,
                 lifeRaftMissing: document.getElementById('lifeRaftMissing') ? document.getElementById('lifeRaftMissing').checked : false,
                 lastModified: new Date().toISOString(),
-                modifiedBy: currentUser
+                modifiedBy: currentUser,
+                sentToWarehouse: document.getElementById('sentToWarehouse') ? document.getElementById('sentToWarehouse').checked : false,
+                logcardUrl: editingLifeRaft ? (editingLifeRaft.logcardUrl || '') : ''
             };
 
             if (editingLifeRaft) {
@@ -1074,7 +1076,7 @@
             document.getElementById('liferaftDesignation').value = 'Life Raft';
             document.getElementById('liferaftPartNumber').value = '';
             document.getElementById('liferaftSerialNumber').value = '';
-            document.getElementById('liferaftOrder').value = '';
+            document.getElementById('orderRef').value = '';
             document.getElementById('liferaftWorkInProgress').checked = false;
             document.getElementById('inspectionDate').value = '';
             document.getElementById('nextInspection').value = '';
@@ -1357,6 +1359,7 @@
 
             // Logcard button
             updateLogcardBtn(editingLifeRaft.logcardUrl || null);
+            _currentEditingForLogcard = editingLifeRaft;
             showAddLifeRaft();
             closeModal();
             checkExpiryDates();
@@ -1401,7 +1404,7 @@
                 return;
             }
 
-            if (!confirm(`Initialize sub-components for ${missing.length} life raft(s) that have none?\nThis will add the 20 default items (without S/N or dates) to each.`)) return;
+            if (!confirm(`Initialize sub-components for ${missing.length} life raft(s) that have none?\nThis will add the ${subItems.length} default items (without S/N or dates) to each.`)) return;
 
             showMessage(`Initializing ${missing.length} life raft(s)...`, 'info');
             let done = 0;
@@ -1624,7 +1627,7 @@
                 reason:         'liferaftReason',
                 inspectionDate: 'inspectionDate',
                 nextInspection: 'nextInspection',
-                orderRef:       'liferaftOrder'
+                orderRef:       'orderRef'
             };
 
             for (const [key, elId] of Object.entries(fieldMap)) {
@@ -1707,7 +1710,7 @@
 
     function clearAttachment() {
         _claudeAttachment = null;
-        var preview = document.getElementById('claudeAttachmentPreview');
+        var preview = document.getElementById('claudeAttachPreview');
         if (preview) preview.style.display = 'none';
     }
 
@@ -1718,10 +1721,10 @@
         reader.onload = function(e) {
             const base64 = e.target.result.split(',')[1];
             _claudeAttachment = { type: 'image', name: file.name, mimeType: file.type, data: base64 };
-            var preview = document.getElementById('claudeAttachmentPreview');
+            var preview = document.getElementById('claudeAttachPreview');
             if (preview) {
-                preview.innerHTML = '📷 ' + file.name + ' <span onclick="clearAttachment();document.getElementById(\'claudePhotoInput\').value=\'\';" style="cursor:pointer;color:#ef4444;font-weight:bold;margin-left:6px;">✕</span>';
-                preview.style.display = 'block';
+                document.getElementById('claudeAttachName').textContent = '📷 ' + file.name;
+                preview.style.display = 'flex';
             }
         };
         reader.readAsDataURL(file);

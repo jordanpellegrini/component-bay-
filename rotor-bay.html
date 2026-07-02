@@ -456,7 +456,7 @@
             const today = new Date(); today.setHours(0,0,0,0);
             const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
             const s = rotorData.filter(i => i.serviceability === 'Serviceable').length;
-            const u = rotorData.filter(item => !item.sentToWarehouse).filter(i => !i.sentToWarehouse && i.serviceability === 'Unserviceable').length;
+            const u = rotorData.filter(i => !i.sentToWarehouse && i.serviceability === 'Unserviceable').length;
             document.getElementById('serviceableCount').textContent = s;
             document.getElementById('unserviceableCount').textContent = u;
             document.getElementById('totalCount').textContent = rotorData.length;
@@ -493,11 +493,11 @@
         function updateUnserviceableSection() {
             const search = (document.getElementById('filterUnsvc')?.value || '').toLowerCase();
             const desig = document.getElementById('filterUnsvcDesig')?.value || '';
-            let items = rotorData.filter(item => !item.sentToWarehouse).filter(i => !i.sentToWarehouse && i.serviceability === 'Unserviceable');
+            let items = rotorData.filter(i => !i.sentToWarehouse && i.serviceability === 'Unserviceable');
             items.sort((a,b) => (a.serialNumber||'').localeCompare(b.serialNumber||'', undefined, {numeric:true}));
             if (search) items = items.filter(i => (i.serialNumber||'').toLowerCase().includes(search)||(i.partNumber||'').toLowerCase().includes(search)||(i.reason||'').toLowerCase().includes(search)||(i.designation||'').toLowerCase().includes(search));
             if (desig) items = items.filter(i => i.designation === desig);
-            document.getElementById('unserviceableBadge').textContent = rotorData.filter(item => !item.sentToWarehouse).filter(i => !i.sentToWarehouse && i.serviceability === 'Unserviceable').length;
+            document.getElementById('unserviceableBadge').textContent = rotorData.filter(i => !i.sentToWarehouse && i.serviceability === 'Unserviceable').length;
             const dd = document.getElementById('filterUnsvcDesig');
             if (dd && dd.options.length <= 1) [...new Set(rotorData.filter(i=>i.designation).map(i=>i.designation))].sort().forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; dd.appendChild(o); });
             const container = document.getElementById('unserviceableTable');
@@ -539,20 +539,24 @@
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
                 srNumber: document.getElementById('srNumber') ? document.getElementById('srNumber').value.trim() : '',
                 jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
-                reason: '',
+                reason: editingItem ? (editingItem.reason || '') : '',
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser
             };
 
-            // Check overdue
+            // Check overdue — preserve manual reason if already Unserviceable with custom reason
             const today = new Date(); today.setHours(0,0,0,0);
             if (formData.nextShort && new Date(formData.nextShort) < today) {
-                formData.serviceability = 'Unserviceable';
-                formData.reason = `Overdue (${formData.shortLabel})`;
+                if (formData.serviceability !== 'Unserviceable' || !formData.reason) {
+                    formData.serviceability = 'Unserviceable';
+                    formData.reason = `Overdue (${formData.shortLabel})`;
+                }
             }
             if (formData.nextLong && new Date(formData.nextLong) < today) {
-                formData.serviceability = 'Unserviceable';
-                formData.reason = `Overdue (${formData.longLabel})`;
+                if (formData.serviceability !== 'Unserviceable' || !formData.reason) {
+                    formData.serviceability = 'Unserviceable';
+                    formData.reason = `Overdue (${formData.longLabel})`;
+                }
             }
 
             if (editingItem) {
@@ -606,8 +610,8 @@
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
-            try { document.getElementById('jcnNumber').value = '';
-            try { document.getElementById('srNumber').value = ''; } catch(e) {} } catch(e) {}
+            try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
+            try { document.getElementById('srNumber').value = ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             document.getElementById('rotorForm').reset();
             editingItem = null;
@@ -744,9 +748,8 @@
             const item = {};
             // Read all form fields
             const fields = ['designation','partNumber','serialNumber','serviceability',
-                'inspectionDate','nextInspection','next18M','next36M','next24M','next60M',
-                'orderRef','order','comments','reason','flightHours','logCard',
-                'batchNumber','expiryDate','brand','localisation','flightHours','dateOfRemoval','removeFromHC'];
+                'inspectionDate','inspectionPerformed','nextShort','nextLong',
+                'orderRef','comments','reason','flightHours','dateOfRemoval','removeFromHC'];
             fields.forEach(f => {
                 const el = document.getElementById(f);
                 if (el) item[f] = el.type === 'checkbox' ? el.checked : el.value;
@@ -822,7 +825,7 @@
 
     function clearAttachment() {
         _claudeAttachment = null;
-        var preview = document.getElementById('claudeAttachmentPreview');
+        var preview = document.getElementById('claudeAttachPreview');
         if (preview) preview.style.display = 'none';
     }
 
@@ -833,10 +836,10 @@
         reader.onload = function(e) {
             const base64 = e.target.result.split(',')[1];
             _claudeAttachment = { type: 'image', name: file.name, mimeType: file.type, data: base64 };
-            var preview = document.getElementById('claudeAttachmentPreview');
+            var preview = document.getElementById('claudeAttachPreview');
             if (preview) {
-                preview.innerHTML = '📷 ' + file.name + ' <span onclick="clearAttachment();document.getElementById(\'claudePhotoInput\').value=\'\';" style="cursor:pointer;color:#ef4444;font-weight:bold;margin-left:6px;">✕</span>';
-                preview.style.display = 'block';
+                document.getElementById('claudeAttachName').textContent = '📷 ' + file.name;
+                preview.style.display = 'flex';
             }
         };
         reader.readAsDataURL(file);
@@ -890,7 +893,10 @@
         const dataSnapshot = (typeof rotorData !== 'undefined' ? rotorData : []).slice(0, 100).map(i => ({
             id: i.id, designation: i.designation, partNumber: i.partNumber,
             serialNumber: i.serialNumber, serviceability: i.serviceability,
-            nextInspection: i.nextInspection, reason: i.reason, comments: i.comments
+            inspectionDate: i.inspectionDate, inspectionPerformed: i.inspectionPerformed,
+            nextShort: i.nextShort, shortLabel: i.shortLabel,
+            nextLong: i.nextLong, longLabel: i.longLabel,
+            reason: i.reason, comments: i.comments
         }));
         const dataStr = JSON.stringify(dataSnapshot, null, 2);
         const totalUS = (typeof rotorData !== 'undefined' ? rotorData : []).filter(i => i.serviceability === 'Unserviceable').length;
@@ -899,7 +905,7 @@
 Today: ${today} | Total items: ${totalItems} | Unserviceable: ${totalUS}
 Data: ${dataStr}
 
-Available fields: designation, partNumber, serialNumber, serviceability (Serviceable/Unserviceable), nextInspection (YYYY-MM-DD), reason, comments
+Available fields: designation, partNumber, serialNumber, serviceability (Serviceable/Unserviceable), inspectionDate (YYYY-MM-DD), inspectionPerformed (short/long), nextShort (YYYY-MM-DD), nextLong (YYYY-MM-DD), shortLabel, longLabel, reason, comments
 Required for ADD: partNumber, serialNumber
 
 You can READ and MODIFY data. When asked to modify:

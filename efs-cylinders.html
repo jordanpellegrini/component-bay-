@@ -224,13 +224,9 @@
                 </div>
                 
                 <div class="message message-info mt-20">
-                    <strong>P/N Auto-Mapping:</strong><br>
-                    • S956A20A1004 → LH FWD EFS<br>
-                    • S956A20A1005 → RH FWD EFS<br>
-                    • S956A20A1006 → LH AFT EFS<br>
-                    • S956A20A1013 → LH AFT EFS<br>
-                    • S956A20A1007 → RH AFT EFS<br>
-                    • S956A20A1014 → RH AFT EFS
+                    <strong>P/N Auto-Mapping (EFS Cylinders) :</strong><br>
+                    • S956A10A1003 → EFS Forward Cylinders<br>
+                    • S956A20A1008 → EFS Rear Cylinders
                 </div>
                 
                 <div class="mt-20">
@@ -561,7 +557,7 @@
                 const next18M = new Date(baseDate);
                 next18M.setMonth(next18M.getMonth() + 18);
                 document.getElementById('next18M').value = next18M.toISOString().split('T')[0];
-            } else if (interval === '36') {
+            } else if (interval === '60') {
                 // 60M includes 18M, so update both
                 const next18M = new Date(baseDate);
                 next18M.setMonth(next18M.getMonth() + 18);
@@ -682,6 +678,7 @@
             document.getElementById('removeFromHC').value = '';
             try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = ''; } catch(e) {}
+            try { document.getElementById('efsServiceRequest').value = ''; } catch(e) {}
             document.getElementById('editEFSId').value = '';
             // Don't reset editingEFS here - it should only be reset after successful save
             hideMessage();
@@ -811,8 +808,12 @@
                         <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.serialNumber || '-'}</div>
                     </div>
                     <div class="form-group">
-                        <label>Next Inspection</label>
-                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.nextInspection || '-'}</div>
+                        <label>Next 18M Inspection</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.next18M || '-'}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Next 60M Inspection</label>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">${item.next60M || '-'}</div>
                     </div>
                     <div class="form-group">
                         <label>Inspection Interval</label>
@@ -920,11 +921,20 @@
                 'Designation': item.designation || '',
                 'Part Number': item.partNumber,
                 'Serial Number': item.serialNumber || '',
-                'Next Inspection': item.nextInspection || '',
-                'Inspection Interval': item.inspectionInterval ? item.inspectionInterval + 'M' : '',
+                'Inspection Date': item.inspectionDate || '',
+                'Interval': item.inspectionInterval ? item.inspectionInterval + 'M' : '',
+                'Next 18M': item.next18M || '',
+                'Next 60M': item.next60M || '',
                 'Serviceability': item.serviceability || '',
                 'Work in Progress': item.workInProgress ? 'Yes' : 'No',
+                'Log Card Missing': item.logCardMissing ? 'Yes' : 'No',
                 'Order': item.order || '',
+                'SR': item.serviceRequest || '',
+                'JCN': item.jcnNumber || '',
+                'Book': item.jcnBook || '',
+                'Flight Hours': item.flightHours || '',
+                'Date of Removal': item.dateOfRemoval || '',
+                'Remove From A/C': item.removeFromHC || '',
                 'Comments': item.comments || '',
                 'Last Modified': new Date(item.lastModified).toLocaleString(),
                 'Modified By': item.modifiedBy || ''
@@ -1035,6 +1045,124 @@
     </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+    function downloadTemplate() {
+        const headers = [
+            'H/C', 'Part Number', 'Serial Number',
+            'Inspection Date', 'Interval (18 or 60)',
+            'Next 18M', 'Next 60M',
+            'Serviceability', 'Order', 'SR',
+            'JCN', 'Book', 'Flight Hours',
+            'Date of Removal', 'Remove From A/C', 'Comments'
+        ];
+        const example = [
+            'QA250', 'S956A10A1003', 'SN12345',
+            '2024-01-15', '18',
+            '2025-07-15', '',
+            'Serviceable', '', '',
+            '', '', '',
+            '', '', ''
+        ];
+        const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+        ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length + 2, 14) }));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'EFS Cylinders Template');
+        XLSX.writeFile(wb, 'EFS_Cylinders_Template.xlsx');
+        showMessage('Template downloaded', 'success', 'efsMessage');
+    }
+
+    function importFromExcel(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const wb = XLSX.read(e.target.result, { type: 'binary', cellDates: true });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                if (!rows.length) { alert('File is empty or unreadable.'); return; }
+
+                let imported = 0, skipped = 0;
+                for (const row of rows) {
+                    const pn = (row['Part Number'] || '').toString().trim();
+                    const sn = (row['Serial Number'] || '').toString().trim();
+                    if (!pn) { skipped++; continue; }
+
+                    const fmtDate = (v) => {
+                        if (!v) return '';
+                        if (v instanceof Date) return v.toISOString().split('T')[0];
+                        return v.toString().trim();
+                    };
+
+                    const interval = (row['Interval (18 or 60)'] || '').toString().trim().replace('M','');
+                    const inspDate = fmtDate(row['Inspection Date']);
+                    let next18M = fmtDate(row['Next 18M']);
+                    let next60M = fmtDate(row['Next 60M']);
+
+                    if (inspDate && interval) {
+                        const base = new Date(inspDate);
+                        if (!next18M) {
+                            const d = new Date(base); d.setMonth(d.getMonth() + 18);
+                            next18M = d.toISOString().split('T')[0];
+                        }
+                        if (interval === '60' && !next60M) {
+                            const d = new Date(base); d.setMonth(d.getMonth() + 60);
+                            next60M = d.toISOString().split('T')[0];
+                        }
+                    }
+
+                    const svcRaw = (row['Serviceability'] || 'Serviceable').toString().trim();
+                    const svc = svcRaw === 'Unserviceable' ? 'Unserviceable' : 'Serviceable';
+                    const existing = efsData.find(i => i.partNumber === pn && i.serialNumber === sn);
+
+                    const formData = {
+                        id: existing ? existing.id : (Date.now().toString() + '-' + Math.random().toString(36).substr(2,5)),
+                        designation: efsMapping[pn] || (row['Designation'] || '').toString().trim() || '',
+                        hc: (row['H/C'] || 'Spare').toString().trim(),
+                        partNumber: pn,
+                        serialNumber: sn,
+                        inspectionDate: inspDate,
+                        inspectionInterval: interval,
+                        next18M, next60M,
+                        order: (row['Order'] || '').toString().trim(),
+                        serviceRequest: (row['SR'] || '').toString().trim(),
+                        jcnNumber: (row['JCN'] || '').toString().trim(),
+                        jcnBook: (row['Book'] || '').toString().trim(),
+                        flightHours: (row['Flight Hours'] || '').toString().trim(),
+                        dateOfRemoval: fmtDate(row['Date of Removal']),
+                        removeFromHC: (row['Remove From A/C'] || '').toString().trim(),
+                        comments: (row['Comments'] || '').toString().trim(),
+                        serviceability: svc,
+                        workInProgress: false,
+                        logCardMissing: false,
+                        sentToWarehouse: false,
+                        logcardUrl: existing ? (existing.logcardUrl || '') : '',
+                        lastModified: new Date().toISOString(),
+                        modifiedBy: currentUser
+                    };
+
+                    if (existing) {
+                        const idx = efsData.findIndex(i => i.id === existing.id);
+                        efsData[idx] = formData;
+                    } else {
+                        efsData.push(formData);
+                    }
+                    imported++;
+                }
+
+                await saveData();
+                updateSummary();
+                updateUnserviceableSection();
+                if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
+                showMessage(`Import complete: ${imported} item(s) imported, ${skipped} skipped.`, 'success', 'efsMessage');
+            } catch(err) {
+                alert('Import error: ' + err.message);
+            }
+            event.target.value = '';
+        };
+        reader.readAsBinaryString(file);
+    }
+</script>
+<script>
     // Load generate-tag.js safely — don't block if missing
     (function() {
         var s = document.createElement('script');
@@ -1128,6 +1256,8 @@
         appendMessage('user', msg);
 
         const today = new Date().toISOString().split('T')[0];
+        const totalItems = efsData.length;
+        const totalUS = efsData.filter(i => i.serviceability === 'Unserviceable').length;
         const dataSnapshot = efsData.map(i => ({
             id: i.id, hc: i.hc, designation: i.designation,
             partNumber: i.partNumber, serialNumber: i.serialNumber,
@@ -1136,6 +1266,7 @@
             workInProgress: i.workInProgress, inspectionDate: i.inspectionDate,
             inspectionInterval: i.inspectionInterval
         }));
+        const dataStr = JSON.stringify(dataSnapshot);
 
         const systemPrompt = `You are an aircraft maintenance assistant for ASM integrated into the EFS Cylinders module of Components Bay.
 Today: ${today} | Total items: ${totalItems} | Unserviceable: ${totalUS}
@@ -1214,13 +1345,13 @@ Respond in the same language as the user. Be concise.`;
                     } else if ((action.type === 'add' || action.type === 'create') && action.fields) {
                         if (!action.fields.partNumber || !action.fields.serialNumber) {
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim();
-                            reply += '\\n\\n❌ P/N et S/N obligatoires.';
+                            reply += '\n\n❌ P/N et S/N obligatoires.';
                         } else if (window.ComponentsBayDB) {
                             const newItem = { id: Date.now().toString() + '-' + Math.random().toString(36).substr(2,6), serviceability: action.fields.serviceability || 'Serviceable', createdAt: new Date().toISOString(), createdBy: localStorage.getItem('componentsBayCurrentUser') || 'unknown', lastModified: new Date().toISOString(), ...action.fields };
                             await window.ComponentsBayDB.save('efs_cylinders', newItem);
                             efsData.push(newItem);
                             reply = reply.replace(/<action>[\s\S]*?<\/action>/, '').trim();
-                            reply += '\\n\\n✅ Item créé et sauvegardé.';
+                            reply += '\n\n✅ Item créé et sauvegardé.';
                             updateSummary();
                             if (!document.getElementById('viewAllSection').classList.contains('hidden')) refreshTable();
                         }

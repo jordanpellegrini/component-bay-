@@ -390,7 +390,7 @@
         function updateSummary() {
             updateUpcoming90();
             const s = seatData.filter(i => i.serviceability === 'Serviceable').length;
-            const u = seatData.filter(item => !item.sentToWarehouse).filter(i => !i.sentToWarehouse && i.serviceability === 'Unserviceable').length;
+            const u = seatData.filter(i => !i.sentToWarehouse && i.serviceability === 'Unserviceable').length;
             document.getElementById('serviceableCount').textContent = s;
             document.getElementById('unserviceableCount').textContent = u;
             document.getElementById('totalCount').textContent = seatData.length;
@@ -398,7 +398,7 @@
         }
 
         function updateUnserviceableSection() {
-            const items = seatData.filter(item => !item.sentToWarehouse).filter(i => !i.sentToWarehouse && i.serviceability === 'Unserviceable');
+            const items = seatData.filter(i => !i.sentToWarehouse && i.serviceability === 'Unserviceable');
             const container = document.getElementById('unserviceableTable');
             document.getElementById('unserviceableBadge').textContent = items.length;
 
@@ -448,16 +448,18 @@
                 jcnNumber: document.getElementById('jcnNumber') ? document.getElementById('jcnNumber').value.trim() : '',
                 srNumber: document.getElementById('srNumber') ? document.getElementById('srNumber').value.trim() : '',
                 jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
-                reason: '',
+                reason: editingItem ? (editingItem.reason || '') : '',
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser
             };
 
-            // Check overdue
+            // Check overdue — preserve manual reason if already Unserviceable with custom reason
             const today = new Date(); today.setHours(0,0,0,0);
             if (formData.nextInspection && new Date(formData.nextInspection) < today) {
-                formData.serviceability = 'Unserviceable';
-                formData.reason = '3Y Inspection Overdue';
+                if (formData.serviceability !== 'Unserviceable' || !formData.reason) {
+                    formData.serviceability = 'Unserviceable';
+                    formData.reason = '3Y Inspection Overdue';
+                }
             }
 
             if (editingItem) {
@@ -508,12 +510,14 @@
 
         function resetForm() {
             resetLogCardMissing_troop_seat();
+            _currentEditingForLogcard = null;
+            try { updateLogcardBtn(null); } catch(e) {}
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
             try { document.getElementById('troopHC').value = ''; } catch(e) {}
-            try { document.getElementById('jcnNumber').value = '';
-            try { document.getElementById('srNumber').value = ''; } catch(e) {} } catch(e) {}
+            try { document.getElementById('jcnNumber').value = ''; } catch(e) {}
+            try { document.getElementById('srNumber').value = ''; } catch(e) {}
             try { document.getElementById('jcnBook').value = ''; } catch(e) {}
             document.getElementById('seatForm').reset();
             editingItem = null;
@@ -683,13 +687,15 @@
             const item = {};
             // Read all form fields
             const fields = ['designation','partNumber','serialNumber','serviceability',
-                'inspectionDate','nextInspection','next18M','next36M','next24M','next60M',
-                'orderRef','order','comments','reason','flightHours','logCard',
-                'batchNumber','expiryDate','brand','localisation','flightHours','dateOfRemoval','removeFromHC'];
+                'inspectionDate','nextInspection','troopHC',
+                'order','comments','reason','flightHours','dateOfRemoval','removeFromHC'];
             fields.forEach(f => {
                 const el = document.getElementById(f);
                 if (el) item[f] = el.type === 'checkbox' ? el.checked : el.value;
             });
+            // Map troopHC → hc pour le tag
+            const hcEl = document.getElementById('troopHC');
+            if (hcEl) item.hc = hcEl.value.trim();
             // Get reason from stored data (not a form field)
             if (editingItem) item.reason = editingItem.reason || '';
             if (!item.partNumber && !item.designation) { alert('No item data'); return; }
@@ -761,7 +767,7 @@
 
     function clearAttachment() {
         _claudeAttachment = null;
-        var preview = document.getElementById('claudeAttachmentPreview');
+        var preview = document.getElementById('claudeAttachPreview');
         if (preview) preview.style.display = 'none';
     }
 
@@ -772,10 +778,10 @@
         reader.onload = function(e) {
             const base64 = e.target.result.split(',')[1];
             _claudeAttachment = { type: 'image', name: file.name, mimeType: file.type, data: base64 };
-            var preview = document.getElementById('claudeAttachmentPreview');
+            var preview = document.getElementById('claudeAttachPreview');
             if (preview) {
-                preview.innerHTML = '📷 ' + file.name + ' <span onclick="clearAttachment();document.getElementById(\'claudePhotoInput\').value=\'\';" style="cursor:pointer;color:#ef4444;font-weight:bold;margin-left:6px;">✕</span>';
-                preview.style.display = 'block';
+                document.getElementById('claudeAttachName').textContent = '📷 ' + file.name;
+                preview.style.display = 'flex';
             }
         };
         reader.readAsDataURL(file);

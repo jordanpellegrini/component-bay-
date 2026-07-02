@@ -149,7 +149,7 @@
                     </div>
                     <div class="form-group">
                         <label>Serviceability</label>
-                        <select id="serviceability" class="form-control" onchange="showWarehouseCheckbox(this.value)" onchange="handleServiceabilityChange()">
+                        <select id="serviceability" class="form-control" onchange="showWarehouseCheckbox(this.value); handleServiceabilityChange();">
                             <option value="">Select status</option>
                             <option value="Serviceable">Serviceable</option>
                             <option value="Unserviceable">Unserviceable</option>
@@ -257,7 +257,7 @@
 
         function checkAuthentication() {
             if (!currentUser || currentUser === 'null') {
-                window.location.href = 'main-menu.html';
+                window.location.href = 'index.html';
                 return;
             }
             document.getElementById('userInfo').textContent = `${currentUser} (${userRole.toUpperCase()})`;
@@ -410,12 +410,11 @@
                 designation: document.getElementById('designation').value.trim(),
                 partNumber: partNumber,
                 serialNumber: document.getElementById('serialNumber').value.trim(),
-                flightHours: document.getElementById('flightHours').value,
                 order: document.getElementById('order').value.trim(),
                 srNumber: document.getElementById('srNumber').value.trim(),
                 logCard: document.getElementById('logCard').value,
                 serviceability: document.getElementById('serviceability').value || 'Serviceable',
-                workInProgress: document.getElementById('workInProgress').value.trim(),
+                workInProgress: document.getElementById('workInProgress').checked,
                 sentToWarehouse: document.getElementById('sentToWarehouse') ? document.getElementById('sentToWarehouse').checked : false,
                 logcardUrl: _currentEditingForLogcard ? (_currentEditingForLogcard.logcardUrl || '') : (editingItem ? (editingItem.logcardUrl || '') : ''),
                 comments: document.getElementById('comments').value.trim(),
@@ -491,6 +490,8 @@
 
         function resetForm() {
             resetLogCardMissing_composite();
+            _currentEditingForLogcard = null;
+            updateLogcardBtn(null);
             try { document.getElementById('flightHours').value = ''; } catch(e) {}
             try { document.getElementById('dateOfRemoval').value = ''; } catch(e) {}
             try { document.getElementById('removeFromHC').value = ''; } catch(e) {}
@@ -652,7 +653,7 @@
             document.getElementById('serviceability').value = editingItem.serviceability || '';
             _currentEditingForLogcard = editingItem;
             try { document.getElementById('sentToWarehouse').checked = editingItem.sentToWarehouse || false; showWarehouseCheckbox(editingItem.serviceability || ''); updateLogcardBtn(editingItem.logcardUrl || null); } catch(e) {}
-            document.getElementById('workInProgress').value = editingItem.workInProgress || '';
+            document.getElementById('workInProgress').checked = editingItem.workInProgress || false;
             document.getElementById('comments').value = editingItem.comments || '';
             if (document.getElementById('logCardMissing_composite')) document.getElementById('logCardMissing_composite').checked = editingItem.logCardMissing || false;
             document.getElementById('flightHours').value = editingItem.flightHours || '';
@@ -756,7 +757,7 @@
             if (confirm('Are you sure you want to logout?')) {
                 localStorage.removeItem('componentsBayCurrentUser');
                 localStorage.removeItem('componentsBayUserRole');
-                window.location.href = 'main-menu.html';
+                window.location.href = 'index.html';
             }
         }
 
@@ -866,7 +867,7 @@
 
     function clearAttachment() {
         _claudeAttachment = null;
-        var preview = document.getElementById('claudeAttachmentPreview');
+        var preview = document.getElementById('claudeAttachPreview');
         if (preview) preview.style.display = 'none';
     }
 
@@ -877,10 +878,10 @@
         reader.onload = function(e) {
             const base64 = e.target.result.split(',')[1];
             _claudeAttachment = { type: 'image', name: file.name, mimeType: file.type, data: base64 };
-            var preview = document.getElementById('claudeAttachmentPreview');
+            var preview = document.getElementById('claudeAttachPreview');
             if (preview) {
-                preview.innerHTML = '📷 ' + file.name + ' <span onclick="clearAttachment();document.getElementById(\'claudePhotoInput\').value=\'\';" style="cursor:pointer;color:#ef4444;font-weight:bold;margin-left:6px;">✕</span>';
-                preview.style.display = 'block';
+                document.getElementById('claudeAttachName').textContent = '📷 ' + file.name;
+                preview.style.display = 'flex';
             }
         };
         reader.readAsDataURL(file);
