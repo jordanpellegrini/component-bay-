@@ -217,11 +217,20 @@
                         <input type="text" id="efsServiceRequest" class="form-control" placeholder="SR number">
                     </div>
                     <div class="form-group">
-                        <label>⏱ Tolerance 18M (+54 j.)</label>
-                        <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff8e1;border:1px solid #f39c12;border-radius:6px;height:38px;">
-                            <input type="checkbox" id="tolerance18M" onchange="applyTolerance18M(this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:#f39c12;flex-shrink:0;">
-                            <label for="tolerance18M" style="margin:0;cursor:pointer;font-weight:600;color:#b7770d;white-space:nowrap;">Utiliser</label>
-                            <span id="tolerance18MDisplay" style="display:none;font-size:0.78em;color:#f39c12;font-weight:bold;white-space:nowrap;overflow:hidden;"></span>
+                        <label>⏱ Tolerances</label>
+                        <div style="display:flex;flex-direction:column;gap:5px;padding:6px 10px;background:#fff8e1;border:1px solid #f39c12;border-radius:6px;">
+                            <!-- 18M -->
+                            <div style="display:flex;align-items:center;gap:7px;">
+                                <input type="checkbox" id="tolerance18M" onchange="applyTolerance18M(this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:#f39c12;flex-shrink:0;">
+                                <label for="tolerance18M" style="margin:0;cursor:pointer;font-weight:600;color:#b7770d;white-space:nowrap;font-size:0.85em;">18M +54j</label>
+                                <span id="tolerance18MDisplay" style="display:none;font-size:0.75em;color:#f39c12;font-weight:bold;white-space:nowrap;overflow:hidden;"></span>
+                            </div>
+                            <!-- 36M -->
+                            <div style="display:flex;align-items:center;gap:7px;">
+                                <input type="checkbox" id="tolerance36M" onchange="applyTolerance36M(this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:#8e44ad;flex-shrink:0;">
+                                <label for="tolerance36M" style="margin:0;cursor:pointer;font-weight:600;color:#6c3483;white-space:nowrap;font-size:0.85em;">36M +108j</label>
+                                <span id="tolerance36MDisplay" style="display:none;font-size:0.75em;color:#8e44ad;font-weight:bold;white-space:nowrap;overflow:hidden;"></span>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group" style="display:flex;align-items:center;">
@@ -433,17 +442,21 @@
             // Compute daysLeft for each item then sort ascending
             const rows = upcoming.map(item => {
                 const eff18M = (item.toleranceUsed && item.next18M_effective) ? item.next18M_effective : item.next18M;
-                const soonestDate = [eff18M, item.next36M].filter(Boolean).map(d => new Date(d)).filter(d => d >= today && d <= in90).sort((a,b) => a-b)[0];
+                const eff36M = (item.tolerance36MUsed && item.next36M_effective) ? item.next36M_effective : item.next36M;
+                const soonestDate = [eff18M, eff36M].filter(Boolean).map(d => new Date(d)).filter(d => d >= today && d <= in90).sort((a,b) => a-b)[0];
                 const daysLeft = Math.ceil((soonestDate - today) / 86400000);
-                return { item, daysLeft, eff18M };
+                return { item, daysLeft, eff18M, eff36M };
             }).sort((a, b) => a.daysLeft - b.daysLeft);
 
             let html = '<table class="data-table"><thead><tr><th>H/C</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 18M</th><th>Next 36M</th><th>Tolerance</th><th>Days Left</th></tr></thead><tbody>';
-            rows.forEach(({ item, daysLeft, eff18M }) => {
+            rows.forEach(({ item, daysLeft, eff18M, eff36M }) => {
                 const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
-                const tolCell = item.toleranceUsed ? `<span style="background:#f39c12;color:white;font-size:0.78em;padding:2px 7px;border-radius:4px;font-weight:700;">USED</span>` : '-';
-                const date18Display = item.toleranceUsed ? `${item.next18M} <span style="color:#f39c12;font-size:0.8em;">→${eff18M}</span>` : (item.next18M||'-');
-                html += `<tr><td>${item.hc||'-'}</td><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber||'-'}</a></td><td>${date18Display}</td><td>${item.next36M||'-'}</td><td>${tolCell}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+                const tol18Badge = item.toleranceUsed ? `<span style="background:#f39c12;color:white;font-size:0.72em;padding:1px 5px;border-radius:3px;font-weight:700;">18M</span>` : '';
+                const tol36Badge = item.tolerance36MUsed ? `<span style="background:#8e44ad;color:white;font-size:0.72em;padding:1px 5px;border-radius:3px;font-weight:700;">36M</span>` : '';
+                const tolCell = (tol18Badge || tol36Badge) ? `<span style="display:inline-flex;gap:3px;align-items:center;">${tol18Badge}${tol36Badge}</span> USED` : '-';
+                const date18Display = item.toleranceUsed ? `${item.next18M||'-'} <span style="color:#f39c12;font-size:0.8em;">->${eff18M}</span>` : (item.next18M||'-');
+                const date36Display = item.tolerance36MUsed ? `${item.next36M||'-'} <span style="color:#8e44ad;font-size:0.8em;">->${eff36M}</span>` : (item.next36M||'-');
+                html += `<tr><td>${item.hc||'-'}</td><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber||'-'}</a></td><td>${date18Display}</td><td>${date36Display}</td><td>${tolCell}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
             });
             html += '</tbody></table>';
             container.innerHTML = html;
@@ -469,10 +482,11 @@
                 }
                 
                 if (item.next36M) {
-                    const next36M = new Date(item.next36M);
+                    const effective36M = (item.tolerance36MUsed && item.next36M_effective) ? item.next36M_effective : item.next36M;
+                    const next36M = new Date(effective36M);
                     if (today > next36M) {
                         isOverdue = true;
-                        reason = 'EFS 36M inspection overdue';
+                        reason = item.tolerance36MUsed ? 'EFS 36M overdue (tolerance used)' : 'EFS 36M inspection overdue';
                     }
                 }
                 
@@ -607,8 +621,22 @@
             if (checked && next18MVal) {
                 const base = new Date(next18MVal);
                 base.setDate(base.getDate() + 54);
-                const effective = base.toISOString().split('T')[0];
-                display.textContent = '→ Effective : ' + effective;
+                display.textContent = '-> ' + base.toISOString().split('T')[0];
+                display.style.display = 'inline';
+            } else {
+                display.textContent = '';
+                display.style.display = 'none';
+            }
+        }
+
+        function applyTolerance36M(checked) {
+            const next36MVal = document.getElementById('next36M').value;
+            const display = document.getElementById('tolerance36MDisplay');
+            if (!display) return;
+            if (checked && next36MVal) {
+                const base = new Date(next36MVal);
+                base.setDate(base.getDate() + 108);
+                display.textContent = '-> ' + base.toISOString().split('T')[0];
                 display.style.display = 'inline';
             } else {
                 display.textContent = '';
@@ -706,6 +734,16 @@
                     }
                     return base18;
                 })(),
+                tolerance36MUsed: document.getElementById('tolerance36M') ? document.getElementById('tolerance36M').checked : false,
+                next36M_effective: (() => {
+                    const base36 = document.getElementById('next36M').value;
+                    const tol = document.getElementById('tolerance36M');
+                    if (tol && tol.checked && base36) {
+                        const d = new Date(base36); d.setDate(d.getDate() + 108);
+                        return d.toISOString().split('T')[0];
+                    }
+                    return base36;
+                })(),
                 comments: document.getElementById('efsComments').value.trim(),
                 logCardMissing: document.getElementById('logCardMissing_efs') ? document.getElementById('logCardMissing_efs').checked : false,
                 flightHours: document.getElementById('flightHours').value.trim(),
@@ -787,6 +825,8 @@
             document.getElementById('next36M').value = '';
             const tolCb = document.getElementById('tolerance18M');
             if (tolCb) { tolCb.checked = false; applyTolerance18M(false); }
+            const tol36Cb = document.getElementById('tolerance36M');
+            if (tol36Cb) { tol36Cb.checked = false; applyTolerance36M(false); }
             document.getElementById('efsComments').value = '';
             document.getElementById('flightHours').value = '';
             document.getElementById('dateOfRemoval').value = '';
@@ -876,12 +916,16 @@
             filtered.forEach(item => {
                 const statusClass = item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable';
                 const eff18M = (item.toleranceUsed && item.next18M_effective) ? item.next18M_effective : item.next18M;
+                const eff36M = (item.tolerance36MUsed && item.next36M_effective) ? item.next36M_effective : item.next36M;
                 const date18Display = item.toleranceUsed
-                    ? `${item.next18M||'-'} <span style="color:#f39c12;font-size:0.8em;white-space:nowrap;">→ ${eff18M}</span>`
+                    ? `${item.next18M||'-'} <span style="color:#f39c12;font-size:0.8em;white-space:nowrap;">-> ${eff18M}</span>`
                     : (item.next18M||'-');
-                const tolCell = item.toleranceUsed
-                    ? `<span style="background:#f39c12;color:white;font-size:0.78em;padding:2px 7px;border-radius:4px;font-weight:700;">USED</span>`
-                    : '-';
+                const date36Display = item.tolerance36MUsed
+                    ? `${item.next36M||'-'} <span style="color:#8e44ad;font-size:0.8em;white-space:nowrap;">-> ${eff36M}</span>`
+                    : (item.next36M||'-');
+                const tol18Badge = item.toleranceUsed ? `<span style="background:#f39c12;color:white;font-size:0.72em;padding:1px 5px;border-radius:3px;font-weight:700;">18M</span>` : '';
+                const tol36Badge = item.tolerance36MUsed ? `<span style="background:#8e44ad;color:white;font-size:0.72em;padding:1px 5px;border-radius:3px;font-weight:700;">36M</span>` : '';
+                const tolCell = (tol18Badge || tol36Badge) ? `<span style="display:inline-flex;gap:3px;align-items:center;">${tol18Badge}${tol36Badge}</span> USED` : '-';
                 
                 tableHTML += `
                     <tr>
@@ -890,7 +934,7 @@
                         <td>${item.partNumber}</td>
                         <td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
                         <td>${date18Display}</td>
-                        <td>${item.next36M||'-'}</td>
+                        <td>${date36Display}</td>
                         <td>${tolCell}</td>
                         <td>${item.inspectionInterval ? item.inspectionInterval + 'M' : '-'}</td>
                         <td><span class="status-badge ${statusClass}">${item.serviceability || 'N/A'}</span></td>
@@ -987,10 +1031,9 @@
             document.getElementById('next36M').value = editingEFS.next36M || '';
             // Restore tolerance
             const tolCb = document.getElementById('tolerance18M');
-            if (tolCb) {
-                tolCb.checked = editingEFS.toleranceUsed || false;
-                applyTolerance18M(tolCb.checked);
-            }
+            if (tolCb) { tolCb.checked = editingEFS.toleranceUsed || false; applyTolerance18M(tolCb.checked); }
+            const tol36Cb = document.getElementById('tolerance36M');
+            if (tol36Cb) { tol36Cb.checked = editingEFS.tolerance36MUsed || false; applyTolerance36M(tol36Cb.checked); }
             
             document.getElementById('efsComments').value = editingEFS.comments || '';
             if (document.getElementById('logCardMissing_efs')) document.getElementById('logCardMissing_efs').checked = editingEFS.logCardMissing || false;
@@ -1054,6 +1097,8 @@
                 'Next 36M': item.next36M || '',
                 'Tolerance Used': item.toleranceUsed ? 'Yes' : 'No',
                 'Next 18M Effective': item.next18M_effective || item.next18M || '',
+                'Tolerance 36M Used': item.tolerance36MUsed ? 'Yes' : 'No',
+                'Next 36M Effective': item.next36M_effective || item.next36M || '',
                 'Serviceability': item.serviceability || '',
                 'Work in Progress': item.workInProgress ? 'Yes' : 'No',
                 'Log Card Missing': item.logCardMissing ? 'Yes' : 'No',
