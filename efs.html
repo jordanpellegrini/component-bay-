@@ -143,7 +143,15 @@
                         </div>
                         <div class="form-group">
                             <label>Next 18M Inspection</label>
-                            <input type="date" id="next18M" class="form-control" style="background:#f8f9fa;">
+                            <input type="date" id="next18M" class="form-control" style="background:#f8f9fa;" onchange="applyTolerance18M(document.getElementById('tolerance18M').checked)">
+                        </div>
+                        <div class="form-group">
+                            <label>⏱ Tolerance 18M (+54 jours)</label>
+                            <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#fff8e1;border:1px solid #f39c12;border-radius:6px;">
+                                <input type="checkbox" id="tolerance18M" onchange="applyTolerance18M(this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:#f39c12;">
+                                <label for="tolerance18M" style="margin:0;cursor:pointer;font-weight:600;color:#b7770d;">Utiliser la tolérance</label>
+                                <span id="tolerance18MDisplay" style="display:none;font-size:0.82em;color:#f39c12;font-weight:bold;margin-left:4px;"></span>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>Next 36M Inspection</label>
@@ -389,7 +397,8 @@
             
             const upcoming = efsData.filter(item => {
                 if (item.serviceability !== 'Serviceable') return false;
-                const dates = [item.next18M, item.next36M].filter(Boolean);
+                const effective18M = (item.toleranceUsed && item.next18M_effective) ? item.next18M_effective : item.next18M;
+                const dates = [effective18M, item.next36M].filter(Boolean);
                 return dates.some(d => {
                     const dt = new Date(d);
                     return dt >= today && dt <= in90;
@@ -406,15 +415,18 @@
 
             // Compute daysLeft for each item then sort ascending
             const rows = upcoming.map(item => {
-                const soonestDate = [item.next18M, item.next36M].filter(Boolean).map(d => new Date(d)).filter(d => d >= today && d <= in90).sort((a,b) => a-b)[0];
+                const eff18M = (item.toleranceUsed && item.next18M_effective) ? item.next18M_effective : item.next18M;
+                const soonestDate = [eff18M, item.next36M].filter(Boolean).map(d => new Date(d)).filter(d => d >= today && d <= in90).sort((a,b) => a-b)[0];
                 const daysLeft = Math.ceil((soonestDate - today) / 86400000);
-                return { item, daysLeft };
+                return { item, daysLeft, eff18M };
             }).sort((a, b) => a.daysLeft - b.daysLeft);
 
-            let html = '<table class="data-table"><thead><tr><th>H/C</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 18M</th><th>Next 36M</th><th>Days Left</th></tr></thead><tbody>';
-            rows.forEach(({ item, daysLeft }) => {
+            let html = '<table class="data-table"><thead><tr><th>H/C</th><th>Designation</th><th>P/N</th><th>S/N</th><th>Next 18M</th><th>Next 36M</th><th>Tolerance</th><th>Days Left</th></tr></thead><tbody>';
+            rows.forEach(({ item, daysLeft, eff18M }) => {
                 const urgency = daysLeft <= 30 ? 'color:#e74c3c;font-weight:700;' : daysLeft <= 60 ? 'color:#f39c12;font-weight:600;' : '';
-                html += `<tr><td>${item.hc||'-'}</td><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber||'-'}</a></td><td>${item.next18M||'-'}</td><td>${item.next36M||'-'}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
+                const tolCell = item.toleranceUsed ? `<span style="background:#f39c12;color:white;font-size:0.78em;padding:2px 7px;border-radius:4px;font-weight:700;">USED</span>` : '-';
+                const date18Display = item.toleranceUsed ? `${item.next18M} <span style="color:#f39c12;font-size:0.8em;">→${eff18M}</span>` : (item.next18M||'-');
+                html += `<tr><td>${item.hc||'-'}</td><td>${item.designation||'-'}</td><td>${item.partNumber||'-'}</td><td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber||'-'}</a></td><td>${date18Display}</td><td>${item.next36M||'-'}</td><td>${tolCell}</td><td style="${urgency}">${daysLeft} days</td></tr>`;
             });
             html += '</tbody></table>';
             container.innerHTML = html;
@@ -430,10 +442,12 @@
                 let reason = '';
                 
                 if (item.next18M) {
-                    const next18M = new Date(item.next18M);
+                    // Use effective date (with tolerance if used)
+                    const effective18M = (item.toleranceUsed && item.next18M_effective) ? item.next18M_effective : item.next18M;
+                    const next18M = new Date(effective18M);
                     if (today > next18M) {
                         isOverdue = true;
-                        reason = 'EFS 18M inspection overdue';
+                        reason = item.toleranceUsed ? 'EFS 18M overdue (tolérance utilisée)' : 'EFS 18M inspection overdue';
                     }
                 }
                 
@@ -569,6 +583,22 @@
             }
         }
 
+        function applyTolerance18M(checked) {
+            const next18MVal = document.getElementById('next18M').value;
+            const display = document.getElementById('tolerance18MDisplay');
+            if (!display) return;
+            if (checked && next18MVal) {
+                const base = new Date(next18MVal);
+                base.setDate(base.getDate() + 54);
+                const effective = base.toISOString().split('T')[0];
+                display.textContent = '→ Effective : ' + effective;
+                display.style.display = 'inline';
+            } else {
+                display.textContent = '';
+                display.style.display = 'none';
+            }
+        }
+
         function handleEFSSubmit(event) {
             event.preventDefault();
             
@@ -593,6 +623,16 @@
                 inspectionInterval: document.getElementById('inspectionInterval').value,
                 next18M: document.getElementById('next18M').value,
                 next36M: document.getElementById('next36M').value,
+                toleranceUsed: document.getElementById('tolerance18M') ? document.getElementById('tolerance18M').checked : false,
+                next18M_effective: (() => {
+                    const base18 = document.getElementById('next18M').value;
+                    const tol = document.getElementById('tolerance18M');
+                    if (tol && tol.checked && base18) {
+                        const d = new Date(base18); d.setDate(d.getDate() + 54);
+                        return d.toISOString().split('T')[0];
+                    }
+                    return base18;
+                })(),
                 comments: document.getElementById('efsComments').value.trim(),
                 logCardMissing: document.getElementById('logCardMissing_efs') ? document.getElementById('logCardMissing_efs').checked : false,
                 flightHours: document.getElementById('flightHours').value.trim(),
@@ -672,6 +712,8 @@
             document.getElementById('inspectionInterval').value = '';
             document.getElementById('next18M').value = '';
             document.getElementById('next36M').value = '';
+            const tolCb = document.getElementById('tolerance18M');
+            if (tolCb) { tolCb.checked = false; applyTolerance18M(false); }
             document.getElementById('efsComments').value = '';
             document.getElementById('flightHours').value = '';
             document.getElementById('dateOfRemoval').value = '';
@@ -746,7 +788,9 @@
                                 <th>Designation</th>
                                 <th>P/N</th>
                                 <th>S/N</th>
-                                <th>Next Inspection</th>
+                                <th>Next 18M</th>
+                                <th>Next 36M</th>
+                                <th>Tolerance</th>
                                 <th>Interval</th>
                                 <th>Serviceability</th>
                                 <th>Work in Progress</th>
@@ -758,6 +802,13 @@
 
             filtered.forEach(item => {
                 const statusClass = item.serviceability === 'Unserviceable' ? 'status-unserviceable' : 'status-serviceable';
+                const eff18M = (item.toleranceUsed && item.next18M_effective) ? item.next18M_effective : item.next18M;
+                const date18Display = item.toleranceUsed
+                    ? `${item.next18M||'-'} <span style="color:#f39c12;font-size:0.8em;white-space:nowrap;">→ ${eff18M}</span>`
+                    : (item.next18M||'-');
+                const tolCell = item.toleranceUsed
+                    ? `<span style="background:#f39c12;color:white;font-size:0.78em;padding:2px 7px;border-radius:4px;font-weight:700;">USED</span>`
+                    : '-';
                 
                 tableHTML += `
                     <tr>
@@ -765,7 +816,9 @@
                         <td>${item.designation || '-'}</td>
                         <td>${item.partNumber}</td>
                         <td><a href="#" class="clickable" onclick="showEFSDetail('${item.id}')">${item.serialNumber || '-'}</a></td>
-                        <td>${[item.next18M ? '18M:'+item.next18M : '', item.next36M ? '36M:'+item.next36M : ''].filter(Boolean).join(' / ') || item.nextInspection || '-'}</td>
+                        <td>${date18Display}</td>
+                        <td>${item.next36M||'-'}</td>
+                        <td>${tolCell}</td>
                         <td>${item.inspectionInterval ? item.inspectionInterval + 'M' : '-'}</td>
                         <td><span class="status-badge ${statusClass}">${item.serviceability || 'N/A'}</span></td>
                         <td>${item.workInProgress ? 'Yes' : 'No'}</td>
@@ -859,6 +912,12 @@
             // Use new field names
             document.getElementById('next18M').value = editingEFS.next18M || editingEFS.nextInspection || '';
             document.getElementById('next36M').value = editingEFS.next36M || '';
+            // Restore tolerance
+            const tolCb = document.getElementById('tolerance18M');
+            if (tolCb) {
+                tolCb.checked = editingEFS.toleranceUsed || false;
+                applyTolerance18M(tolCb.checked);
+            }
             
             document.getElementById('efsComments').value = editingEFS.comments || '';
             if (document.getElementById('logCardMissing_efs')) document.getElementById('logCardMissing_efs').checked = editingEFS.logCardMissing || false;
@@ -920,6 +979,8 @@
                 'Interval': item.inspectionInterval ? item.inspectionInterval + 'M' : '',
                 'Next 18M': item.next18M || '',
                 'Next 36M': item.next36M || '',
+                'Tolerance Used': item.toleranceUsed ? 'Yes' : 'No',
+                'Next 18M Effective': item.next18M_effective || item.next18M || '',
                 'Serviceability': item.serviceability || '',
                 'Work in Progress': item.workInProgress ? 'Yes' : 'No',
                 'Log Card Missing': item.logCardMissing ? 'Yes' : 'No',
