@@ -59,7 +59,23 @@
             </div>
         </div>
 
-        <!-- Unserviceable Items Summary -->
+        <!-- TOL Used Alert Banner -->
+        <div id="tolAlertBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#1a1a2e;color:#fff;padding:0;box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+            <div style="background:#f39c12;padding:10px 20px;display:flex;align-items:center;gap:10px;">
+                <span style="font-size:1.3em;">⚠️</span>
+                <strong style="font-size:1em;letter-spacing:0.5px;">TOLERANCE USED — Action Required</strong>
+                <span id="tolAlertCount" style="background:white;color:#f39c12;font-weight:800;padding:1px 8px;border-radius:10px;font-size:0.85em;"></span>
+            </div>
+            <div style="padding:12px 20px 10px;">
+                <p style="margin:0 0 10px;font-size:0.88em;color:#ccc;">The following EFS items have <strong style="color:#f39c12;">TOL Used</strong> detected in CARO (column C). Their inspection dates were <strong>not updated</strong> by the sync. Please review and take action.</p>
+                <div id="tolAlertList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;margin-bottom:12px;"></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:8px;border-top:1px solid #333;">
+                    <button onclick="dismissTolAlert()" style="padding:7px 18px;background:#555;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.85em;">OK — Dismiss</button>
+                    <button onclick="acknowledgeTolAlert()" style="padding:7px 18px;background:#27ae60;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.85em;font-weight:600;">✅ Acknowledged — Clear Alerts</button>
+                </div>
+            </div>
+        </div>
+        <div id="tolAlertSpacer" style="display:none;height:0px;"></div>
         <div id="unserviceableSection" class="panel">
             <div class="panel-header" style="background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);">
                 <span>⚠️ Unserviceable EFS Floats Summary</span>
@@ -146,14 +162,6 @@
                             <input type="date" id="next18M" class="form-control" style="background:#f8f9fa;" onchange="applyTolerance18M(document.getElementById('tolerance18M').checked)">
                         </div>
                         <div class="form-group">
-                            <label>⏱ Tolerance 18M (+54 jours)</label>
-                            <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#fff8e1;border:1px solid #f39c12;border-radius:6px;">
-                                <input type="checkbox" id="tolerance18M" onchange="applyTolerance18M(this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:#f39c12;">
-                                <label for="tolerance18M" style="margin:0;cursor:pointer;font-weight:600;color:#b7770d;">Utiliser la tolérance</label>
-                                <span id="tolerance18MDisplay" style="display:none;font-size:0.82em;color:#f39c12;font-weight:bold;margin-left:4px;"></span>
-                            </div>
-                        </div>
-                        <div class="form-group">
                             <label>Next 36M Inspection</label>
                             <input type="date" id="next36M" class="form-control" style="background:#f8f9fa;">
                         </div>
@@ -207,6 +215,14 @@
                     <div class="form-group">
                         <label>Service Request (SR)</label>
                         <input type="text" id="efsServiceRequest" class="form-control" placeholder="SR number">
+                    </div>
+                    <div class="form-group">
+                        <label>⏱ Tolerance 18M (+54 j.)</label>
+                        <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff8e1;border:1px solid #f39c12;border-radius:6px;height:38px;">
+                            <input type="checkbox" id="tolerance18M" onchange="applyTolerance18M(this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:#f39c12;flex-shrink:0;">
+                            <label for="tolerance18M" style="margin:0;cursor:pointer;font-weight:600;color:#b7770d;white-space:nowrap;">Utiliser</label>
+                            <span id="tolerance18MDisplay" style="display:none;font-size:0.78em;color:#f39c12;font-weight:bold;white-space:nowrap;overflow:hidden;"></span>
+                        </div>
                     </div>
                     <div class="form-group" style="display:flex;align-items:center;">
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
@@ -335,6 +351,7 @@
             await loadData();
             updateSummary();
             updateUnserviceableSection();
+            checkTolAlerts();
         });
 
         function checkAuthentication() {
@@ -597,6 +614,62 @@
                 display.textContent = '';
                 display.style.display = 'none';
             }
+        }
+
+        // ---- TOL Alert notification ----
+        let _tolAlertItems = [];
+
+        function checkTolAlerts() {
+            _tolAlertItems = efsData.filter(i => i.tolAlert === true && i.tolAlertAcknowledged !== true);
+            if (_tolAlertItems.length === 0) return;
+
+            const banner = document.getElementById('tolAlertBanner');
+            const spacer = document.getElementById('tolAlertSpacer');
+            const list   = document.getElementById('tolAlertList');
+            document.getElementById('tolAlertCount').textContent = _tolAlertItems.length + ' item' + (_tolAlertItems.length > 1 ? 's' : '');
+
+            list.innerHTML = _tolAlertItems.map(i => `
+                <div style="background:#2a2a3e;border-left:3px solid #f39c12;padding:8px 12px;border-radius:4px;font-size:0.83em;">
+                    <strong style="color:#f39c12;">${i.designation||i.partNumber}</strong>
+                    &nbsp;|&nbsp; S/N <strong>${i.serialNumber||'-'}</strong>
+                    &nbsp;|&nbsp; H/C ${i.hc||'Spare'}
+                    <br><span style="color:#aaa;font-size:0.92em;">${i.tolAlertMessage||'TOL Used detected in CARO'}</span>
+                </div>
+            `).join('');
+
+            banner.style.display = 'block';
+            // Adjust spacer height to push content below fixed banner
+            setTimeout(() => {
+                spacer.style.height = banner.offsetHeight + 'px';
+                spacer.style.display = 'block';
+            }, 50);
+        }
+
+        function dismissTolAlert() {
+            document.getElementById('tolAlertBanner').style.display = 'none';
+            document.getElementById('tolAlertSpacer').style.display = 'none';
+        }
+
+        async function acknowledgeTolAlert() {
+            if (!_tolAlertItems.length) return;
+            const btn = document.querySelector('#tolAlertBanner button:last-child');
+            if (btn) { btn.textContent = 'Processing...'; btn.disabled = true; }
+
+            let ok = 0;
+            for (const item of _tolAlertItems) {
+                try {
+                    const updated = { ...item, tolAlert: false, tolAlertAcknowledged: true, lastModified: new Date().toISOString(), modifiedBy: currentUser };
+                    await window.ComponentsBayDB.save('efs', { id: item.id, data: updated });
+                    const idx = efsData.findIndex(i => i.id === item.id);
+                    if (idx !== -1) efsData[idx] = updated;
+                    ok++;
+                } catch(e) { console.error('TOL ack error', e); }
+            }
+
+            dismissTolAlert();
+            _tolAlertItems = [];
+            updateSummary();
+            if (ok > 0) showMessage(`${ok} TOL alert(s) acknowledged and cleared.`, 'success', 'efsMessage');
         }
 
         function handleEFSSubmit(event) {
