@@ -127,6 +127,8 @@
                             <option value="">Select P/N</option>
                             <option value="S720A10A2000">S720A10A2000</option>
                             <option value="S492A10A1009">S492A10A1009</option>
+                            <option value="70GM010010">70GM010010</option>
+                            <option value="70GM041130">70GM041130</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -142,15 +144,20 @@
                         <label>Inspection Type</label>
                         <select id="inspectionType" class="form-control" onchange="calculateNextInspections()" required>
                             <option value="">Select inspection</option>
+                            <option value="6M">6 Months</option>
                             <option value="24M">24 Months</option>
                             <option value="48M">48 Months (includes 24M)</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Next 24M Inspection</label>
+                    <div class="form-group" id="next6MGroup" style="display:none;">
+                        <label>Next 6M Inspection</label>
+                        <input type="date" id="next6M" class="form-control" style="background:#f8f9fa;">
+                    </div>
+                    <div class="form-group" id="next24MGroup">
+                        <label id="next24MLabel">Next 24M Inspection</label>
                         <input type="date" id="next24M" class="form-control" style="background:#f8f9fa;">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="next48MGroup">
                         <label>Next 48M Inspection</label>
                         <input type="date" id="next48M" class="form-control" style="background:#f8f9fa;">
                     </div>
@@ -275,7 +282,10 @@
 
         const pnMapping = {
             'S720A10A2000': 'RTM322, Engine',
-            'S492A10A1009': 'APU'
+            'S492A10A1009': 'APU',
+            '70GM010010':   'Compressor MO1 Engine',
+            '70gm010010':   'Compressor MO1 Engine',
+            '70GM041130':   'Shaft Turbine'
         };
 
         // Wait for ComponentsBayDB to be available (loaded as module)
@@ -336,29 +346,64 @@
         function handlePNSelection() {
             const pn = document.getElementById('partNumber').value;
             document.getElementById('designation').value = pnMapping[pn] || '';
+
+            const sel = document.getElementById('inspectionType');
+            const opt6M  = sel.querySelector('option[value="6M"]');
+            const opt24M = sel.querySelector('option[value="24M"]');
+            const opt48M = sel.querySelector('option[value="48M"]');
+
+            // Reset all options
+            [opt6M, opt24M, opt48M].forEach(o => { if (o) o.disabled = false; });
+
+            if (pn === '70GM010010' || pn === '70gm010010') {
+                // Compressor MO1 : 24M seulement
+                if (opt6M)  opt6M.disabled = true;
+                if (opt48M) opt48M.disabled = true;
+                sel.value = '24M';
+            } else if (pn === '70GM041130') {
+                // Shaft Turbine : 6M seulement
+                if (opt24M) opt24M.disabled = true;
+                if (opt48M) opt48M.disabled = true;
+                sel.value = '6M';
+            }
+            calculateNextInspections();
         }
 
         function calculateNextInspections() {
             const date = document.getElementById('inspectionDate').value;
             const type = document.getElementById('inspectionType').value;
-            if (!date || !type) return;
 
+            // Affichage dynamique des champs selon le type
+            const g6M  = document.getElementById('next6MGroup');
+            const g24M = document.getElementById('next24MGroup');
+            const g48M = document.getElementById('next48MGroup');
+            if (g6M)  g6M.style.display  = (type === '6M')  ? '' : 'none';
+            if (g24M) g24M.style.display  = (type === '6M')  ? 'none' : '';
+            if (g48M) g48M.style.display  = (type === '48M') ? '' : 'none';
+
+            if (!date || !type) return;
             const baseDate = new Date(date);
 
-            if (type === '24M') {
-                // Only update 24M, don't touch 48M
+            if (type === '6M') {
+                const next6 = new Date(baseDate);
+                next6.setMonth(next6.getMonth() + 6);
+                document.getElementById('next6M').value = next6.toISOString().split('T')[0];
+                document.getElementById('next24M').value = '';
+                document.getElementById('next48M').value = '';
+            } else if (type === '24M') {
                 const next24 = new Date(baseDate);
                 next24.setMonth(next24.getMonth() + 24);
                 document.getElementById('next24M').value = next24.toISOString().split('T')[0];
+                document.getElementById('next6M').value = '';
+                document.getElementById('next48M').value = '';
             } else if (type === '48M') {
-                // 48M includes 24M, update both
                 const next24 = new Date(baseDate);
                 next24.setMonth(next24.getMonth() + 24);
                 document.getElementById('next24M').value = next24.toISOString().split('T')[0];
-
                 const next48 = new Date(baseDate);
                 next48.setMonth(next48.getMonth() + 48);
                 document.getElementById('next48M').value = next48.toISOString().split('T')[0];
+                document.getElementById('next6M').value = '';
             }
         }
 
@@ -371,11 +416,15 @@
                 let overdue = false;
                 let reason = '';
 
-                if (item.next24M && new Date(item.next24M) < today) {
+                if (item.next6M && new Date(item.next6M) < today) {
+                    overdue = true;
+                    reason = 'Inspection Overdue (6M)';
+                }
+                if (!overdue && item.next24M && new Date(item.next24M) < today) {
                     overdue = true;
                     reason = 'Preservation Overdue (24M)';
                 }
-                if (item.next48M && new Date(item.next48M) < today) {
+                if (!overdue && item.next48M && new Date(item.next48M) < today) {
                     overdue = true;
                     reason = 'Preservation Overdue (48M)';
                 }
@@ -492,6 +541,7 @@
                 inspectionDate: document.getElementById('inspectionDate').value,
                 next24M: document.getElementById('next24M').value,
                 next48M: document.getElementById('next48M').value,
+                next6M: document.getElementById('next6M') ? document.getElementById('next6M').value : '',
                 serviceability: document.getElementById('serviceability').value || 'Serviceable',
                 order: document.getElementById('order') ? document.getElementById('order').value.trim() : '',
                 orderRef: document.getElementById('order') ? document.getElementById('order').value.trim() : '',
@@ -510,14 +560,15 @@
                 lastModified: new Date().toISOString(),
                 modifiedBy: currentUser
             };
-                jcnBook: document.getElementById('jcnBook') ? document.getElementById('jcnBook').value : '',
-                reason: '',
-                lastModified: new Date().toISOString(),
-                modifiedBy: currentUser
-            };
 
             // Check overdue — only set reason if not already manually Unserviceable with custom reason
             const today = new Date(); today.setHours(0,0,0,0);
+            if (formData.next6M && new Date(formData.next6M) < today) {
+                if (formData.serviceability !== 'Unserviceable' || !formData.reason) {
+                    formData.serviceability = 'Unserviceable';
+                    formData.reason = 'Inspection Overdue (6M)';
+                }
+            }
             if (formData.next24M && new Date(formData.next24M) < today) {
                 if (formData.serviceability !== 'Unserviceable' || !formData.reason) {
                     formData.serviceability = 'Unserviceable';
@@ -658,6 +709,9 @@
             document.getElementById('inspectionDate').value = editingItem.inspectionDate || '';
             document.getElementById('next24M').value = editingItem.next24M || '';
             document.getElementById('next48M').value = editingItem.next48M || '';
+            if (document.getElementById('next6M')) document.getElementById('next6M').value = editingItem.next6M || '';
+            handlePNSelection();
+            calculateNextInspections();
             document.getElementById('serviceability').value = editingItem.serviceability || '';
             _currentEditingForLogcard = editingItem;
             try { document.getElementById('sentToWarehouse').checked = editingItem.sentToWarehouse || false; showWarehouseCheckbox(editingItem.serviceability || ''); updateLogcardBtn(editingItem.logcardUrl || null); } catch(e) {}
